@@ -36,6 +36,8 @@ import {
   setWeather,
   getClouds,
   setClouds,
+  getRoadDetail,
+  setRoadDetail,
   resetSettings,
 } from './prefs'
 import { AudioEngine } from '../audio/audio'
@@ -51,7 +53,7 @@ import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
 import { buildRoads, buildRailways } from '../world/roads'
-import { buildRoadDetail } from '../world/roadDetail'
+import { buildRoadDetail, LAMP_MAT } from '../world/roadDetail'
 import { buildWater } from '../world/water'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
@@ -97,6 +99,7 @@ let timeOfDay = 0.35 // start mid-morning
 setVehicleMesh(stage, buildVehicleMesh(vehicle))
 
 let worldGroup: import('three').Object3D[] = []
+let roadDetailMesh: import('three').Object3D | null = null
 let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
@@ -148,7 +151,8 @@ async function loadCity(query: string): Promise<void> {
     const bridgesMesh = buildRoads(world.roads.filter((r) => r.bridge), provider, { lift: 4, color: 0x55555f })
     const tunnelsMesh = buildRoads(world.roads.filter((r) => r.tunnel && !r.bridge), provider, { color: 0x24242a })
     const railsMesh = buildRailways(world.railways, provider)
-    const roadDetailMesh = buildRoadDetail(world.roads, provider)
+    roadDetailMesh = buildRoadDetail(world.roads, provider)
+    roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider)
     const greenMesh = buildGreenery(world.green, world.trees, provider)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
@@ -209,6 +213,7 @@ async function loadCity(query: string): Promise<void> {
         menu.setTime(timeOfDay)
         const night = Math.max(0, Math.min(1, (0.12 - sunElevation(timeOfDay)) / 0.45))
         headlight.intensity = night * 4
+        LAMP_MAT.emissiveIntensity = night * 1.6 // street lamps glow after dusk
         if (night > 0) {
           const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
           headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)
@@ -244,6 +249,7 @@ const menu = createSettingsMenu(
     hud: getHud(),
     shadows: getShadows(),
     clouds: getClouds(),
+    roadDetail: getRoadDetail(),
     weather: getWeather(),
   },
   {
@@ -281,6 +287,10 @@ const menu = createSettingsMenu(
     onClouds: (on) => {
       setClouds(on)
       clouds.setEnabled(on)
+    },
+    onRoadDetail: (on) => {
+      setRoadDetail(on)
+      if (roadDetailMesh) roadDetailMesh.visible = on
     },
     onWeather: (w) => {
       setWeather(w)

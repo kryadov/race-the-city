@@ -115,6 +115,25 @@ export function setClouds(on: boolean): void {
   }
 }
 
+const ROAD_DETAIL_KEY = 'rtc.roadDetail'
+
+/** Whether road dressing (lamps, signs, lane lines) is shown (on by default). */
+export function getRoadDetail(): boolean {
+  try {
+    return localStorage.getItem(ROAD_DETAIL_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setRoadDetail(on: boolean): void {
+  try {
+    localStorage.setItem(ROAD_DETAIL_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const WEATHER_KEY = 'rtc.weather'
 
 /** Persisted weather (clear by default). */

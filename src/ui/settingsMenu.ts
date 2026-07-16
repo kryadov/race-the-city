@@ -22,6 +22,7 @@ export interface SettingsCallbacks {
   onHud: (on: boolean) => void
   onShadows: (on: boolean) => void
   onClouds: (on: boolean) => void
+  onRoadDetail: (on: boolean) => void
   onWeather: (w: Weather) => void
   onReset: () => void
 }
@@ -52,6 +53,7 @@ export function createSettingsMenu(
     hud: boolean
     shadows: boolean
     clouds: boolean
+    roadDetail: boolean
     weather: Weather
   },
   cb: SettingsCallbacks,
@@ -64,6 +66,7 @@ export function createSettingsMenu(
   let hud = initial.hud
   let shadows = initial.shadows
   let clouds = initial.clouds
+  let roadDetail = initial.roadDetail
   let weather = initial.weather
 
   const gear = document.createElement('button')
@@ -254,12 +257,21 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(cloudsBtn)
+  const roadDetailBtn = button()
+  roadDetailBtn.style.cssText += ';width:100%;margin-top:4px'
+  roadDetailBtn.addEventListener('click', () => {
+    roadDetail = !roadDetail
+    cb.onRoadDetail(roadDetail)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(roadDetailBtn)
   function paintLabelsToggle(): void {
     labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
     driftBtn.textContent = `${driftFx ? '☑' : '☐'} ${t('menu.driftFx')}`
     hudBtn.textContent = `${hud ? '☑' : '☐'} ${t('menu.hud')}`
     shadowsBtn.textContent = `${shadows ? '☑' : '☐'} ${t('menu.shadows')}`
     cloudsBtn.textContent = `${clouds ? '☑' : '☐'} ${t('menu.clouds')}`
+    roadDetailBtn.textContent = `${roadDetail ? '☑' : '☐'} ${t('menu.roadDetail')}`
   }
 
   const weatherBtn = button()
