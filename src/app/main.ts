@@ -17,6 +17,7 @@ import { createClouds } from './clouds'
 import { createSky } from './sky'
 import { createNitro } from './nitro'
 import { createLoading } from '../ui/loading'
+import { createUpdateNotice } from '../ui/updateNotice'
 import { createVersionBadge } from '../ui/version'
 import { createHud } from '../ui/hud'
 import { createSettingsMenu } from '../ui/settingsMenu'
@@ -474,3 +475,21 @@ const saveSession = (): void => {
 }
 setInterval(saveSession, 3000)
 window.addEventListener('beforeunload', saveSession)
+
+// Poll the deployed version.json; offer a reload once a newer build is live.
+const updateNotice = createUpdateNotice(ui)
+const UPDATE_POLL_MS = 5 * 60 * 1000
+async function checkForUpdate(): Promise<void> {
+  try {
+    const url = new URL('version.json', location.href)
+    url.searchParams.set('t', String(Date.now())) // bypass any cache
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) return
+    const { version } = (await res.json()) as { version?: string }
+    if (version && version !== __APP_VERSION__) updateNotice.show(version)
+  } catch {
+    /* offline or not deployed yet — ignore */
+  }
+}
+setInterval(() => void checkForUpdate(), UPDATE_POLL_MS)
+void checkForUpdate()

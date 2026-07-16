@@ -52,6 +52,8 @@ const MESSAGES: Record<Lang, Dict> = {
     'weather.snow': 'Snow',
     'weather.fog': 'Fog',
     'hud.kmh': 'km/h',
+    'update.available': 'A new version is available',
+    'update.reload': 'Reload',
   },
   ru: {
     'input.placeholder': 'Город или "lat,lon"',
@@ -101,6 +103,8 @@ const MESSAGES: Record<Lang, Dict> = {
     'weather.snow': 'Снег',
     'weather.fog': 'Туман',
     'hud.kmh': 'км/ч',
+    'update.available': 'Доступна новая версия',
+    'update.reload': 'Обновить',
   },
 }
 
