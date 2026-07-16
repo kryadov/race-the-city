@@ -224,7 +224,7 @@ async function loadCity(query: string): Promise<void> {
           steerHold = sdir !== 0 ? dt : 0
         }
         blinkClock += dt
-        const blinkOn = steerHold > 1 && Math.floor(blinkClock / 0.4) % 2 === 0
+        const blinkOn = steerHold > 0.5 && Math.floor(blinkClock / 0.4) % 2 === 0
         TURN_RIGHT_MAT.emissiveIntensity = blinkOn && steerDir > 0 ? 2.4 : 0
         TURN_LEFT_MAT.emissiveIntensity = blinkOn && steerDir < 0 ? 2.4 : 0
         prevForward = fwd

@@ -118,6 +118,13 @@ function housingBar(h: number, w: number, surfX: number, y: number, z: number, f
   return m
 }
 
+/** A small amber side-repeater on a fender (blinks with its side's material). */
+function repeater(mat: THREE.MeshStandardMaterial, x: number, y: number, z: number): THREE.Mesh {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.1, 0.08), mat)
+  m.position.set(x, y, z)
+  return m
+}
+
 /** A small, tucked side mirror: a short stalk and a compact dark head. */
 function mirror(x: number, y: number, zBody: number, out: number): THREE.Object3D {
   const g = new THREE.Group()
@@ -142,6 +149,7 @@ function buildCar(): THREE.Group {
   g.add(lens(TURN_RIGHT_MAT, 0.24, 0.24, rx, 0.72, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.24, rx, 0.72, -0.82, -1))
   // front indicators beside the headlights + side mirrors on the cabin
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 0.62, 0.86, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 0.62, -0.86, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.25, 0.72, 0.97), repeater(TURN_LEFT_MAT, 1.25, 0.72, -0.97))
   g.add(mirror(0.8, 1.2, 0.95, 1), mirror(0.8, 1.2, -0.95, -1))
   return g
 }
@@ -162,6 +170,7 @@ function buildTruck(): THREE.Group {
   g.add(lens(TURN_RIGHT_MAT, 0.28, 0.26, rx, 0.98, 0.98, -1), lens(TURN_LEFT_MAT, 0.28, 0.26, rx, 0.98, -0.98, -1))
   // front indicators + mirrors on the cab
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.22, fx, 0.75, 0.98, 1), lens(TURN_LEFT_MAT, 0.22, 0.22, fx, 0.75, -0.98, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.8, 1.05, 1.11), repeater(TURN_LEFT_MAT, 1.8, 1.05, -1.11))
   g.add(mirror(2.4, 1.5, 1.05, 1), mirror(2.4, 1.5, -1.05, -1))
   return g
 }
@@ -180,6 +189,7 @@ function buildSports(): THREE.Group {
   g.add(lens(TURN_RIGHT_MAT, 0.24, 0.12, rx, 0.6, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.12, rx, 0.6, -0.82, -1))
   // front indicators + mirrors
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.14, fx, 0.5, 0.8, 1), lens(TURN_LEFT_MAT, 0.2, 0.14, fx, 0.5, -0.8, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.2, 0.55, 1.02), repeater(TURN_LEFT_MAT, 1.2, 0.55, -1.02))
   g.add(mirror(1.0, 0.95, 0.98, 1), mirror(1.0, 0.95, -0.98, -1))
   return g
 }
