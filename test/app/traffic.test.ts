@@ -228,3 +228,54 @@ describe('dense city, short edges', () => {
     }).not.toThrow()
   })
 })
+
+describe('level crossings', () => {
+  const line: Road[] = [{ points: [v(-400, 0), v(400, 0)], kind: 'residential' }]
+
+  it('holds the traffic for a train across the road', () => {
+    // the traffic has no physics, so if it doesn't check, nothing stops it
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, line, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    // A train across the road on both sides of every car: they drive either way
+    // down it, so one blocker each would sit behind half of them.
+    t.update(1 / 60, 0, 0, 0)
+    const train = positions(bodies).flatMap((p) => [
+      { x: p.x + 6, z: p.z, r: 2.4 },
+      { x: p.x - 6, z: p.z, r: 2.4 },
+    ])
+
+    const before = positions(bodies).map((p) => p.clone())
+    for (let f = 0; f < 120; f++) t.update(1 / 60, 0, 0, 0, train)
+    positions(bodies).forEach((p, i) => {
+      expect(p.distanceTo(before[i]), 'a car drove through the train').toBeLessThan(2)
+    })
+  })
+
+  it('drives on once the train has gone', () => {
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, line, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    t.update(1 / 60, 0, 0, 0)
+    const before = positions(bodies).map((p) => p.clone())
+    for (let f = 0; f < 120; f++) t.update(1 / 60, 0, 0, 0, [])
+    const moved = positions(bodies).some((p, i) => p.distanceTo(before[i]) > 2)
+    expect(moved).toBe(true)
+  })
+
+  it('ignores a train that is beside the road, not on it', () => {
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, line, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    t.update(1 / 60, 0, 0, 0)
+    const aside = positions(bodies).flatMap((p) => [
+      { x: p.x + 6, z: p.z + 30, r: 2.4 },
+      { x: p.x - 6, z: p.z + 30, r: 2.4 },
+    ])
+    const before = positions(bodies).map((p) => p.clone())
+    for (let f = 0; f < 120; f++) t.update(1 / 60, 0, 0, 0, aside)
+    const moved = positions(bodies).some((p, i) => p.distanceTo(before[i]) > 2)
+    expect(moved).toBe(true)
+  })
+})

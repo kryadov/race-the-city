@@ -69,3 +69,51 @@ describe('joinChains', () => {
     expect(chains[0].length).toBeGreaterThan(2)
   })
 })
+
+describe('joinChains at junctions', () => {
+  it('refuses to join through a junction', () => {
+    // Three ways meet at node 3. There is no "continuation" — joining blind
+    // walks off into a branch and doubles the line back on itself, which the
+    // mitred ribbon renders as a fan of garbage triangles.
+    const chains = joinChains([
+      [1, 2, 3], // arrives at the junction
+      [3, 4, 5], // one branch
+      [3, 6, 7], // another
+    ])
+    expect(chains).toHaveLength(3)
+    for (const c of chains) expect(c.length).toBe(3)
+  })
+
+  it('still joins a plain two-way seam', () => {
+    // exactly two ends at node 3: unambiguous, so it joins
+    const chains = joinChains([
+      [1, 2, 3],
+      [3, 4, 5],
+    ])
+    expect(chains).toHaveLength(1)
+    expect(chains[0]).toHaveLength(5)
+  })
+
+  it('joins the plain seams of a line that also has a junction', () => {
+    const chains = joinChains([
+      [1, 2],
+      [2, 3], // node 2: two ends, joinable
+      [3, 4], // node 3: three ends (this, the above, and the spur) — a junction
+      [3, 9],
+    ])
+    // the 1-2-3 run merges; the branches at 3 stay put
+    expect(chains.some((c) => c.length >= 3)).toBe(true)
+    expect(chains.length).toBeGreaterThan(1)
+  })
+
+  it('never produces a line that doubles back on itself', () => {
+    const chains = joinChains([
+      [1, 2, 3],
+      [3, 4, 5],
+      [3, 6, 7],
+    ])
+    for (const c of chains) {
+      expect(new Set(c).size, 'a node visited twice means the line folded').toBe(c.length)
+    }
+  })
+})

@@ -529,7 +529,7 @@ async function loadCity(query: string): Promise<void> {
         facades?.setNight(night) // windows come on behind them
         sky2.update(dt, stage.camera.position.x, stage.camera.position.z, night)
         trains?.update(dt, night)
-        traffic?.update(dt, car.x, car.z, night)
+        traffic?.update(dt, car.x, car.z, night, trains?.obstacles())
         people?.update(dt, car.x, car.z)
         boats?.update(dt)
         herds?.update(dt)

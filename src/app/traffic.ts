@@ -17,11 +17,14 @@ const SPAWN_MAX = 900
 const LANE = 2.2 // metres right of the centreline
 /** Guard on the walk below, so a pile of coincident nodes can't spin forever. */
 const MAX_HOPS = 8
+/** How far up its own road a car looks for a train, in metres. */
+const CROSSING_LOOK = 11
 
 const BODY_COLORS = [0xb23b3b, 0x2f5fa8, 0xd8d8d0, 0x3c3c44, 0x2e7d5b, 0xc8a23a, 0x7a4a86, 0xe0e3e8]
 
 export interface Traffic {
-  update(dt: number, camX: number, camZ: number, night: number): void
+  /** @param blockers things the traffic must stop for — trains at a crossing */
+  update(dt: number, camX: number, camZ: number, night: number, blockers?: Circle[]): void
   /** Where the cars are, for the player to collide with. */
   obstacles(): Circle[]
   setEnabled(on: boolean): void
@@ -192,13 +195,24 @@ export function createTraffic(
       agents.length = 0
       solidAt.length = 0
     },
-    update(dt, camX, camZ, night) {
+    update(dt, camX, camZ, night, blockers) {
       solidAt.length = 0
       tailMat.emissiveIntensity = night * 1.6
       headMat.emissiveIntensity = night * 2.2
       for (let i = 0; i < agents.length; i++) {
         let a = agents[i]
-        a.s += a.speed * dt
+        // Hold at a crossing rather than driving through the train: the traffic
+        // has no physics, so nothing else would stop it.
+        const here = place(a)
+        const blocked = blockers?.some((b) => {
+          const dx = b.x - here.x
+          const dz = b.z - here.z
+          const ahead = dx * Math.cos(here.angle) + dz * Math.sin(here.angle)
+          if (ahead < -1 || ahead > CROSSING_LOOK) return false
+          const lateral = -dx * Math.sin(here.angle) + dz * Math.cos(here.angle)
+          return Math.abs(lateral) < b.r + 1.6
+        })
+        if (!blocked) a.s += a.speed * dt
         // Walk by arc length, carrying the overshoot into the next edge. The old
         // test — "within ARRIVE of the end" — fired on the very first frame for
         // any edge shorter than ARRIVE, and city blocks are full of vertices a

@@ -266,34 +266,46 @@ export function stitchRings(ways: number[][]): number[][] {
 }
 
 /**
- * Join ways end to end into the longest continuous chains they make.
+ * Join ways end to end into the longest continuous lines they make.
  *
  * OSM cuts a railway into a way per bridge, junction and boundary, so a single
  * line arrives as a heap of fragments whose ends happen to meet. Left alone,
  * each fragment ends in the middle of the map — and a train running one has to
- * do something at that end, in full view. Joined up, the line runs off the edge
- * of the loaded square, which is where it actually goes.
+ * do something at that end, in full view.
+ *
+ * Only joins where exactly TWO ways meet at a node. At a junction three or four
+ * of them share it, and there is no such thing as "the continuation": joining
+ * blindly walks the chain off into a branch and doubles it back on itself, which
+ * a mitred ribbon renders as a fan of garbage triangles.
  *
  * Matched on node id: the ends are the same node, and comparing floats would
  * leave the join open over rounding.
  */
 export function joinChains(ways: number[][]): number[][] {
   const pool = ways.filter((w) => w.length >= 2).map((w) => w.slice())
-  const chains: number[][] = []
 
+  // How many way-ends land on each node. Only a node with exactly two is an
+  // unambiguous continuation; anything else is a junction.
+  const ends = new Map<number, number>()
+  for (const w of pool) {
+    for (const id of [w[0], w[w.length - 1]]) ends.set(id, (ends.get(id) ?? 0) + 1)
+  }
+  const joinable = (id: number): boolean => ends.get(id) === 2
+
+  const chains: number[][] = []
   while (pool.length) {
     let chain = pool.pop() as number[]
     let joined = true
     while (joined) {
       joined = false
+      const head = chain[0]
+      const tail = chain[chain.length - 1]
       for (let i = 0; i < pool.length; i++) {
         const w = pool[i]
-        const head = chain[0]
-        const tail = chain[chain.length - 1]
-        if (w[0] === tail) chain = chain.concat(w.slice(1))
-        else if (w[w.length - 1] === tail) chain = chain.concat(w.slice(0, -1).reverse())
-        else if (w[w.length - 1] === head) chain = w.slice(0, -1).concat(chain)
-        else if (w[0] === head) chain = w.slice(1).reverse().concat(chain)
+        if (joinable(tail) && w[0] === tail) chain = chain.concat(w.slice(1))
+        else if (joinable(tail) && w[w.length - 1] === tail) chain = chain.concat(w.slice(0, -1).reverse())
+        else if (joinable(head) && w[w.length - 1] === head) chain = w.slice(0, -1).concat(chain)
+        else if (joinable(head) && w[0] === head) chain = w.slice(1).reverse().concat(chain)
         else continue
         pool.splice(i, 1)
         joined = true
