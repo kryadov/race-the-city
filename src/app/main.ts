@@ -71,6 +71,7 @@ import { buildWater } from '../world/water'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
 import { SpatialGrid } from '../physics/grid'
+import { pointInPolygon } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
 import { VEHICLES, LEANS, type VehicleType } from '../vehicle/vehicles'
@@ -149,6 +150,9 @@ setVehicleMesh(stage, buildVehicleMesh(vehicle))
 let worldGroup: import('three').Object3D[] = []
 let roadDetailMesh: import('three').Object3D | null = null
 let tunnelSegs: { ax: number; az: number; bx: number; bz: number; r2: number }[] = []
+// Buildings indexed for the camera-occlusion test, with their heights.
+let occGrid = new SpatialGrid([], 25)
+const occHeight = new Map<import('../geo/types').Vec2[], number>()
 let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
@@ -228,6 +232,13 @@ async function loadCity(query: string): Promise<void> {
     theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
+    // index buildings (with heights) so the camera can tell when one blocks the car
+    occHeight.clear()
+    for (const b of world.buildings) occHeight.set(b.footprint, b.height)
+    occGrid = new SpatialGrid(
+      world.buildings.map((b) => b.footprint),
+      25,
+    )
     // collect tunnel segments so the camera can pull in when the car drives through one
     tunnelSegs = []
     for (const road of world.roads) {
@@ -326,9 +337,11 @@ async function loadCity(query: string): Promise<void> {
           headlight.target.position.set(car.x + hx * 24, car.y, car.z + hz * 24)
           headlight.target.updateMatrixWorld()
         }
-        // pull the camera in when driving through a tunnel so the car stays visible
-        const target = inTunnel(car.x, car.z) ? 0.42 : 1
-        stage.camDistScale += (target - stage.camDistScale) * (1 - Math.exp(-4 * dt))
+        // pull the camera in through tunnels, and when a building blocks the car
+        const blocked = viewBlocked(car.x, car.z, car.y + 1.5, stage.camera.position)
+        const target = inTunnel(car.x, car.z) ? 0.42 : blocked ? 0.45 : 1
+        // snap in quickly when blocked, ease back out gently once clear
+        stage.camDistScale += (target - stage.camDistScale) * (1 - Math.exp(-(blocked ? 9 : 4) * dt))
         // bikes bank into corners; everything else stays upright
         const leanTarget = LEANS[vehicle] ? input.steer * Math.min(1, Math.abs(fwd) / 12) * MAX_LEAN : 0
         lean += (leanTarget - lean) * (1 - Math.exp(-6 * dt))
@@ -455,6 +468,27 @@ const menu = createSettingsMenu(
   },
 )
 theme.onChange = (mode) => menu.setViewMode(mode)
+
+/**
+ * Whether a building stands between the car and the camera. Walks the sight line
+ * and tests nearby footprints against the ray's height — far cheaper than
+ * raycasting the merged city mesh every frame.
+ */
+function viewBlocked(cx: number, cz: number, cy: number, cam: THREE.Vector3): boolean {
+  const dx = cam.x - cx, dz = cam.z - cz, dy = cam.y - cy
+  const len = Math.hypot(dx, dz)
+  if (len < 1) return false
+  const steps = Math.min(14, Math.max(3, Math.ceil(len / 2)))
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps
+    const x = cx + dx * t, z = cz + dz * t, y = cy + dy * t
+    for (const fp of occGrid.near(x, z)) {
+      const roof = provider.heightAt(x, z) + (occHeight.get(fp) ?? 0)
+      if (y < roof && pointInPolygon(x, z, fp)) return true
+    }
+  }
+  return false
+}
 
 /** Whether (x,z) is on a tunnel segment (car is under a roof). */
 function inTunnel(x: number, z: number): boolean {
