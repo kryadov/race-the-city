@@ -144,8 +144,14 @@ function showVehicle(type: VehicleType): void {
   setVehicleMesh(stage, mesh)
 }
 const BOOST_TIME = 2.5 // seconds of nitro boost per pickup
-const BOOST_MULT = 10 // top-speed multiplier while boosting
+const BOOST_MULT = 10 // top-speed multiplier at full boost
 let boostTimer = 0
+// Boost winds in and out rather than snapping: 10x arriving in one frame threw
+// the car, and losing it as abruptly felt like hitting a wall. Spooling up is
+// quicker than spooling down, the way a turbo behaves.
+let boost = 0 // 0..1
+const BOOST_SPOOL_UP = 5 // per second
+const BOOST_SPOOL_DOWN = 1.8
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
@@ -278,6 +284,7 @@ async function loadCity(query: string): Promise<void> {
       }
     }
     boostTimer = 0
+    boost = 0 // don't carry a live boost into the new city
 
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
@@ -330,12 +337,20 @@ async function loadCity(query: string): Promise<void> {
         }
         // nitro: collecting a bottle boosts the top speed for a short window
         if (nitro.update(car.x, car.z, dt)) boostTimer = BOOST_TIME
-        const activeSpec =
-          boostTimer > 0
-            ? { ...spec, maxSpeed: spec.maxSpeed * BOOST_MULT, accel: spec.accel * 3 }
-            : spec
         if (boostTimer > 0) boostTimer -= dt
-        flame.update(boostTimer > 0, dt)
+        const boostTarget = boostTimer > 0 ? 1 : 0
+        const spool = boostTarget > boost ? BOOST_SPOOL_UP : BOOST_SPOOL_DOWN
+        boost += (boostTarget - boost) * (1 - Math.exp(-spool * dt))
+        if (boost < 0.002) boost = 0
+        const activeSpec =
+          boost > 0
+            ? {
+                ...spec,
+                maxSpeed: spec.maxSpeed * (1 + (BOOST_MULT - 1) * boost),
+                accel: spec.accel * (1 + 2 * boost),
+              }
+            : spec
+        flame.update(boost > 0.05, dt)
         car = stepCar(car, input, dt, grid, provider, activeSpec)
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
@@ -495,7 +510,10 @@ const menu = createSettingsMenu(
     onNitro: (on) => {
       setNitro(on)
       nitro.setEnabled(on)
-      if (!on) boostTimer = 0
+      if (!on) {
+        boostTimer = 0
+        boost = 0
+      }
     },
     onUnits: (u) => {
       setUnits(u)
