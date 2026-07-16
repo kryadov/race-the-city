@@ -55,3 +55,36 @@ export function setDriftFx(on: boolean): void {
     /* ignore */
   }
 }
+
+const HUD_KEY = 'rtc.hud'
+
+/** Whether the HUD (city + speed) is shown (on by default). */
+export function getHud(): boolean {
+  try {
+    return localStorage.getItem(HUD_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setHud(on: boolean): void {
+  try {
+    localStorage.setItem(HUD_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Clear every persisted setting (rtc.* keys). */
+export function resetSettings(): void {
+  try {
+    const keys: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith('rtc.')) keys.push(k)
+    }
+    keys.forEach((k) => localStorage.removeItem(k))
+  } catch {
+    /* ignore */
+  }
+}
