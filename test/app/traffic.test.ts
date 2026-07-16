@@ -280,6 +280,27 @@ describe('level crossings', () => {
   })
 })
 
+describe('traffic on a slope', () => {
+  it('stands the cars on the hill rather than sliding them down it flat', () => {
+    // A pure yaw held every car dead level and it rode the hill like a lift.
+    const hill = { heightAt: (x: number) => x * 0.25 }
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, grid, hill, () => 0.5)
+    t.update(0.016, 0, 0, 0)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    const m = new THREE.Matrix4()
+    const q = new THREE.Quaternion()
+    let tilted = false
+    for (let i = 0; i < bodies.count; i++) {
+      bodies.getMatrixAt(i, m)
+      m.decompose(new THREE.Vector3(), q, new THREE.Vector3())
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(q)
+      if (up.y < 0.999) tilted = true
+    }
+    expect(tilted, 'every car sat perfectly level on a 1-in-4 hill').toBe(true)
+  })
+})
+
 describe('cars trapped on a stub', () => {
   it('puts no car on a stub it could only turn round on', () => {
     // A stub is a dead end at both ends: nextNode turns the car round every

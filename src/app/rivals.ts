@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Road, Vec2 } from '../geo/types'
 import { SpatialGrid } from '../physics/grid'
 import type { ElevationProvider } from '../terrain/provider'
+import { groundQuat } from '../terrain/slope'
 import { createCar, stepCar, type CarInput, type CarState } from '../vehicle/car'
 import { buildVehicleMesh } from '../vehicle/model'
 import { VEHICLES, type VehicleSpec, type VehicleType } from '../vehicle/vehicles'
@@ -156,11 +157,7 @@ export function createRivals(scene: THREE.Scene): Rivals {
 
   const show = (r: Racer): void => {
     r.mesh.position.set(r.car.x, r.car.y, r.car.z)
-    // Negated, and nothing else: a vehicle model's nose is its local +x, and a
-    // +y rotation swings +x toward -z while a +heading turns toward +z. This is
-    // the player's convention in `scene.ts` and the traffic's in `traffic.ts`,
-    // flattened — a rival has no terrain basis, it just sits on its wheels.
-    r.mesh.rotation.y = -r.car.heading
+    groundQuat(r.mesh.quaternion, r.car.x, r.car.z, r.car.heading, height)
   }
 
   return {

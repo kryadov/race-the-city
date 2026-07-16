@@ -34,6 +34,15 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Sky dome with gradient + sun disc — done in v0.33.0
 - [x] Street lamps, signs & road markings — done in v0.31.0, reworked in v0.37.0
 
+## 📥 Asked for, not done yet
+- [ ] **A jumped car may land on or clear a roof** — and any other obstacle it is above.
+      The physics grid holds footprints with no heights, so nothing knows what you are over
+- [ ] **Girls in skirts** among the pedestrians
+- [ ] **Map radius ×1.5** (1000m → 1500m) if it does not cost performance — measure first:
+      buildings are merged per class, so nothing is culled and 2.25× the area is 2.25× the
+      vertices, whatever the fog hides
+- [ ] **Sandy ground in southern cities** — green reads wrong for Cairo or Marrakesh
+
 ## 🚗 Vehicles & physics
 - [x] More vehicles — six more incl. a leaning motorbike — done in v0.51.0 (custom colours still open)
 - [x] **Ten more vehicles** — crane, minivan, tracked ATV, hovercar, EV, retro, tanker, tiller,

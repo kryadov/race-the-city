@@ -72,3 +72,34 @@ describe('circleFits', () => {
     })
   })
 })
+
+describe('where a boat goes', () => {
+  /** A sea filling everything east of x = 200, running well off the map. */
+  const sea: Vec2[] = [
+    { x: 200, z: -6000 },
+    { x: 6000, z: -6000 },
+    { x: 6000, z: 6000 },
+    { x: 200, z: 6000 },
+  ]
+
+  it('puts a ship in sight of the city, not out in the open sea', async () => {
+    // The widest part of a sea that runs off the edge of the map is a mile
+    // offshore. The ship was out there: afloat, correct, and invisible.
+    const { spotNearMiddle } = await import('../../src/app/boats')
+    const spot = spotNearMiddle(sea)
+    expect(spot).not.toBeNull()
+    expect(Math.hypot(spot!.x, spot!.z), 'beyond the fog is nowhere').toBeLessThan(900)
+    expect(spot!.r).toBeGreaterThan(14)
+  })
+
+  it('still finds nothing in a puddle', async () => {
+    const { spotNearMiddle } = await import('../../src/app/boats')
+    const puddle: Vec2[] = [
+      { x: 0, z: 0 },
+      { x: 8, z: 0 },
+      { x: 8, z: 8 },
+      { x: 0, z: 8 },
+    ]
+    expect(spotNearMiddle(puddle)).toBeNull()
+  })
+})

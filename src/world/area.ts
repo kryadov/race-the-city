@@ -45,6 +45,18 @@ export function inradius(ring: Vec2[], samples = 24): { x: number; z: number; r:
   return best
 }
 
+/**
+ * How much room there is at a point: the distance to the ring's edge, or 0 if
+ * the point is outside it altogether.
+ *
+ * `inradius` answers "where is the widest part of this water", which for a sea
+ * that runs off the edge of the map is somewhere out in the sea. This answers
+ * the question a caller with a place in mind actually has: is there room HERE.
+ */
+export function roomAt(ring: Vec2[], x: number, z: number): number {
+  return contains(ring, x, z) ? distanceToEdge(ring, x, z) : 0
+}
+
 function contains(ring: Vec2[], x: number, z: number): boolean {
   let inside = false
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {

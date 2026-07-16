@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { Road } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
+import { groundQuat } from '../terrain/slope'
 import { buildRoadGraph, nextNode, roomToDrive, type RoadGraph } from '../world/roadGraph'
 import type { Circle } from '../physics/collide'
 
@@ -219,7 +220,6 @@ export function createTraffic(
   const pos = new THREE.Vector3()
   const one = new THREE.Vector3(1, 1, 1)
   const scl = new THREE.Vector3()
-  const up = new THREE.Vector3(0, 1, 0)
 
   const place = (a: Agent): Placed => {
     const A = graph.nodes[a.at]
@@ -321,7 +321,9 @@ export function createTraffic(
 
         solidAt.push({ x: p.x, z: p.z, r: 2.0 })
         pos.set(p.x, provider.heightAt(p.x, p.z), p.z)
-        q.setFromAxisAngle(up, -p.angle)
+        // Stood on the road's slope, not merely turned to face along it: a pure
+        // yaw slid every car down every hill dead level, like a lift.
+        groundQuat(q, p.x, p.z, p.angle, provider)
         m.compose(pos, q, one)
         const bt = BODY_TYPES[a.type]
         // Same boxes, stretched: a van, a hatchback and an estate out of one shape.

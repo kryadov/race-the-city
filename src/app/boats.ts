@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
-import { inradius } from '../world/area'
+import { roomAt } from '../world/area'
 import { waterLevel } from '../world/water'
 import { pointInPolygon } from '../physics/collide'
 
@@ -72,6 +72,35 @@ export function circleFits(
   return true
 }
 
+/**
+ * How far out to look for water, and how finely — metres. The scene's fog closes
+ * at 900m, so a boat beyond that is a boat nobody will ever see.
+ */
+const LOOK = 900
+const LOOK_STEP = 60
+
+/**
+ * The nearest spot to the middle of the map with room for a boat.
+ *
+ * It used to take the widest part of the water, wherever that was. For a river
+ * that fits in the map that is the same place; for a sea along the edge of one
+ * it is a mile offshore, and the ship was out there, correctly afloat and
+ * completely invisible.
+ */
+export function spotNearMiddle(ring: Vec2[]): { x: number; z: number; r: number } | null {
+  let best: { x: number; z: number; r: number; d: number } | null = null
+  for (let x = -LOOK; x <= LOOK; x += LOOK_STEP) {
+    for (let z = -LOOK; z <= LOOK; z += LOOK_STEP) {
+      const d = Math.hypot(x, z)
+      if (d > LOOK || (best && d >= best.d)) continue
+      const r = roomAt(ring, x, z)
+      if (r < ROWBOAT_ROOM) continue
+      best = { x, z, r, d }
+    }
+  }
+  return best
+}
+
 /** A small cargo ship, pointing +x. */
 function ship(): THREE.Group {
   const g = new THREE.Group()
@@ -138,8 +167,8 @@ export function createBoats(
   for (const ring of water) {
     if (afloat.length >= maxBoats) break
     if (ring.length < 3) continue
-    const fit = inradius(ring)
-    if (fit.r < ROWBOAT_ROOM) continue // a puddle
+    const fit = spotNearMiddle(ring)
+    if (!fit) continue // a puddle, or nothing but open water miles off the map
     const big = fit.r >= SHIP_ROOM
     if (rand() > (big ? 0.75 : 0.4)) continue // not every stretch has one
 
