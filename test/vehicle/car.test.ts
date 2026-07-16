@@ -106,3 +106,25 @@ describe('VEHICLES presets', () => {
     expect(VEHICLES.sports.accel).toBeGreaterThan(VEHICLES.car.accel)
   })
 })
+
+describe('braking', () => {
+  it('stops at a standstill and never reverses through it', () => {
+    // an unclamped Euler step overshoots at low speed and drives you backwards
+    const brake = { throttle: 0, steer: 0, brake: true }
+    for (const speed of [0.05, 0.3, 1, 4, 12]) {
+      for (const dt of [1 / 60, 1 / 20, 0.05]) {
+        const c = stepCar({ ...createCar(), vx: speed, vy: 0 }, brake, dt, emptyGrid, flat, car)
+        const fwd = c.vx * Math.cos(c.heading) + c.vz * Math.sin(c.heading)
+        expect(fwd, `${speed}m/s over ${dt}s`).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
+
+  it('stops a reversing car at a standstill too', () => {
+    const brake = { throttle: 0, steer: 0, brake: true }
+    const c = stepCar({ ...createCar(), vx: -0.4, vy: 0 }, brake, 0.05, emptyGrid, flat, car)
+    const fwd = c.vx * Math.cos(c.heading) + c.vz * Math.sin(c.heading)
+    expect(fwd).toBeLessThanOrEqual(0)
+    expect(fwd).toBeGreaterThan(-0.4) // slowed, not flung forwards
+  })
+})

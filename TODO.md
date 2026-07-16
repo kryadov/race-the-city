@@ -50,7 +50,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Custom vehicle colours
 - [x] **Jumps** — gravity, `vy`, and a takeoff when the ground drops out from under you —
       done in v0.71.0
-- [ ] Brake tuning — low-speed brake can overshoot into reverse (same class as the fixed friction bug)
+- [x] Brake tuning — turned out to be already fixed: the step clamps at zero. Closed with a test
+      that brakes from a range of speeds and step sizes and asserts it never reverses — v0.71.1
 - [x] Drift effects — tyre skid marks + smoke — done in v0.16.0 (2x longer trail in v0.38.0)
 - [ ] Damage / dents, collision bounce with impulse
 - [x] Headlights (glow + spotlight that brightens at night) — done in v0.19.0
