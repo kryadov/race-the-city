@@ -18,6 +18,7 @@ import { createWeather, WEATHERS, type WeatherSetting } from './weather'
 import { createClouds } from './clouds'
 import { createSky } from './sky'
 import { createNitro } from './nitro'
+import { createFireworks } from './fireworks'
 import { createNitroFlame } from './nitroFlame'
 import { withRetry, LOAD_ATTEMPTS } from './retry'
 import { createLoading } from '../ui/loading'
@@ -189,6 +190,7 @@ let herds: Livestock | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
 const trial = createTimeTrial(stage.scene)
+const fireworks = createFireworks(stage.scene)
 const trialHud = createTrialHud(ui)
 trial.setEnabled(getTrial())
 trialHud.setVisible(getTrial())
@@ -209,6 +211,12 @@ let boostTimer = 0
 // quicker than spooling down, the way a turbo behaves.
 let boost = 0 // 0..1
 let lastGate = 0 // to ring only on the frame a gate is taken
+/** Where a finished lap's fireworks go off, relative to the car. */
+const FINISH_BURSTS = [
+  { x: -25, y: 40, z: -25 },
+  { x: 25, y: 46, z: -18 },
+  { x: 0, y: 38, z: 25 },
+]
 const BOOST_SPOOL_UP = 5 // per second
 const BOOST_SPOOL_DOWN = 1.8
 const audio = new AudioEngine()
@@ -483,8 +491,12 @@ async function loadCity(query: string): Promise<void> {
           const st = trial.update(dt, car.x, car.z)
           trialHud.set(st)
           trialHud.setRace(rivals.enabled() ? rivals.update(dt, car, st.taken, trial.course()) : null)
-          if (st.justFinished) audio.chime(true) // a lap done rings higher than a gate
-          else if (st.taken !== lastGate) audio.chime(false)
+          if (st.justFinished) {
+            audio.chime(true) // a lap done rings higher than a gate
+            // High and spread out, not overhead: the chase camera looks down at
+            // the car from behind, so a burst at the bumper goes off out of shot.
+            for (const b of FINISH_BURSTS) fireworks.fire(car.x + b.x, car.y + b.y, car.z + b.z)
+          } else if (st.taken !== lastGate) audio.chime(false)
           lastGate = st.taken
         }
         // Everything solid that moves: traffic, people, trains.
@@ -616,6 +628,7 @@ async function loadCity(query: string): Promise<void> {
           }
         }
         weather.update(stage.camera.position, dt)
+        fireworks.update(dt)
         clouds.update(stage.camera.position, dt, car.y) // clouds ride above the land, not above sea level
         minimap.update(car, trial.nextGate())
         roadLabels.update(stage.camera, car.x, car.z)
