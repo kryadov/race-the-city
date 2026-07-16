@@ -56,6 +56,12 @@ export class AudioEngine {
   private musicStep = 0
   private musicTimer: number | null = null
   private state: AudioState = loadState()
+  // A user-supplied audio file, looped in place of the procedural music.
+  // Session-only: a File can't be persisted, so it resets on reload.
+  private customEl: HTMLAudioElement | null = null
+  private customSrc: MediaElementAudioSourceNode | null = null
+  private customUrl: string | null = null
+  private customName = ''
 
   getState(): AudioState {
     return { ...this.state }
@@ -71,8 +77,9 @@ export class AudioEngine {
     if (!Ctor) return
     this.ctx = new Ctor()
     this.build()
+    this.connectCustom() // a track picked before the context existed
     this.applyVolumes()
-    this.startMusic()
+    if (!this.customEl) this.startMusic()
   }
 
   private build(): void {
@@ -179,10 +186,63 @@ export class AudioEngine {
   private restartMusic(): void {
     if (this.musicTimer !== null) window.clearInterval(this.musicTimer)
     this.musicStep = 0
-    this.startMusic()
+    if (!this.customEl) this.startMusic() // a custom track replaces the procedural loop
+  }
+
+  /** The custom track's file name, or null when using the procedural music. */
+  getCustomName(): string | null {
+    return this.customEl ? this.customName : null
+  }
+
+  /**
+   * Play a user-supplied audio file on loop instead of the procedural music.
+   * Pass null to go back to the built-in loop. Routed through the same music
+   * gain, so the music toggle and volume slider keep working.
+   */
+  setCustomMusic(file: File | null): void {
+    if (this.customEl) {
+      this.customEl.pause()
+      this.customEl = null
+    }
+    this.customSrc?.disconnect()
+    this.customSrc = null
+    if (this.customUrl) {
+      URL.revokeObjectURL(this.customUrl)
+      this.customUrl = null
+    }
+
+    if (!file) {
+      this.customName = ''
+      this.restartMusic() // back to the procedural loop
+      this.applyVolumes()
+      return
+    }
+
+    if (this.musicTimer !== null) {
+      window.clearInterval(this.musicTimer) // silence the procedural loop
+      this.musicTimer = null
+    }
+    this.customUrl = URL.createObjectURL(file)
+    this.customName = file.name
+    const el = new Audio(this.customUrl)
+    el.loop = true
+    this.customEl = el
+    this.connectCustom()
+    this.applyVolumes()
+  }
+
+  private connectCustom(): void {
+    if (!this.ctx || !this.musicGain || !this.customEl || this.customSrc) return
+    this.customSrc = this.ctx.createMediaElementSource(this.customEl)
+    this.customSrc.connect(this.musicGain)
   }
 
   private applyVolumes(): void {
+    // A custom track is a real element: pause it rather than just muting the gain.
+    if (this.customEl) {
+      if (this.state.music) void this.customEl.play().catch(() => undefined)
+      else this.customEl.pause()
+    }
     if (!this.ctx || !this.sfxGain || !this.musicGain) return
     this.sfxGain.gain.value = this.state.sound ? this.state.soundVol : 0
     this.musicGain.gain.value = this.state.music ? this.state.musicVol : 0
@@ -197,6 +257,6 @@ export class AudioEngine {
       /* ignore */
     }
     this.applyVolumes()
-    if (trackChanged && this.ctx) this.restartMusic()
+    if (trackChanged && this.ctx && !this.customEl) this.restartMusic()
   }
 }

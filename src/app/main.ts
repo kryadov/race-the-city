@@ -386,6 +386,10 @@ const menu = createSettingsMenu(
       }
     },
     onAudioChange: (patch) => audio.setState(patch),
+    onCustomMusic: (file) => {
+      audio.resume() // the picker click is a user gesture — safe to start audio
+      audio.setCustomMusic(file)
+    },
     onRoadLabels: (on) => {
       setRoadLabels(on)
       roadLabels.setEnabled(on)

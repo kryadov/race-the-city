@@ -18,6 +18,8 @@ export interface SettingsCallbacks {
   onSetView: (mode: ViewMode) => void
   onSelectVehicle: (type: VehicleType) => void
   onAudioChange: (patch: Partial<AudioState>) => void
+  /** A user-picked audio file to loop as music, or null to restore the built-in loop. */
+  onCustomMusic: (file: File | null) => void
   onRoadLabels: (on: boolean) => void
   onSetTime: (t: number) => void
   onDriftFx: (on: boolean) => void
@@ -228,13 +230,42 @@ export function createSettingsMenu(
     cb.onAudioChange({ track: next })
     paintMelody()
   })
-  audioSec.append(sound.r, music.r, melodyBtn)
+  // Own-track picker: loops a local audio file in place of the procedural music.
+  let customName: string | null = null
+  const fileInput = document.createElement('input')
+  fileInput.type = 'file'
+  fileInput.accept = 'audio/*'
+  fileInput.style.display = 'none'
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0]
+    if (!f) return
+    customName = f.name
+    cb.onCustomMusic(f)
+    fileInput.value = '' // allow re-picking the same file
+    paintMelody()
+  })
+  const customBtn = button()
+  customBtn.style.cssText += ';width:100%;margin-top:4px'
+  customBtn.addEventListener('click', () => {
+    if (customName) {
+      customName = null // clear → back to the built-in loop
+      cb.onCustomMusic(null)
+      paintMelody()
+    } else {
+      fileInput.click()
+    }
+  })
+  audioSec.append(sound.r, music.r, melodyBtn, customBtn, fileInput)
   function paintAudio(): void {
     sound.btn.textContent = audio.sound ? '🔊' : '🔇'
     music.btn.textContent = audio.music ? '🎵' : '🔕'
   }
   function paintMelody(): void {
-    melodyBtn.textContent = `🎶 ${TRACK_NAMES[audio.track]}`
+    // With an own track the built-in melody cycle doesn't apply.
+    melodyBtn.textContent = customName ? `🎧 ${customName}` : `🎶 ${TRACK_NAMES[audio.track]}`
+    melodyBtn.disabled = customName !== null
+    melodyBtn.style.opacity = customName ? '0.5' : '1'
+    customBtn.textContent = customName ? '✕ ' + t('menu.builtinTrack') : '📂 ' + t('menu.customTrack')
   }
 
   // --- Map / labels ---
