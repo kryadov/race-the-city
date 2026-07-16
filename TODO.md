@@ -8,10 +8,11 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0
 - [x] **Palms in southern cities, not firs** — tree kind follows latitude; the Mediterranean band
       mixes palms with broadleaf — done in v0.65.0
-- [ ] **Big rivers are missing entirely** — `overpassQuery` asks only for `way[...]`, never
-      `relation[...]`, so any water mapped as a multipolygon relation (most large rivers — the
-      Neva, the Moskva) never arrives. Needs relation members + outer-ring stitching by node id,
-      and care: `>;` on a river relation can drag in the whole waterway far past the bbox.
+- [x] **Big rivers** — water multipolygon relations, outer rings stitched by node id — done in
+      v0.70.0 (verified against live Overpass: 6 water relations around the centre of Saint
+      Petersburg, incl. the Neva at 490 members, none of which arrived before)
+- [ ] Island holes in water — relation `inner` rings are skipped, so an island in a river is
+      painted over
 - [x] **Parking, marked out** — `amenity=parking` tarmac with painted bays — done in v0.68.0
 - [ ] Pedestrian squares (`highway=pedestrian`)
 - [ ] **Flowerbeds, fountains and statues** — OSM has all three:

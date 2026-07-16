@@ -1,12 +1,18 @@
 import type { Projector } from './project'
 import type { Building, BuildingKind, Road, RoadKind, Vec2, WorldData } from './types'
 
+export interface OverpassMember {
+  type: 'node' | 'way' | 'relation'
+  ref: number
+  role?: string
+}
 export interface OverpassElement {
   type: 'node' | 'way' | 'relation'
   id: number
   lat?: number
   lon?: number
   nodes?: number[]
+  members?: OverpassMember[]
   tags?: Record<string, string>
 }
 export interface OverpassResponse { elements: OverpassElement[] }
@@ -101,6 +107,11 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
+  const wayNodes = new Map<number, number[]>()
+  for (const el of json.elements) {
+    if (el.type === 'way' && el.nodes) wayNodes.set(el.id, el.nodes)
+  }
+
   const roads: Road[] = []
   const buildings: Building[] = []
   const water: Vec2[][] = []
@@ -142,7 +153,69 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
+  // Multipolygon relations: the only way big rivers (the Neva, the Moskva) are
+  // mapped — they never arrive as a single closed way.
+  for (const el of json.elements) {
+    if (el.type !== 'relation' || !el.members) continue
+    if (!isWater(el.tags ?? {})) continue
+    if (el.members.length > MAX_RELATION_MEMBERS) continue // a whole-river monster
+    const outers: number[][] = []
+    for (const mem of el.members) {
+      if (mem.type !== 'way') continue
+      if (mem.role && mem.role !== 'outer') continue // inner rings are islands; skip for now
+      const ns = wayNodes.get(mem.ref)
+      if (ns && ns.length >= 2) outers.push(ns)
+    }
+    for (const ringIds of stitchRings(outers)) {
+      const pts = ringIds.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
+      if (pts.length >= 3) water.push(pts)
+    }
+  }
+
   return { roads, buildings, water, green, parking, trees, coast, railways }
+}
+
+/** Skip a relation with more members than this — a whole-river monster. */
+export const MAX_RELATION_MEMBERS = 600
+
+/**
+ * Stitch a multipolygon's member ways into closed rings.
+ *
+ * A big river's outline is cut into dozens of ways that only join end to end,
+ * so each has to be walked and joined before there is a polygon to fill. Joins
+ * are matched on node id rather than coordinates: the ends are the same node,
+ * and comparing floats would leave the ring open over rounding.
+ *
+ * Ways that never close are dropped — an open chain has no inside to fill.
+ */
+export function stitchRings(ways: number[][]): number[][] {
+  const pool = ways.filter((w) => w.length >= 2).map((w) => w.slice())
+  const rings: number[][] = []
+
+  while (pool.length) {
+    let ring = pool.pop() as number[]
+    let joined = true
+    while (joined && ring[0] !== ring[ring.length - 1]) {
+      joined = false
+      for (let i = 0; i < pool.length; i++) {
+        const w = pool[i]
+        const end = ring[ring.length - 1]
+        if (w[0] === end) {
+          ring = ring.concat(w.slice(1))
+        } else if (w[w.length - 1] === end) {
+          ring = ring.concat(w.slice(0, -1).reverse())
+        } else {
+          continue
+        }
+        pool.splice(i, 1)
+        joined = true
+        break
+      }
+    }
+    // A closed ring repeats its first node last; drop the repeat.
+    if (ring.length >= 4 && ring[0] === ring[ring.length - 1]) rings.push(ring.slice(0, -1))
+  }
+  return rings
 }
 
 /** Ring length excluding the repeated closing node (OSM closed ways repeat the first node last). */

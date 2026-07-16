@@ -24,6 +24,7 @@ export function overpassQuery(b: BBox): string {
   way["highway"](${box});
   way["building"](${box});
   way["natural"="water"](${box});
+  relation["natural"="water"](${box});
   way["waterway"="riverbank"](${box});
   way["landuse"="reservoir"](${box});
   way["amenity"="parking"](${box});
