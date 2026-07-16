@@ -11,7 +11,7 @@ const AREA = 55 // horizontal half-extent of the (camera-local) particle box
 const TOP = 42
 const BOT = -30
 const RAIN_N = 700
-const SNOW_N = 550
+const SNOW_N = 1100
 const STREAK = 1.6 // rain drop length
 
 export interface WeatherFx {
@@ -62,7 +62,7 @@ export function createWeather(scene: THREE.Scene, fog: THREE.Fog): WeatherFx {
   snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3))
   const snow = new THREE.Points(
     snowGeo,
-    new THREE.PointsMaterial({ color: 0xffffff, size: 1.1, sizeAttenuation: true, transparent: true, opacity: 0.85, depthWrite: false }),
+    new THREE.PointsMaterial({ color: 0xffffff, size: 0.32, sizeAttenuation: true, transparent: true, opacity: 0.8, depthWrite: false }),
   )
   snow.frustumCulled = false
   snow.visible = false
