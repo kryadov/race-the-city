@@ -14,6 +14,7 @@ import { applyDayNight } from './daynight'
 import { createDriftFx } from './driftfx'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
+import { createHud } from '../ui/hud'
 import { createSettingsMenu } from '../ui/settingsMenu'
 import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
@@ -50,6 +51,7 @@ const loading = createLoading(ui)
 const minimap = createMinimap(ui)
 const roadLabels = createRoadLabels(ui)
 roadLabels.setEnabled(getRoadLabels())
+const hud = createHud(ui)
 createVersionBadge(ui)
 const keyboard = new Keyboard()
 const touch = createTouchControls(ui)
@@ -76,6 +78,7 @@ let loading_ = false
 async function loadCity(query: string): Promise<void> {
   if (loading_) return
   loading_ = true
+  hud.setCity(query)
   try {
     loading.show(t('loading.geocoding'))
     const center = await geocode(query)
@@ -149,6 +152,7 @@ async function loadCity(query: string): Promise<void> {
         car = stepCar(car, input, dt, grid, provider, spec)
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
+        hud.setSpeed(Math.abs(fwd) * 3.6)
         audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed))
         audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
