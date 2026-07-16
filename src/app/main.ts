@@ -44,6 +44,8 @@ import {
   setNitro,
   getZoom,
   setZoom,
+  getSession,
+  setSession,
   resetSettings,
 } from './prefs'
 import { AudioEngine } from '../audio/audio'
@@ -144,6 +146,7 @@ let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
 let stopLoop: (() => void) | null = null
 let loading_ = false
+let currentCity = '' // the loaded city query, for session save/restore
 
 async function loadCity(query: string): Promise<void> {
   if (loading_) return
@@ -237,6 +240,15 @@ async function loadCity(query: string): Promise<void> {
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
     car.y = provider.heightAt(0, 0)
+    // resume the saved pose if we're re-loading the same city
+    const sess = getSession()
+    if (sess && sess.city === query) {
+      car.x = sess.x
+      car.z = sess.z
+      car.heading = sess.heading
+      car.y = provider.heightAt(sess.x, sess.z)
+    }
+    currentCity = query
     driftFx.reset()
 
     loading.show(t('loading.build'), 1)
@@ -449,5 +461,12 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === '-' || e.key === '_') applyZoom(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
 })
-// a ?city=… link opens straight to that city; otherwise the saved default
-void loadCity(new URL(location.href).searchParams.get('city') || getDefaultCity())
+// a ?city=… link opens straight to that city; otherwise resume the last session, else the default
+void loadCity(new URL(location.href).searchParams.get('city') || getSession()?.city || getDefaultCity())
+
+// persist the session (city + car pose) so a reload resumes in place
+const saveSession = (): void => {
+  if (car && currentCity) setSession({ city: currentCity, x: car.x, z: car.z, heading: car.heading })
+}
+setInterval(saveSession, 3000)
+window.addEventListener('beforeunload', saveSession)

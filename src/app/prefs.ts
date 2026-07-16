@@ -115,6 +115,36 @@ export function setClouds(on: boolean): void {
   }
 }
 
+const SESSION_KEY = 'rtc.session'
+
+export interface Session {
+  city: string
+  x: number
+  z: number
+  heading: number
+}
+
+/** The last city + car pose, so a reload resumes where the player left off. */
+export function getSession(): Session | null {
+  try {
+    const s = localStorage.getItem(SESSION_KEY)
+    if (!s) return null
+    const o = JSON.parse(s) as Session
+    if (typeof o.city === 'string' && Number.isFinite(o.x) && Number.isFinite(o.z) && Number.isFinite(o.heading)) return o
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+export function setSession(s: Session): void {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(s))
+  } catch {
+    /* ignore */
+  }
+}
+
 const NITRO_KEY = 'rtc.nitro'
 
 /** Whether nitro speed-boost pickups appear (on by default). */
