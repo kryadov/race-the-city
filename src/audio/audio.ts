@@ -35,6 +35,7 @@ export class AudioEngine {
   private musicGain: GainNode | null = null
   private engineOsc: OscillatorNode | null = null
   private engineGain: GainNode | null = null
+  private engineFilter: BiquadFilterNode | null = null
   private skidGain: GainNode | null = null
   private musicStep = 0
   private state: AudioState = loadState()
@@ -67,10 +68,16 @@ export class AudioEngine {
     this.engineGain = ctx.createGain()
     this.engineGain.gain.value = 0
     this.engineGain.connect(this.sfxGain)
+    // Low-pass tames the harsh sawtooth harmonics into a mellow hum.
+    this.engineFilter = ctx.createBiquadFilter()
+    this.engineFilter.type = 'lowpass'
+    this.engineFilter.frequency.value = 200
+    this.engineFilter.Q.value = 0.6
+    this.engineFilter.connect(this.engineGain)
     this.engineOsc = ctx.createOscillator()
     this.engineOsc.type = 'sawtooth'
     this.engineOsc.frequency.value = 55
-    this.engineOsc.connect(this.engineGain)
+    this.engineOsc.connect(this.engineFilter)
     this.engineOsc.start()
 
     this.skidGain = ctx.createGain()
@@ -98,10 +105,12 @@ export class AudioEngine {
   }
 
   updateEngine(speedFraction: number): void {
-    if (!this.ctx || !this.engineOsc || !this.engineGain) return
+    if (!this.ctx || !this.engineOsc || !this.engineGain || !this.engineFilter) return
     const now = this.ctx.currentTime
     this.engineOsc.frequency.setTargetAtTime(engineFrequency(speedFraction), now, 0.05)
-    this.engineGain.gain.setTargetAtTime(0.04 + speedFraction * 0.12, now, 0.1)
+    // Filter opens up with revs; overall level is low and near-silent at idle.
+    this.engineFilter.frequency.setTargetAtTime(180 + speedFraction * 1000, now, 0.08)
+    this.engineGain.gain.setTargetAtTime(0.015 + speedFraction * 0.07, now, 0.1)
   }
 
   updateSkid(slipFraction: number): void {
