@@ -1,117 +1,119 @@
 # Race the City 🚗🌆
 
-Кatайся на машине по **реальному городу**, построенному на лету из открытых данных.
-Вводишь название города — и оказываешься за рулём low-poly-версии его улиц, зданий и рельефа.
-Всё работает прямо в браузере, без бэкенда.
+Drive a car around a **real city**, built on the fly from open data.
+Type a city name and you're behind the wheel of a low-poly version of its
+streets, buildings, and terrain. Everything runs right in the browser — no backend.
 
-- **Дороги и здания** — из [OpenStreetMap](https://www.openstreetmap.org) (Overpass API)
-- **Рельеф земли** — из [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (формат Terrarium)
-- **3D и рендер** — [Three.js](https://threejs.org)
+- **Roads and buildings** — from [OpenStreetMap](https://www.openstreetmap.org) (Overpass API)
+- **Ground elevation** — from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Terrarium format)
+- **3D and rendering** — [Three.js](https://threejs.org)
 
-Свободный круиз: никаких таймеров и соперников — просто едешь и узнаёшь свой район.
+Free-roam cruising: no timers, no opponents — just drive and rediscover your neighbourhood.
 
 ---
 
-## Быстрый старт
+## Quick start
 
-Нужен Node.js 18+ (проверено на 22).
+Requires Node.js 18+ (tested on 22).
 
 ```bash
 npm install
 npm run dev
 ```
 
-Открой адрес, который напечатает Vite (обычно `http://localhost:5173`).
-Введи город в поле сверху, нажми **«Поехали»** — и через несколько секунд можно ехать.
+Open the URL Vite prints (usually `http://localhost:5173`).
+Type a city into the box at the top, click **"Поехали"** (Go), and you can drive within a few seconds.
 
-### Команды
+### Commands
 
-| Команда | Что делает |
+| Command | What it does |
 |---|---|
-| `npm run dev` | Дев-сервер с горячей перезагрузкой |
-| `npm run build` | Продакшн-сборка в `dist/` |
-| `npm run preview` | Локальный просмотр собранной версии |
-| `npm test` | Юнит-тесты (Vitest), один прогон |
-| `npm run test:watch` | Тесты в watch-режиме |
+| `npm run dev` | Dev server with hot reload |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the built version locally |
+| `npm test` | Unit tests (Vitest), single run |
+| `npm run test:watch` | Tests in watch mode |
 
-## Управление
+## Controls
 
-| Клавиши | Действие |
+| Keys | Action |
 |---|---|
-| `W` / `↑` | Газ |
-| `S` / `↓` | Назад / тормоз |
-| `A` / `←`, `D` / `→` | Поворот |
-| `Пробел` | Тормоз |
+| `W` / `↑` | Accelerate |
+| `S` / `↓` | Reverse / brake |
+| `A` / `←`, `D` / `→` | Steer |
+| `Space` | Brake |
+| `V` | Toggle view: day ↔ neon wireframe |
 
-Камера следует за машиной сзади. Сквозь дома проехать нельзя — вдоль стены машина скользит.
+The camera follows the car from behind. You can't drive through buildings — the car
+slides along walls. Press `V` (or the view button in the UI) to switch between the lit
+"day" look and a glowing neon-wireframe look.
 
-## Как вводить город
+## Entering a city
 
-- Обычное название: `Amsterdam`, `Тбилиси`, `Porto`.
-- Если название неоднозначное — уточни страну: `Poti, Georgia` (иначе геокодер Nominatim
-  может выбрать одноимённое место в другой стране).
-- Можно ввести координаты напрямую: `41.79,44.79` (широта, долгота).
+- A plain name: `Amsterdam`, `Тбилиси`, `Porto`.
+- If the name is ambiguous, add the country: `Poti, Georgia` (otherwise the Nominatim
+  geocoder may pick a same-named place in another country).
+- You can enter coordinates directly: `41.79,44.79` (latitude, longitude).
 
-Грузится участок радиусом ~1 км вокруг выбранной точки. Один и тот же город при повторной
-загрузке берётся из кэша браузера (IndexedDB) — мгновенно.
+A ~1 km radius patch around the chosen point is loaded. Reloading the same city is instant —
+it's served from the browser cache (IndexedDB).
 
-## Как это устроено
+## How it works
 
-Пайплайн от ввода до езды:
+The pipeline from input to driving:
 
 ```
-город → геокод (Nominatim) → bbox ~1 км
-      → OSM (Overpass: дороги + здания)   ─┐
-      → рельеф (Terrain Tiles → высоты)   ─┼→ строим меши (земля/дороги/здания)
-                                            │  на общей системе координат
-      → машина спавнится на землю → едешь ─┘
+city → geocode (Nominatim) → ~1 km bbox
+     → OSM (Overpass: roads + buildings)   ─┐
+     → terrain (Terrain Tiles → heights)   ─┼→ build meshes (ground / roads / buildings)
+                                             │  on one shared coordinate frame
+     → car spawns on the ground → drive    ─┘
 ```
 
-Если тайлы рельефа не загрузились — плавный откат на плоскую землю, игра не ломается.
+If the terrain tiles fail to load, it falls back gracefully to flat ground — the game keeps running.
 
-### Структура проекта
+### Project structure
 
-Слои с чёткими границами: слой данных не знает про Three.js, слой мира не знает про сеть.
+Layers with clear boundaries: the data layer knows nothing about Three.js, the world layer
+knows nothing about the network.
 
 ```
 src/
-  geo/       проекция lat/lon↔метры, парсинг OSM, Overpass, геокод, кэш IndexedDB
-  terrain/   ElevationProvider: декод Terrarium-тайлов + фолбэк на плоскую землю
-  world/     меши: земля (рельеф), здания (экструзия контуров), дороги (ленты)
-  physics/   пространственная сетка + столкновение круг↔полигон со скольжением
-  vehicle/   аркадная физика машины + клавиатура
-  app/       сцена, камера-преследователь, игровой цикл, сборка пайплайна
-  ui/        поле ввода города, индикатор загрузки
-test/        юнит-тесты чистых функций (проекция, парсинг, высоты, сетка, коллизии, машина)
+  geo/       lat/lon↔meter projection, OSM parsing, Overpass, geocoding, IndexedDB cache
+  terrain/   ElevationProvider: Terrarium tile decoding + flat-ground fallback
+  world/     meshes: ground (terrain), buildings (footprint extrusion), roads (ribbons)
+  physics/   spatial grid + circle-vs-polygon collision with sliding
+  vehicle/   arcade car physics + keyboard
+  app/       scene, follow camera, game loop, view theme, pipeline wiring
+  ui/        city input, loading overlay
+test/        unit tests for pure functions (projection, parsing, elevation, grid, collision, car)
 ```
 
-Подробные проектные документы — в `docs/superpowers/` (спека и план реализации).
+Detailed project docs (spec and implementation plan) live in `docs/superpowers/`.
 
-## Технологии
+## Tech
 
-Vite · TypeScript (strict) · Three.js · Vitest. Статический сайт — можно задеплоить
-на любой статический хостинг (например, GitHub Pages).
+Vite · TypeScript (strict) · Three.js · Vitest. It's a static site — deploy it to any static
+host (e.g. GitHub Pages; this repo ships a workflow that does it on every push to `main`).
 
-## Атрибуция данных
+## Data attribution
 
-При публикации соблюдай лицензии источников:
+When you publish, respect the source licences:
 
-- **OpenStreetMap** — данные © участники OpenStreetMap, лицензия
+- **OpenStreetMap** — data © OpenStreetMap contributors, licensed under
   [ODbL](https://www.openstreetmap.org/copyright).
-- **Elevation (Terrain Tiles)** — данные из проекта Mapzen / AWS Open Data,
-  см. [источники и атрибуцию](https://github.com/tilezen/joerd/blob/master/docs/attribution.md).
-- **Nominatim / Overpass** — публичные сервисы с
-  [политикой использования](https://operations.osmfoundation.org/policies/nominatim/):
-  запросы должны быть умеренными. Для активного использования стоит поднять свой инстанс
-  или добавить кэширующий прокси.
+- **Elevation (Terrain Tiles)** — data from the Mapzen / AWS Open Data project, see
+  [sources and attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md).
+- **Nominatim / Overpass** — public services with a
+  [usage policy](https://operations.osmfoundation.org/policies/nominatim/): keep request
+  volume modest. For heavy use, run your own instance or add a caching proxy.
 
-## Что дальше (идеи для развития)
+## Roadmap ideas
 
-- Wireframe / неон-режим переключателем (данные те же)
-- Парки, вода, деревья из OSM
-- Более реалистичная физика (занос, сцепление)
-- Миникарта, день/ночь, звук двигателя
-- Гоночный режим поверх: чекпоинты, таймер, лучшее время
+- Parks, water, and trees from OSM
+- More realistic physics (drift, grip)
+- Minimap, day/night cycle, engine sound
+- A racing mode on top: checkpoints, timer, best lap
 
-Мелкие технические доработки на потом: тюнинг тормоза, сглаживание стыков дорог на резких
-поворотах, кадронезависимое сглаживание камеры.
+Smaller technical follow-ups: brake tuning, smoothing road seams at sharp turns,
+framerate-independent camera smoothing.
