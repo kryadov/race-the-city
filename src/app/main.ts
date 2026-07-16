@@ -14,7 +14,8 @@ import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createSettingsMenu } from '../ui/settingsMenu'
 import { createMinimap } from '../ui/minimap'
-import { getDefaultCity, setDefaultCity } from './prefs'
+import { createRoadLabels } from '../ui/roadLabels'
+import { getDefaultCity, setDefaultCity, getRoadLabels, setRoadLabels } from './prefs'
 import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
@@ -41,6 +42,8 @@ const ui = document.getElementById('ui')!
 const stage: Stage = createStage(app)
 const loading = createLoading(ui)
 const minimap = createMinimap(ui)
+const roadLabels = createRoadLabels(ui)
+roadLabels.setEnabled(getRoadLabels())
 createVersionBadge(ui)
 const keyboard = new Keyboard()
 const theme = new ThemeController(stage)
@@ -105,6 +108,7 @@ async function loadCity(query: string): Promise<void> {
     }
     theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh })
     minimap.setWorld(world.roads, footprints, RADIUS)
+    roadLabels.setWorld(world.roads, provider)
 
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
@@ -125,6 +129,7 @@ async function loadCity(query: string): Promise<void> {
         prevForward = fwd
         syncCamera(stage, car, dt)
         minimap.update(car)
+        roadLabels.update(stage.camera, car.x, car.z)
         stage.renderer.render(stage.scene, stage.camera)
       })
     }
@@ -138,7 +143,7 @@ async function loadCity(query: string): Promise<void> {
 
 const menu = createSettingsMenu(
   ui,
-  { city: getDefaultCity(), view: theme.current, vehicle, audio: audio.getState() },
+  { city: getDefaultCity(), view: theme.current, vehicle, audio: audio.getState(), roadLabels: getRoadLabels() },
   {
     onLoadCity: (q) => void loadCity(q),
     onSetDefaultCity: (q) => setDefaultCity(q),
@@ -152,6 +157,10 @@ const menu = createSettingsMenu(
       }
     },
     onAudioChange: (patch) => audio.setState(patch),
+    onRoadLabels: (on) => {
+      setRoadLabels(on)
+      roadLabels.setEnabled(on)
+    },
   },
 )
 theme.onChange = (mode) => menu.setViewMode(mode)

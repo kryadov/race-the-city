@@ -17,3 +17,22 @@ export function setDefaultCity(city: string): void {
     /* ignore persistence failures */
   }
 }
+
+const ROAD_LABELS_KEY = 'rtc.roadLabels'
+
+/** Whether street-name labels are shown (off by default). */
+export function getRoadLabels(): boolean {
+  try {
+    return localStorage.getItem(ROAD_LABELS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setRoadLabels(on: boolean): void {
+  try {
+    localStorage.setItem(ROAD_LABELS_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}

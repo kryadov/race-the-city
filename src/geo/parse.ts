@@ -57,7 +57,9 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags) })
     } else if (tags.highway) {
-      roads.push({ points, kind: classifyRoad(tags.highway) })
+      const road: Road = { points, kind: classifyRoad(tags.highway) }
+      if (tags.name) road.name = tags.name
+      roads.push(road)
     }
   }
 

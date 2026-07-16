@@ -13,6 +13,7 @@ export interface SettingsCallbacks {
   onSetView: (mode: ViewMode) => void
   onSelectVehicle: (type: VehicleType) => void
   onAudioChange: (patch: Partial<AudioState>) => void
+  onRoadLabels: (on: boolean) => void
 }
 
 export interface SettingsHandle {
@@ -29,12 +30,13 @@ function button(): HTMLButtonElement {
 /** ⚙ button that opens a panel holding every setting ("all in the menu"). */
 export function createSettingsMenu(
   root: HTMLElement,
-  initial: { city: string; view: ViewMode; vehicle: VehicleType; audio: AudioState },
+  initial: { city: string; view: ViewMode; vehicle: VehicleType; audio: AudioState; roadLabels: boolean },
   cb: SettingsCallbacks,
 ): SettingsHandle {
   let view = initial.view
   let vehicle = initial.vehicle
   let audio = initial.audio
+  let roadLabels = initial.roadLabels
 
   const gear = document.createElement('button')
   gear.textContent = '⚙'
@@ -170,7 +172,21 @@ export function createSettingsMenu(
     music.btn.textContent = audio.music ? '🎵' : '🔕'
   }
 
-  panel.append(citySec, langSec, viewSec, vehSec, audioSec)
+  // --- Map / labels ---
+  const mapSec = section('menu.map')
+  const labelsBtn = button()
+  labelsBtn.style.cssText += ';width:100%'
+  labelsBtn.addEventListener('click', () => {
+    roadLabels = !roadLabels
+    cb.onRoadLabels(roadLabels)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(labelsBtn)
+  function paintLabelsToggle(): void {
+    labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
+  }
+
+  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec)
   root.append(gear, panel)
 
   function paintLabels(): void {
@@ -195,6 +211,7 @@ export function createSettingsMenu(
     paintLabels()
     paintStates()
     paintAudio()
+    paintLabelsToggle()
   }
   paint()
   onLangChange(paint)

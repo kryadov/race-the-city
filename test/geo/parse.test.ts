@@ -51,6 +51,13 @@ describe('parseOsm', () => {
     expect(tall.footprint.length).toBeGreaterThanOrEqual(3)
   })
 
+  it('keeps the street name when present, omits it otherwise', () => {
+    const named = world.roads.find((r) => r.name === 'Main St')
+    expect(named).toBeDefined()
+    const motorway = world.roads.find((r) => r.kind === 'motorway')!
+    expect(motorway.name).toBeUndefined()
+  })
+
   it('places geometry in local meters relative to center', () => {
     const road = world.roads[0]
     // node 1 is the center -> near origin
