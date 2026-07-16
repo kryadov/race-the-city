@@ -113,3 +113,33 @@ export function nextNode(graph: RoadGraph, from: number, at: number, rand: () =>
   }
   return best
 }
+
+/**
+ * Is there anywhere to go from this node, or is it a pocket?
+ *
+ * A driveway, a service loop behind a shop, a stub of road left hanging where
+ * the map was cut: park a car on one and it drives ten metres, turns round,
+ * drives back, and turns round again, for good. Spotting that after the fact —
+ * two U-turns and recycle it — still shows you the dance first. This asks
+ * before: how far from here can you actually get, walking the road network?
+ *
+ * @param need metres of room required
+ * @param budget how many nodes to look at before giving up and saying yes; a
+ *   junction in a dense city is a cluster of vertices, so this is generous
+ */
+export function roomToDrive(graph: RoadGraph, at: number, need = 120, budget = 120): boolean {
+  const start = graph.nodes[at]
+  if (!start || start.links.length === 0) return false
+  const seen = new Set<number>([at])
+  const queue = [at]
+  for (let head = 0; head < queue.length && seen.size < budget; head++) {
+    const node = graph.nodes[queue[head]]
+    if (Math.hypot(node.x - start.x, node.z - start.z) >= need) return true
+    for (const next of node.links) {
+      if (seen.has(next) || !graph.nodes[next]) continue
+      seen.add(next)
+      queue.push(next)
+    }
+  }
+  return false
+}

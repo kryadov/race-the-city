@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Road } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
-import { buildRoadGraph, nextNode, type RoadGraph } from '../world/roadGraph'
+import { buildRoadGraph, nextNode, roomToDrive, type RoadGraph } from '../world/roadGraph'
 import type { Circle } from '../physics/collide'
 
 /** Cars kept alive around the player. */
@@ -118,20 +118,20 @@ export function createTraffic(
 
   const spawn = (near: { x: number; z: number } | null): Agent | null => {
     if (graph.nodes.length < 2) return null
-    let at = Math.floor(rand() * graph.nodes.length)
-    if (near) {
-      let found = false
-      for (let i = 0; i < 40; i++) {
-        const c = Math.floor(rand() * graph.nodes.length)
+    // Never start one somewhere it cannot get anywhere from. A driveway or a
+    // service loop behind a shop is a pocket: the car drives its length, turns
+    // round, drives back and turns round again, forever. It was caught after the
+    // fact — two U-turns and recycle — which still showed you the dance.
+    let at = -1
+    for (let i = 0; i < 40 && at < 0; i++) {
+      const c = Math.floor(rand() * graph.nodes.length)
+      if (near) {
         const d = Math.hypot(graph.nodes[c].x - near.x, graph.nodes[c].z - near.z)
-        if (d > SPAWN_MIN && d < SPAWN_MAX) {
-          at = c
-          found = true
-          break
-        }
+        if (d <= SPAWN_MIN || d >= SPAWN_MAX) continue
       }
-      if (!found) return null // nowhere out of sight to put it; leave it be
+      if (roomToDrive(graph, c)) at = c
     }
+    if (at < 0) return null // nowhere worth putting it; leave it be
     const to = nextNode(graph, -1, at, rng)
     if (to === at) return null
     return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0 }
@@ -186,6 +186,16 @@ export function createTraffic(
   ]
 
   group.add(bodyMesh, cabinMesh, glassMesh, tailMesh, headMesh, wheelMesh)
+  // Capacity is at least one, because an InstancedMesh of nothing is awkward to
+  // build; what is DRAWN is the cars we actually have. Without this a city with
+  // nowhere to put a car still renders one, from an untouched identity matrix,
+  // parked at the origin — which is where you start.
+  bodyMesh.count = agents.length
+  cabinMesh.count = agents.length
+  glassMesh.count = agents.length
+  tailMesh.count = agents.length
+  headMesh.count = agents.length
+  wheelMesh.count = agents.length * 4
   // three computes an InstancedMesh's bounding sphere on first use and never
   // again, so once these drive away from it the whole batch gets frustum-culled
   // as one — they blink in and out depending on where you look. They are always

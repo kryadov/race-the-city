@@ -281,19 +281,21 @@ describe('level crossings', () => {
 })
 
 describe('cars trapped on a stub', () => {
-  it('moves a car off a dead-end stub instead of letting it shuttle', () => {
+  it('puts no car on a stub it could only turn round on', () => {
     // A stub is a dead end at both ends: nextNode turns the car round every
     // couple of seconds, flipping it 180 degrees on the spot. That's the twitch.
+    // It used to be caught after the fact — two U-turns and recycle it — which
+    // still showed you the dance. Nothing is put there in the first place now,
+    // and an empty street beats a car shuttling up and down a driveway.
     const stub: Road[] = [{ points: [v(0, 0), v(14, 0)], kind: 'residential' }]
     const scene = new THREE.Scene()
     const t = createTraffic(scene, stub, flat, () => 0.5)
     const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
 
-    // no room to respawn on a 14m graph, so it must at least not throw or freeze
     expect(() => {
       for (let f = 0; f < 600; f++) t.update(1 / 60, 0, 0, 0)
     }).not.toThrow()
-    expect(bodies.count).toBeGreaterThan(0)
+    expect(bodies.count, 'a car was parked on a 14m dead end').toBe(0)
   })
 
   it('takes a stubbed car to real road when there is some', () => {
@@ -311,4 +313,5 @@ describe('cars trapped on a stub', () => {
     const onStub = positions(bodies).filter((p) => Math.abs(p.z) < 100 && p.x > -20 && p.x < 32)
     expect(onStub.length).toBe(0)
   })
+
 })

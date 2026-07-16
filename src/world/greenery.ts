@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { pointInPolygon } from '../physics/collide'
@@ -65,11 +66,29 @@ interface TreeVariant {
   trunk?: () => THREE.BufferGeometry // defaults to the stubby temperate trunk
 }
 
-/** A palm's crown: a wide, flat splay of fronds rather than a conifer's spire. */
-function frondGeo(radius: number): THREE.BufferGeometry {
-  const g = new THREE.IcosahedronGeometry(radius, 0)
-  g.scale(1, 0.34, 1)
-  return g
+/** How many fronds a palm carries. Enough to read as a crown, few enough to be cheap. */
+const FRONDS = 8
+
+/**
+ * A palm's crown: fronds radiating from the top of the trunk and drooping.
+ *
+ * It was a squashed ball — which is a round tree that has been sat on, and read
+ * as exactly that: an ordinary tree, in Cairo. A palm is its silhouette, and its
+ * silhouette is separate leaves with sky between them.
+ */
+export function frondGeo(radius: number): THREE.BufferGeometry {
+  const blades: THREE.BufferGeometry[] = []
+  for (let i = 0; i < FRONDS; i++) {
+    // A long tapered blade lying along +x, springing from the origin.
+    const blade = new THREE.ConeGeometry(radius * 0.22, radius, 4)
+    blade.scale(1, 1, 0.35) // flat: a leaf, not a spike
+    blade.rotateZ(-Math.PI / 2)
+    blade.translate(radius / 2, 0, 0)
+    blade.rotateZ(-0.3 - (i % 2) * 0.22) // droop, alternating so they don't fuse into a disc
+    blade.rotateY((i / FRONDS) * Math.PI * 2)
+    blades.push(blade)
+  }
+  return mergeGeometries(blades)
 }
 const palmTrunk = (h: number) => (): THREE.BufferGeometry => {
   const g = new THREE.CylinderGeometry(0.16, 0.26, h, 5)

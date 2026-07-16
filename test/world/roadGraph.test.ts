@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildRoadGraph, nextNode } from '../../src/world/roadGraph'
+import { buildRoadGraph, nextNode, roomToDrive } from '../../src/world/roadGraph'
 import { angleDelta } from '../../src/app/autopilot'
 import type { Road, Vec2 } from '../../src/geo/types'
 
@@ -106,5 +106,47 @@ describe('tunnels are not part of the network', () => {
     ])
     expect(g.nodes.length).toBeGreaterThan(0)
     for (const n of g.nodes) expect(n.z).toBe(50) // only the surface one
+  })
+})
+
+describe('roomToDrive', () => {
+  const chain = (n: number, step = 20): Road => ({
+    kind: 'residential',
+    points: Array.from({ length: n }, (_, i) => ({ x: i * step, z: 0 })),
+  })
+
+  it('a long street has room', () => {
+    const g = buildRoadGraph([chain(20)])
+    expect(roomToDrive(g, g.nearest(0, 0))).toBe(true)
+  })
+
+  it('a 40m stub does not — that is where the cars sat turning round', () => {
+    const g = buildRoadGraph([chain(3)])
+    expect(roomToDrive(g, g.nearest(0, 0))).toBe(false)
+  })
+
+  it('a little loop is still a pocket, however many turns it has', () => {
+    // A service loop behind a shop: you can drive it forever and get nowhere.
+    const loop: Road = {
+      kind: 'service',
+      points: [
+        { x: 0, z: 0 },
+        { x: 30, z: 0 },
+        { x: 30, z: 30 },
+        { x: 0, z: 30 },
+        { x: 0, z: 0 },
+      ],
+    }
+    const g = buildRoadGraph([loop])
+    expect(roomToDrive(g, g.nearest(0, 0))).toBe(false)
+  })
+
+  it('a stub that joins a real road does have room', () => {
+    const g = buildRoadGraph([chain(3), { kind: 'residential', points: [{ x: 40, z: 0 }, { x: 40, z: 400 }] }])
+    expect(roomToDrive(g, g.nearest(0, 0))).toBe(true)
+  })
+
+  it('says no about a node that is not there', () => {
+    expect(roomToDrive(buildRoadGraph([chain(20)]), -1)).toBe(false)
   })
 })
