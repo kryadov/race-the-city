@@ -21,7 +21,7 @@ const VEHICLE_EMOJI: Record<VehicleType, string> = {
   tractor: '🚜',
   lorry: '🚛',
   cabrio: '🚙',
-  retro: '🚙',
+  retro: '🚘',
   ev: '🔌',
   minivan: '🚐',
 }
