@@ -66,6 +66,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const buildings: Building[] = []
   const water: Vec2[][] = []
   const green: Vec2[][] = []
+  const coast: Vec2[][] = []
 
   for (const el of json.elements) {
     if (el.type !== 'way' || !el.nodes || el.nodes.length < 2) continue
@@ -73,7 +74,9 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     const points = el.nodes.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
     if (points.length < 2) continue
 
-    if (isWater(tags)) {
+    if (tags.natural === 'coastline') {
+      coast.push(points) // linear boundary between land and sea
+    } else if (isWater(tags)) {
       const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
       if (ring.length >= 3) water.push(ring)
     } else if (isGreen(tags)) {
@@ -89,7 +92,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  return { roads, buildings, water, green, trees }
+  return { roads, buildings, water, green, trees, coast }
 }
 
 /** OSM closed ways repeat the first node last; drop it for a clean polygon. */

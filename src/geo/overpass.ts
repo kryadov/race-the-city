@@ -30,6 +30,7 @@ export function overpassQuery(b: BBox): string {
   way["natural"~"wood|scrub"](${box});
   way["landuse"~"grass|forest|meadow|recreation_ground|village_green"](${box});
   node["natural"="tree"](${box});
+  way["natural"="coastline"](${box});
 );
 out body;
 >;

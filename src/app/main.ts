@@ -33,6 +33,7 @@ import { buildBuildings } from '../world/buildings'
 import { buildRoads } from '../world/roads'
 import { buildWater } from '../world/water'
 import { buildGreenery } from '../world/greenery'
+import { buildSea } from '../world/sea'
 import { SpatialGrid } from '../physics/grid'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
@@ -111,7 +112,8 @@ async function loadCity(query: string): Promise<void> {
     const roadsMesh = buildRoads(world.roads, provider)
     const waterMesh = buildWater(world.water, provider)
     const greenMesh = buildGreenery(world.green, world.trees, provider)
-    for (const obj of [ground, greenMesh, waterMesh, buildingsMesh, roadsMesh]) {
+    const seaMesh = buildSea(world.coast, RADIUS, provider)
+    for (const obj of [ground, seaMesh, greenMesh, waterMesh, buildingsMesh, roadsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
