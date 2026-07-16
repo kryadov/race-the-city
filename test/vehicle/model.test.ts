@@ -17,4 +17,10 @@ describe('buildVehicleMesh', () => {
     const car = buildVehicleMesh('car').children.length
     expect(truck).toBeGreaterThan(car)
   })
+
+  it('tags wheels with a radius so the render loop can spin them', () => {
+    const g = buildVehicleMesh('car')
+    const wheels = g.children.filter((c) => typeof c.userData.wheelRadius === 'number')
+    expect(wheels).toHaveLength(4)
+  })
 })

@@ -64,6 +64,13 @@ export function syncCamera(stage: Stage, car: CarState, dt: number): void {
   stage.carMesh.position.set(car.x, car.y, car.z)
   stage.carMesh.rotation.y = -car.heading // model faces +x at heading 0
 
+  // Spin wheels by rolling distance (forward speed / radius).
+  const forward = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
+  stage.carMesh.traverse((o) => {
+    const r = (o.userData as { wheelRadius?: number }).wheelRadius
+    if (r) o.rotation.z -= (forward / r) * dt
+  })
+
   const back = 14 * stage.camDist, up = 7 * stage.camDist
   camPos.set(car.x - Math.cos(car.heading) * back, car.y + up, car.z - Math.sin(car.heading) * back)
   // Exponential smoothing: equal easing per real second regardless of frame rate.
