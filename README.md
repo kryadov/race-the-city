@@ -10,6 +10,8 @@ streets, buildings, and terrain. Everything runs right in the browser — no bac
 
 Free-roam cruising: no timers, no opponents — just drive and rediscover your neighbourhood.
 
+**▶ Play it live: https://kryadov.github.io/race-the-city/**
+
 ---
 
 ## Quick start
@@ -94,7 +96,8 @@ Detailed project docs (spec and implementation plan) live in `docs/superpowers/`
 ## Tech
 
 Vite · TypeScript (strict) · Three.js · Vitest. It's a static site — deploy it to any static
-host (e.g. GitHub Pages; this repo ships a workflow that does it on every push to `main`).
+host (e.g. GitHub Pages; this repo ships a workflow that publishes to
+<https://kryadov.github.io/race-the-city/> on every push to `main`).
 
 ## Data attribution
 
