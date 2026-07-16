@@ -37,6 +37,7 @@ export function wheel(radius: number, width: number, x: number, y: number, z: nu
 
   g.position.set(x, y, z)
   g.userData.wheelRadius = radius // render loop spins this group by rolling distance
+  g.userData.wheelWidth = width // and the skid marks are laid this wide
   return g
 }
 

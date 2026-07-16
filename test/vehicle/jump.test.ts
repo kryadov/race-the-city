@@ -118,6 +118,23 @@ describe('smooth crests do not throw the car', () => {
     expect(worst, 'the car left the deck').toBeLessThan(0.05)
   })
 
+  it('drives onto a bridge deck rather than being fired off the edge of it', () => {
+    // Where the road meets the deck the surface STEPS: the deck is snapped to,
+    // so the ground under the car gains a metre or two between one frame and the
+    // next. Read as a slope that is a climb of 100m/s, capped to MAX_CLIMB, and
+    // the next frame sees the ground stop climbing and launches the car twenty
+    // metres into the air. It is not a slope. You cannot ramp off a kerb.
+    const deckEdge: ElevationProvider = { heightAt: (x: number) => (x < 50 ? 0 : 2) }
+    let c: CarState = { ...createCar(0, 0), vx: 15, y: 0 }
+    let air = 0
+    for (let i = 0; i < 400; i++) {
+      c = stepCar(c, coast, DT, grid, deckEdge, { ...car, dragForward: 0 })
+      c.vx = 15
+      air = Math.max(air, c.y - deckEdge.heightAt(c.x, c.z))
+    }
+    expect(air, 'the car was thrown off the join').toBeLessThan(0.5)
+  })
+
   it('still throws it off a sharp lip at the same speed', () => {
     // the difference is the surface falling away faster than gravity holds you
     let c: CarState = { ...createCar(0, 0), vx: 25, y: 0 }

@@ -61,3 +61,45 @@ export function buildVehicleMesh(type: VehicleType): THREE.Group {
   REAR_LIGHT_MAT.emissive.setHex(s.emissive)
   return BUILDERS[type]()
 }
+
+/** Where a vehicle's rear tyres are, and how wide they are — in model space. */
+export interface WheelPrint {
+  /** Tyre width, metres: how wide a skid mark it lays. */
+  width: number
+  /** Half the rear track: the offset either side of the centreline. */
+  track: number
+  /** How far behind the middle the rear axle sits. */
+  rear: number
+}
+
+/**
+ * Measure a built model's rear wheels.
+ *
+ * Read off the model rather than kept in a table beside it: the wheels are built
+ * with a radius and a width already, and a second copy of those numbers is a
+ * second thing to forget when a model changes. Null when the thing has no
+ * wheels — a hovercraft leaves no tyre marks, having no tyres.
+ */
+export function wheelPrint(mesh: THREE.Object3D): WheelPrint | null {
+  mesh.updateMatrixWorld(true)
+  const wheels: { x: number; z: number; width: number }[] = []
+  const at = new THREE.Vector3()
+  mesh.traverse((o) => {
+    const d = o.userData as { wheelRadius?: number; wheelWidth?: number }
+    if (!d.wheelRadius) return
+    o.getWorldPosition(at)
+    wheels.push({ x: at.x, z: at.z, width: d.wheelWidth ?? d.wheelRadius })
+  })
+  if (!wheels.length) return null
+
+  // The rearmost axle is the one that marks: the model's nose is its local +x,
+  // so that is the smallest x. Anything within half a metre of it is the same
+  // axle — a twin-tyred truck has two wheels a side, not two axles.
+  const back = Math.min(...wheels.map((w) => w.x))
+  const axle = wheels.filter((w) => w.x <= back + 0.5)
+  return {
+    width: Math.max(...axle.map((w) => w.width)),
+    track: Math.max(...axle.map((w) => Math.abs(w.z))),
+    rear: -back,
+  }
+}

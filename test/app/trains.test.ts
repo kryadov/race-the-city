@@ -53,6 +53,22 @@ describe('trains', () => {
     expect(pantographs.length).toBeGreaterThan(0)
   })
 
+  it('runs them where you are, not wherever the OSM list happened to start', () => {
+    // Five trains for four square kilometres: put them at the far corner and you
+    // drive over rail after rail and never meet a thing on any of it. You start
+    // at the middle.
+    const scene = new THREE.Scene()
+    // The far line comes first, as the one OSM listed first would.
+    const far: Railway = { points: [v(1800, 1800), v(2800, 1800)], tram: false, tunnel: false }
+    const near: Railway = { points: [v(-500, 20), v(500, 20)], tram: false, tunnel: false }
+    const trains = createTrains(scene, [far, near], flat, () => 0.5, 1)
+    trains.update(0.016, 0)
+    const group = scene.children[0] as THREE.Group
+    expect(group.children.length).toBeGreaterThan(0)
+    // Every carriage should be on the near line, which runs along z = 20.
+    for (const car of group.children) expect(car.position.z).toBeCloseTo(20, 0)
+  })
+
   it('leaves a short siding alone', () => {
     // an intercity on a 40m stub would be absurd
     const scene = new THREE.Scene()

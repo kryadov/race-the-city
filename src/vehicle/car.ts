@@ -34,6 +34,18 @@ export const GRAVITY = 18
 export const TAKEOFF_VY = 2.5
 /** Ceiling on the climb rate a slope can impart, m/s. */
 const MAX_CLIMB = 22
+/**
+ * The steepest thing the car will treat as a slope, as a gradient — about 31°.
+ *
+ * Anything steeper is a step, not a ramp, and a step throws nothing: you cannot
+ * launch off a kerb by driving into it. Bridges are where this bites. The deck
+ * is snapped to, so the ground under the car gains a couple of metres between
+ * one frame and the next at the join; taken as a slope that is a climb of
+ * 100m/s, and the frame after it the ground stops climbing and fires the car
+ * twenty metres up. Measuring the rise against the distance actually travelled
+ * is what tells the two apart.
+ */
+const MAX_SLOPE = 0.6
 /** Above the ground by more than this and the car is flying. */
 const AIR_EPS = 0.05
 
@@ -119,8 +131,18 @@ export function stepCar(
       vy = 0
     }
   } else {
-    // On the ground. The terrain asks for this much climb per second:
-    const climb = Math.max(-MAX_CLIMB, Math.min(MAX_CLIMB, (groundY - car.y) / dt))
+    // On the ground. The terrain asks for this much climb per second — but only
+    // as fast as a slope could deliver it at the speed we are going. The car is
+    // still put on the ground either way; this is the climb the NEXT frame reads
+    // to decide whether we crested something, and a step in the surface must not
+    // read as a launch.
+    const rise = groundY - car.y
+    const reach = Math.hypot(vx, vz) * dt * MAX_SLOPE
+    // Past what the distance travelled could have climbed, this is a step and
+    // not a slope: the car is put on top of it regardless, but nothing about it
+    // is throwing the car anywhere.
+    const climb =
+      Math.abs(rise) > reach ? 0 : Math.max(-MAX_CLIMB, Math.min(MAX_CLIMB, rise / dt))
     // How hard the surface is pulling away beneath us. You leave the ground only
     // when it falls away faster than gravity can hold you to it — not merely
     // because you were going up and now you aren't. Testing the latter launched

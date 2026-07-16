@@ -1,24 +1,36 @@
 import * as THREE from 'three'
 import type { CarState } from '../vehicle/car'
 import type { ElevationProvider } from '../terrain/provider'
+import type { WheelPrint } from '../vehicle/model'
 
 const MARKS = 1000 // ring buffer of skid-mark quads (longer trail)
 const PUFFS = 100 // smoke particle pool
 const SKID_SLIP = 3.5 // lateral speed (m/s) to start marking
 const MIN_SPEED = 4 // need some forward speed too
-const REAR = 1.4 // rear axle offset behind centre
-const TRACK = 0.9 // half wheel track
 const MARK_OFFSET = 0.2 // above roads (0.15)
+/**
+ * Length of a mark along the road, metres. Long enough that consecutive frames
+ * overlap into a continuous streak at speed rather than a dotted line.
+ */
+const MARK_LEN = 0.5
+/** What a vehicle whose model has no wheels to measure leaves behind. */
+const DEFAULT_PRINT: WheelPrint = { width: 0.25, track: 0.9, rear: 1.4 }
 
 export interface DriftFx {
   update(car: CarState, dt: number, provider: ElevationProvider): void
+  /**
+   * The tyres doing the marking. Null for a vehicle with no wheels — a
+   * hovercraft cannot leave a tyre mark, having no tyres.
+   */
+  setPrint(print: WheelPrint | null): void
   reset(): void
   setEnabled(on: boolean): void
 }
 
 /** Skid marks and drift smoke, both instanced (2 draw calls). */
 export function createDriftFx(scene: THREE.Scene): DriftFx {
-  const markGeo = new THREE.PlaneGeometry(0.5, 1.3)
+  // A unit width across the road, so an instance's z scale IS the tyre's width.
+  const markGeo = new THREE.PlaneGeometry(MARK_LEN, 1)
   markGeo.rotateX(-Math.PI / 2)
   const marks = new THREE.InstancedMesh(
     markGeo,
@@ -54,7 +66,7 @@ export function createDriftFx(scene: THREE.Scene): DriftFx {
 
   function placeMark(x: number, z: number, y: number, heading: number): void {
     q.setFromAxisAngle(UP, -heading)
-    marks.setMatrixAt(markIdx, m.compose(pos.set(x, y, z), q, scl.set(1, 1, 1)))
+    marks.setMatrixAt(markIdx, m.compose(pos.set(x, y, z), q, scl.set(1, 1, print.width)))
     marks.instanceMatrix.needsUpdate = true
     markIdx = (markIdx + 1) % MARKS
   }
@@ -70,20 +82,26 @@ export function createDriftFx(scene: THREE.Scene): DriftFx {
   }
 
   let enabled = true
+  let print: WheelPrint = DEFAULT_PRINT
+  let wheeled = true
   const api: DriftFx = {
+    setPrint(p) {
+      wheeled = p !== null
+      print = p ?? DEFAULT_PRINT
+    },
     update(car, dt, provider) {
-      if (!enabled) return
+      if (!enabled || !wheeled) return
       const fx = Math.cos(car.heading)
       const fz = Math.sin(car.heading)
       const forward = car.vx * fx + car.vz * fz
       const lateral = -car.vx * fz + car.vz * fx
       const rx = -fz
       const rz = fx
-      const rcx = car.x - fx * REAR
-      const rcz = car.z - fz * REAR
+      const rcx = car.x - fx * print.rear
+      const rcz = car.z - fz * print.rear
 
       if (Math.abs(lateral) > SKID_SLIP && Math.abs(forward) > MIN_SPEED) {
-        for (const s of [TRACK, -TRACK]) {
+        for (const s of [print.track, -print.track]) {
           const wx = rcx + rx * s
           const wz = rcz + rz * s
           placeMark(wx, wz, provider.heightAt(wx, wz) + MARK_OFFSET, car.heading)
@@ -91,8 +109,8 @@ export function createDriftFx(scene: THREE.Scene): DriftFx {
         spawnAcc += dt
         while (spawnAcc > 0.03) {
           spawnAcc -= 0.03
-          const wx = rcx + rx * (Math.random() * 2 - 1) * TRACK
-          const wz = rcz + rz * (Math.random() * 2 - 1) * TRACK
+          const wx = rcx + rx * (Math.random() * 2 - 1) * print.track
+          const wz = rcz + rz * (Math.random() * 2 - 1) * print.track
           spawnPuff(wx, wz, provider.heightAt(wx, wz))
         }
       }

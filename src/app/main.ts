@@ -109,6 +109,7 @@ import { Keyboard } from '../vehicle/input'
 import { VEHICLES, LEANS, HOVERS, HOVER_H, type VehicleType } from '../vehicle/vehicles'
 import {
   buildVehicleMesh,
+  wheelPrint,
   REAR_LIGHT_MAT,
   REAR_LIGHT_IDLE,
   REAR_LIGHT_BRAKE,
@@ -198,6 +199,7 @@ trialHud.setVisible(getTrial())
 function showVehicle(type: VehicleType): void {
   const mesh = buildVehicleMesh(type)
   flame.attachTo(mesh) // before setVehicleMesh: the bbox is model-space only while untransformed
+  driftFx.setPrint(wheelPrint(mesh)) // marks as wide as the tyres that lay them
   setVehicleMesh(stage, mesh)
 }
 /** How lively a shunt is: enough to stop you, not enough to launch you. */

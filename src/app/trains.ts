@@ -75,6 +75,18 @@ function at(line: Vec2[], cum: number[], s: number): { x: number; z: number; ang
   }
 }
 
+/**
+ * How close a line comes to the middle of the map, in metres.
+ *
+ * The projector puts the city centre at the origin and that is where you start,
+ * so this is how far you would have to drive to meet whatever runs on it.
+ */
+function middleGap(rail: { points: Vec2[] }): number {
+  let best = Infinity
+  for (const p of rail.points) best = Math.min(best, Math.hypot(p.x, p.z))
+  return best
+}
+
 const mat = (c: number): THREE.MeshStandardMaterial =>
   new THREE.MeshStandardMaterial({ color: c, flatShading: true })
 
@@ -265,6 +277,15 @@ export function createTrains(
     if (total < (rail.tram ? MIN_TRAM_LINE : MIN_LINE)) continue
     ;(rail.tram ? trams : mainlines).push(rail)
   }
+
+  // Nearest the middle first. There are only a handful of trains for a whole
+  // city, and taking the list in the order OSM happened to give it scattered
+  // them anywhere in four square kilometres — you drive over rail after rail and
+  // never meet a thing on any of it. You start at the middle, so that is where
+  // they should be running.
+  const nearMiddle = (a: Railway, b: Railway): number => middleGap(a) - middleGap(b)
+  trams.sort(nearMiddle)
+  mainlines.sort(nearMiddle)
 
   // Alternate between the two, tram first, rather than taking the list in order
   // until the count runs out. `parse.ts` emits every mainline line before the
