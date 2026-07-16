@@ -16,6 +16,7 @@ export interface WorldData {
   buildings: Building[]
   water: Vec2[][]
   green: Vec2[][]
+  parking: Vec2[][]
   trees: Vec2[]
   coast: Vec2[][]
   railways: Vec2[][]

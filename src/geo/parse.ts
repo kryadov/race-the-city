@@ -28,6 +28,11 @@ export function classifyRoad(highway: string | undefined): RoadKind {
   return HIGHWAY_MAP[highway] ?? 'other'
 }
 
+export function isParking(tags: Record<string, string>): boolean {
+  // Multi-storey and underground parking are buildings, not painted tarmac.
+  return tags.amenity === 'parking' && !tags.building && tags.parking !== 'underground' && tags.parking !== 'multi-storey'
+}
+
 export function isWater(tags: Record<string, string>): boolean {
   return tags.natural === 'water' || tags.waterway === 'riverbank' || tags.landuse === 'reservoir'
 }
@@ -100,6 +105,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const buildings: Building[] = []
   const water: Vec2[][] = []
   const green: Vec2[][] = []
+  const parking: Vec2[][] = []
   const coast: Vec2[][] = []
   const railways: Vec2[][] = []
 
@@ -114,6 +120,9 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     } else if (isWater(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) water.push(ring)
+    } else if (isParking(tags)) {
+      const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
+      if (ring.length >= 3) parking.push(ring)
     } else if (isGreen(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) green.push(ring)
@@ -131,7 +140,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  return { roads, buildings, water, green, trees, coast, railways }
+  return { roads, buildings, water, green, parking, trees, coast, railways }
 }
 
 /** Ring length excluding the repeated closing node (OSM closed ways repeat the first node last). */

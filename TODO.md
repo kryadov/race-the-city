@@ -12,8 +12,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       `relation[...]`, so any water mapped as a multipolygon relation (most large rivers — the
       Neva, the Moskva) never arrives. Needs relation members + outer-ring stitching by node id,
       and care: `>;` on a river relation can drag in the whole waterway far past the bbox.
-- [ ] **Parking, marked out** — `amenity=parking` areas with painted bays (and
-      `highway=pedestrian` squares while we're there)
+- [x] **Parking, marked out** — `amenity=parking` tarmac with painted bays — done in v0.68.0
+- [ ] Pedestrian squares (`highway=pedestrian`)
 - [ ] **Flowerbeds, fountains and statues** — OSM has all three:
       `landuse=flowerbed`, `amenity=fountain`, `historic=memorial` / `tourism=artwork`
       (+ `man_made=obelisk`). Mostly nodes, so they'd be scattered props like the trees.
@@ -71,6 +71,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] **Planes crossing the sky** — occasional, high up, with a contrail
 - [ ] **Trains on the rails** — freight, intercity and commuter EMUs, running the OSM railway
       polylines we already parse (`world.railways`, drawn as bare ribbons since v0.15.0)
+- [ ] **Boats on the big water** — the odd ship, and people in a rowing boat. Needs an area
+      test so they only appear on water wide enough to carry them, not on a pond.
 
 ## 🎨 Visuals & atmosphere
 - [x] Weather (rain/snow/fog, menu option) — done in v0.26.0, auto-cycling in v0.42.0, snow tweak v0.45.1
