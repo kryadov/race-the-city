@@ -6,6 +6,8 @@ import {
   CAM_DIST_MIN,
   CAM_DIST_MAX,
   CAM_DIST_STEP,
+  applyQuality,
+  densityFor,
   type Stage,
 } from './scene'
 import { startLoop } from './loop'
@@ -43,6 +45,8 @@ import {
   setRoadDetail,
   getNitro,
   setNitro,
+  getQuality,
+  setQuality,
   getZoom,
   setZoom,
   getSession,
@@ -84,8 +88,9 @@ const sunScratch = new THREE.Vector3()
 
 const app = document.getElementById('app')!
 const ui = document.getElementById('ui')!
-const stage: Stage = createStage(app)
-stage.sun.castShadow = getShadows()
+const quality = getQuality()
+const stage: Stage = createStage(app, quality)
+applyQuality(stage, quality, getShadows())
 const loading = createLoading(ui)
 const minimap = createMinimap(ui)
 const roadLabels = createRoadLabels(ui)
@@ -100,7 +105,7 @@ const driftFx = createDriftFx(stage.scene)
 driftFx.setEnabled(getDriftFx())
 const headlight = new THREE.SpotLight(0xfff2c0, 0, 70, Math.PI / 5, 0.5, 1.2)
 stage.scene.add(headlight, headlight.target)
-const weather = createWeather(stage.scene, stage.scene.fog as THREE.Fog)
+const weather = createWeather(stage.scene, stage.scene.fog as THREE.Fog, densityFor(quality))
 const AUTO_WEATHER_PERIOD = 150 // seconds each weather holds before auto-cycling (rare changes)
 let autoWeather = false
 let autoWeatherTimer = 0
@@ -375,6 +380,7 @@ const menu = createSettingsMenu(
     clouds: getClouds(),
     roadDetail: getRoadDetail(),
     nitro: getNitro(),
+    quality: getQuality(),
     weather: getWeather(),
     zoom: getZoom(),
   },
@@ -413,7 +419,7 @@ const menu = createSettingsMenu(
     },
     onShadows: (on) => {
       setShadows(on)
-      stage.sun.castShadow = on
+      applyQuality(stage, getQuality(), on) // low quality keeps shadows off regardless
     },
     onClouds: (on) => {
       setClouds(on)
@@ -427,6 +433,12 @@ const menu = createSettingsMenu(
       setNitro(on)
       nitro.setEnabled(on)
       if (!on) boostTimer = 0
+    },
+    onQuality: (q) => {
+      setQuality(q)
+      // Resolution scale + shadows apply live; antialias and particle counts
+      // are fixed at construction and pick the new tier up on the next load.
+      applyQuality(stage, q, getShadows())
     },
     onWeather: (w) => {
       setWeather(w)

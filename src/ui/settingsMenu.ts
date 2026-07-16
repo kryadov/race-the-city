@@ -4,6 +4,9 @@ import type { ViewMode } from '../app/theme'
 import { type AudioState, TRACK_NAMES } from '../audio/audio'
 import { WEATHER_SETTINGS, type WeatherSetting } from '../app/weather'
 import { pickRandomCity } from '../app/cities'
+import { QUALITIES, type Quality } from '../app/scene'
+
+const QUALITY_EMOJI: Record<Quality, string> = { low: '🐢', normal: '⚖', high: '✨' }
 
 const WEATHER_EMOJI: Record<WeatherSetting, string> = { auto: '🔄', clear: '☀', rain: '🌧', snow: '❄', fog: '🌫' }
 
@@ -38,6 +41,7 @@ export interface SettingsCallbacks {
   onClouds: (on: boolean) => void
   onRoadDetail: (on: boolean) => void
   onNitro: (on: boolean) => void
+  onQuality: (q: Quality) => void
   onWeather: (w: WeatherSetting) => void
   onZoom: (v: number) => void
   onReset: () => void
@@ -72,6 +76,7 @@ export function createSettingsMenu(
     clouds: boolean
     roadDetail: boolean
     nitro: boolean
+    quality: Quality
     weather: WeatherSetting
     zoom: number
   },
@@ -87,6 +92,7 @@ export function createSettingsMenu(
   let clouds = initial.clouds
   let roadDetail = initial.roadDetail
   let nitro = initial.nitro
+  let quality = initial.quality
   let weather = initial.weather
 
   const gear = document.createElement('button')
@@ -358,6 +364,19 @@ export function createSettingsMenu(
     weatherBtn.textContent = `${WEATHER_EMOJI[weather]} ${t('weather.' + weather)}`
   }
 
+  // Render quality: cycles low → normal → high (resolution scale, shadows, particles)
+  const qualityBtn = button()
+  qualityBtn.style.cssText += ';width:100%;margin-top:4px'
+  qualityBtn.addEventListener('click', () => {
+    quality = QUALITIES[(QUALITIES.indexOf(quality) + 1) % QUALITIES.length]
+    cb.onQuality(quality)
+    paintQuality()
+  })
+  mapSec.appendChild(qualityBtn)
+  function paintQuality(): void {
+    qualityBtn.textContent = `${QUALITY_EMOJI[quality]} ${t('menu.quality')}: ${t('quality.' + quality)}`
+  }
+
   // --- Time of day ---
   const timeSec = section('menu.time')
   const timeSlider = document.createElement('input')
@@ -423,6 +442,7 @@ export function createSettingsMenu(
     paintMelody()
     paintLabelsToggle()
     paintWeather()
+    paintQuality()
   }
   paint()
   onLangChange(paint)

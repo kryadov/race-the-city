@@ -24,15 +24,18 @@ export interface WeatherFx {
  * they always surround the view without batchy respawns. Per-particle speeds
  * avoid synchronized "sheets". Plus a thick-fog mode. One draw call per layer.
  */
-export function createWeather(scene: THREE.Scene, fog: THREE.Fog): WeatherFx {
+export function createWeather(scene: THREE.Scene, fog: THREE.Fog, density = 1): WeatherFx {
   const fogNear = fog.near
   const fogFar = fog.far
   const rnd = (): number => Math.random() * 2 - 1
+  // Particle counts scale with the render-quality tier (fill rate is the cost).
+  const rainN = Math.max(80, Math.floor(RAIN_N * density))
+  const snowN = Math.max(80, Math.floor(SNOW_N * density))
 
   // --- rain: LineSegments, 2 verts per drop ---
-  const rainPos = new Float32Array(RAIN_N * 6)
-  const rainSpeed = new Float32Array(RAIN_N)
-  for (let i = 0; i < RAIN_N; i++) {
+  const rainPos = new Float32Array(rainN * 6)
+  const rainSpeed = new Float32Array(rainN)
+  for (let i = 0; i < rainN; i++) {
     const x = rnd() * AREA
     const z = rnd() * AREA
     const y = Math.random() * (TOP - BOT) + BOT
@@ -50,10 +53,10 @@ export function createWeather(scene: THREE.Scene, fog: THREE.Fog): WeatherFx {
   scene.add(rain)
 
   // --- snow: Points ---
-  const snowPos = new Float32Array(SNOW_N * 3)
-  const snowSpeed = new Float32Array(SNOW_N)
-  const snowPhase = new Float32Array(SNOW_N)
-  for (let i = 0; i < SNOW_N; i++) {
+  const snowPos = new Float32Array(snowN * 3)
+  const snowSpeed = new Float32Array(snowN)
+  const snowPhase = new Float32Array(snowN)
+  for (let i = 0; i < snowN; i++) {
     snowPos.set([rnd() * AREA, Math.random() * (TOP - BOT) + BOT, rnd() * AREA], i * 3)
     snowSpeed[i] = 2.5 + Math.random() * 3
     snowPhase[i] = Math.random() * Math.PI * 2
@@ -89,7 +92,7 @@ export function createWeather(scene: THREE.Scene, fog: THREE.Fog): WeatherFx {
       t += dt
       if (current === 'rain') {
         rain.position.copy(cam) // whole cloud follows the camera
-        for (let i = 0; i < RAIN_N; i++) {
+        for (let i = 0; i < rainN; i++) {
           const j = i * 6
           const d = rainSpeed[i] * dt
           rainPos[j + 1] -= d
@@ -103,7 +106,7 @@ export function createWeather(scene: THREE.Scene, fog: THREE.Fog): WeatherFx {
         rainGeo.attributes.position.needsUpdate = true
       } else if (current === 'snow') {
         snow.position.copy(cam)
-        for (let i = 0; i < SNOW_N; i++) {
+        for (let i = 0; i < snowN; i++) {
           const j = i * 3
           snowPos[j + 1] -= snowSpeed[i] * dt
           snowPos[j] += Math.sin(t * 1.5 + snowPhase[i]) * 0.4 * dt // gentle sway

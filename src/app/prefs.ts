@@ -1,4 +1,26 @@
 import type { WeatherSetting } from './weather'
+import type { Quality } from './scene'
+
+const QUALITY_KEY = 'rtc.quality'
+
+/** Persisted render-quality tier ('normal' by default). */
+export function getQuality(): Quality {
+  try {
+    const q = localStorage.getItem(QUALITY_KEY)
+    if (q === 'low' || q === 'normal' || q === 'high') return q
+  } catch {
+    /* ignore */
+  }
+  return 'normal'
+}
+
+export function setQuality(q: Quality): void {
+  try {
+    localStorage.setItem(QUALITY_KEY, q)
+  } catch {
+    /* ignore */
+  }
+}
 
 const DEFAULT_CITY_KEY = 'rtc.defaultCity'
 const FALLBACK_CITY = 'Monte Carlo'

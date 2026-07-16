@@ -19,11 +19,46 @@ export const CAM_DIST_MIN = 0.4
 export const CAM_DIST_MAX = 3
 export const CAM_DIST_STEP = 0.15
 
-export function createStage(mount: HTMLElement): Stage {
-  const renderer = new THREE.WebGLRenderer({ antialias: true })
+export type Quality = 'low' | 'normal' | 'high'
+export const QUALITIES: readonly Quality[] = ['low', 'normal', 'high']
+
+/** Render scale — by far the biggest GPU cost, so it leads the quality tiers. */
+function pixelRatioFor(q: Quality): number {
+  const dpr = window.devicePixelRatio || 1
+  if (q === 'low') return Math.min(dpr, 0.75)
+  if (q === 'high') return Math.min(dpr, 2)
+  return Math.min(dpr, 1.5)
+}
+
+/** Particle-count multiplier for the weather effects. */
+export function densityFor(q: Quality): number {
+  return q === 'low' ? 0.4 : q === 'high' ? 1 : 0.75
+}
+
+/**
+ * Apply the quality tier to the renderer: resolution scale and shadows.
+ * `shadowsWanted` is the user's shadow toggle — 'low' forces them off regardless.
+ */
+export function applyQuality(stage: Stage, q: Quality, shadowsWanted: boolean): void {
+  stage.renderer.setPixelRatio(pixelRatioFor(q))
+  const shadows = q !== 'low' && shadowsWanted
+  stage.renderer.shadowMap.enabled = shadows
+  stage.sun.castShadow = shadows
+  const size = q === 'high' ? 2048 : 1024
+  if (stage.sun.shadow.mapSize.x !== size) {
+    stage.sun.shadow.mapSize.set(size, size)
+    stage.sun.shadow.map?.dispose() // force a rebuild at the new size
+    stage.sun.shadow.map = null as unknown as THREE.WebGLRenderTarget
+  }
+  stage.renderer.shadowMap.needsUpdate = true
+}
+
+export function createStage(mount: HTMLElement, quality: Quality = 'normal'): Stage {
+  // Antialias can't change after construction, so it's fixed from the saved tier.
+  const renderer = new THREE.WebGLRenderer({ antialias: quality !== 'low' })
   renderer.setSize(window.innerWidth, window.innerHeight)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.shadowMap.enabled = true
+  renderer.setPixelRatio(pixelRatioFor(quality))
+  renderer.shadowMap.enabled = quality !== 'low'
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   mount.appendChild(renderer.domElement)
 
@@ -35,8 +70,8 @@ export function createStage(mount: HTMLElement): Stage {
   scene.add(ambient)
   const sun = new THREE.DirectionalLight(0xffffff, 1.1)
   sun.position.set(100, 200, 80)
-  sun.castShadow = true
-  sun.shadow.mapSize.set(2048, 2048)
+  sun.castShadow = quality !== 'low'
+  sun.shadow.mapSize.set(quality === 'high' ? 2048 : 1024, quality === 'high' ? 2048 : 1024)
   const sc = sun.shadow.camera
   sc.left = -90
   sc.right = 90
