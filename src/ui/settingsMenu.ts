@@ -7,7 +7,17 @@ import { pickRandomCity } from '../app/cities'
 
 const WEATHER_EMOJI: Record<WeatherSetting, string> = { auto: '🔄', clear: '☀', rain: '🌧', snow: '❄', fog: '🌫' }
 
-const VEHICLE_EMOJI: Record<VehicleType, string> = { car: '🚗', truck: '🚚', sports: '🏎' }
+const VEHICLE_EMOJI: Record<VehicleType, string> = {
+  car: '🚗',
+  truck: '🚚',
+  sports: '🏎',
+  motorbike: '🏍',
+  bus: '🚌',
+  racecar: '🏁',
+  tractor: '🚜',
+  lorry: '🚛',
+  cabrio: '🚙',
+}
 const ACTIVE = '#e63946'
 const INACTIVE = '#26303f'
 

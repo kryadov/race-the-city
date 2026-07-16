@@ -1,6 +1,19 @@
-export type VehicleType = 'car' | 'truck' | 'sports'
+export type VehicleType = 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
 
-export const VEHICLE_TYPES: readonly VehicleType[] = ['car', 'truck', 'sports']
+export const VEHICLE_TYPES: readonly VehicleType[] = [
+  'car',
+  'sports',
+  'racecar',
+  'motorbike',
+  'cabrio',
+  'truck',
+  'lorry',
+  'bus',
+  'tractor',
+]
+
+/** Vehicles that bank into corners (only the bike leans). */
+export const LEANS: Partial<Record<VehicleType, boolean>> = { motorbike: true }
 
 export interface VehicleSpec {
   key: VehicleType
@@ -56,5 +69,83 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
     maxSpeed: 55,
     maxReverse: 16,
     radius: 1.2,
+  },
+  // A bike: quick and flickable, grips hard (it leans instead of sliding).
+  motorbike: {
+    key: 'motorbike',
+    accel: 105,
+    brakeAccel: 78,
+    dragForward: 2.1,
+    gripLateral: 8.5,
+    turnRate: 3.1,
+    turnSpeedRef: 6.5,
+    maxSpeed: 50,
+    maxReverse: 8,
+    radius: 0.8,
+  },
+  // A city bus: long, heavy, lazy steering.
+  bus: {
+    key: 'bus',
+    accel: 34,
+    brakeAccel: 45,
+    dragForward: 1.4,
+    gripLateral: 3.2,
+    turnRate: 1.05,
+    turnSpeedRef: 12,
+    maxSpeed: 26,
+    maxReverse: 8,
+    radius: 2.2,
+  },
+  // Formula-style: the fastest and sharpest thing here.
+  racecar: {
+    key: 'racecar',
+    accel: 145,
+    brakeAccel: 95,
+    dragForward: 2.4,
+    gripLateral: 7.5,
+    turnRate: 3.0,
+    turnSpeedRef: 6.5,
+    maxSpeed: 65,
+    maxReverse: 15,
+    radius: 1.1,
+  },
+  // A tractor: crawls, but turns tight.
+  tractor: {
+    key: 'tractor',
+    accel: 26,
+    brakeAccel: 40,
+    dragForward: 1.2,
+    gripLateral: 4,
+    turnRate: 1.7,
+    turnSpeedRef: 5,
+    maxSpeed: 14,
+    maxReverse: 6,
+    radius: 1.5,
+  },
+  // An articulated lorry: the heaviest, slides the most.
+  lorry: {
+    key: 'lorry',
+    accel: 36,
+    brakeAccel: 46,
+    dragForward: 1.5,
+    gripLateral: 2.8,
+    turnRate: 0.95,
+    turnSpeedRef: 12,
+    maxSpeed: 28,
+    maxReverse: 8,
+    radius: 2.4,
+  },
+  // An open-top cruiser: like the car, a touch faster and looser.
+  cabrio: {
+    key: 'cabrio',
+    accel: 95,
+    brakeAccel: 74,
+    dragForward: 2.1,
+    gripLateral: 6.4,
+    turnRate: 2.6,
+    turnSpeedRef: 7.5,
+    maxSpeed: 48,
+    maxReverse: 14,
+    radius: 1.25,
   },
 }

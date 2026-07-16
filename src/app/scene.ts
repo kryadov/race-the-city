@@ -87,7 +87,11 @@ const nRight = new THREE.Vector3()
 const nFwd0 = new THREE.Vector3()
 const basis = new THREE.Matrix4()
 
-export function syncCamera(stage: Stage, car: CarState, dt: number, provider: ElevationProvider): void {
+/** Roll applied about the model's forward axis (bikes bank into corners). */
+const leanQuat = new THREE.Quaternion()
+const FWD_AXIS = new THREE.Vector3(1, 0, 0)
+
+export function syncCamera(stage: Stage, car: CarState, dt: number, provider: ElevationProvider, lean = 0): void {
   stage.carMesh.position.set(car.x, car.y, car.z)
 
   // Orient to the terrain: build a basis from the surface normal + heading so
@@ -101,6 +105,9 @@ export function syncCamera(stage: Stage, car: CarState, dt: number, provider: El
   nFwd.crossVectors(nUp, nRight).normalize()
   basis.makeBasis(nFwd, nUp, nRight)
   stage.carMesh.quaternion.setFromRotationMatrix(basis)
+  // Bank into the corner: the basis puts local +x along forward, so a roll about
+  // local +x tips the model's up-vector toward its right (+z).
+  if (lean !== 0) stage.carMesh.quaternion.multiply(leanQuat.setFromAxisAngle(FWD_AXIS, lean))
 
   // Spin wheels by rolling distance (forward speed / radius).
   const forward = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)

@@ -69,7 +69,7 @@ import { buildSea } from '../world/sea'
 import { SpatialGrid } from '../physics/grid'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
-import { VEHICLES, type VehicleType } from '../vehicle/vehicles'
+import { VEHICLES, LEANS, type VehicleType } from '../vehicle/vehicles'
 import {
   buildVehicleMesh,
   REAR_LIGHT_MAT,
@@ -132,6 +132,8 @@ window.addEventListener('pointerdown', resumeAudio, { once: true })
 window.addEventListener('keydown', resumeAudio, { once: true })
 let vehicle: VehicleType = 'car'
 let prevForward = 0
+let lean = 0 // current bank angle (bikes only), eased toward the target
+const MAX_LEAN = 0.5 // rad (~29°) at full steer and speed
 let steerDir = 0 // sign of the currently-held steer
 let steerHold = 0 // seconds that direction has been held
 let blinkClock = 0 // free-running clock for the indicator blink
@@ -322,7 +324,10 @@ async function loadCity(query: string): Promise<void> {
         // pull the camera in when driving through a tunnel so the car stays visible
         const target = inTunnel(car.x, car.z) ? 0.42 : 1
         stage.camDistScale += (target - stage.camDistScale) * (1 - Math.exp(-4 * dt))
-        syncCamera(stage, car, dt, provider)
+        // bikes bank into corners; everything else stays upright
+        const leanTarget = LEANS[vehicle] ? input.steer * Math.min(1, Math.abs(fwd) / 12) * MAX_LEAN : 0
+        lean += (leanTarget - lean) * (1 - Math.exp(-6 * dt))
+        syncCamera(stage, car, dt, provider, lean)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)
