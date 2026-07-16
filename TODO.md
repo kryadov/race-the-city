@@ -8,6 +8,10 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0
 - [ ] **Palms in southern cities, not firs** — tree shape should follow latitude (the projector
       knows the centre lat); conifers in Monaco read as wrong
+- [ ] **Big rivers are missing entirely** — `overpassQuery` asks only for `way[...]`, never
+      `relation[...]`, so any water mapped as a multipolygon relation (most large rivers — the
+      Neva, the Moskva) never arrives. Needs relation members + outer-ring stitching by node id,
+      and care: `>;` on a river relation can drag in the whole waterway far past the bbox.
 - [ ] Pedestrian zones, squares, parking (`highway=pedestrian`, `amenity=parking`)
 - [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)
 - [ ] **Drivable bridges** — deck as a real surface: parse `layer`, span flat between abutments
@@ -32,6 +36,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] **`lens(mat, w, h, …)` and `housingBar(h, w, …)` take their args in opposite orders** —
       that trap produced two 1.5m-tall "light bars" in v0.58.0 that the whole suite passed.
       Give them a shared arg order (or named args) before the next vehicle is added.
+- [ ] **Front wheels should steer** — they only roll today (`syncCamera` spins anything tagged
+      `wheelRadius`); tag the front pair so they yaw with the steering input
 - [ ] Custom vehicle colours
 - [ ] Brake tuning — low-speed brake can overshoot into reverse (same class as the fixed friction bug)
 - [x] Drift effects — tyre skid marks + smoke — done in v0.16.0 (2x longer trail in v0.38.0)
