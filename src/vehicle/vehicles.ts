@@ -12,6 +12,17 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'tractor',
 ]
 
+/**
+ * Menu grouping, by what the thing is for. The picker renders these in order and
+ * never names a vehicle itself, so adding a type is one line here.
+ */
+export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType[] }[] = [
+  { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio'] },
+  { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus'] },
+  { key: 'vehGroup.special', types: ['tractor'] },
+  { key: 'vehGroup.exotic', types: ['motorbike'] },
+]
+
 /** Vehicles that bank into corners (only the bike leans). */
 export const LEANS: Partial<Record<VehicleType, boolean>> = { motorbike: true }
 

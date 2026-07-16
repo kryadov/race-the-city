@@ -1,5 +1,5 @@
 import { t, getLang, setLang, onLangChange, LANGS } from '../i18n/i18n'
-import { VEHICLE_TYPES, type VehicleType } from '../vehicle/vehicles'
+import { VEHICLE_GROUPS, type VehicleType } from '../vehicle/vehicles'
 import type { ViewMode } from '../app/theme'
 import { type AudioState, TRACK_NAMES } from '../audio/audio'
 import { WEATHER_SETTINGS, type WeatherSetting } from '../app/weather'
@@ -141,7 +141,7 @@ export function createSettingsMenu(
    * A collapsible group. Appends itself to the panel in creation order and
    * returns the body, which callers fill as before.
    */
-  function section(key: string): HTMLDivElement {
+  function section(key: string, parent: HTMLElement = panel): HTMLDivElement {
     const wrap = document.createElement('div')
     wrap.style.cssText = 'margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07)'
     const header = document.createElement('button')
@@ -168,7 +168,7 @@ export function createSettingsMenu(
     })
     apply()
     wrap.append(header, body)
-    panel.appendChild(wrap)
+    parent.appendChild(wrap)
     return body
   }
   const row = (): HTMLDivElement => {
@@ -244,18 +244,21 @@ export function createSettingsMenu(
 
   // --- Vehicle ---
   const vehSec = section('menu.vehicle')
-  const vehRow = row()
   const vehButtons = new Map<VehicleType, HTMLButtonElement>()
-  for (const type of VEHICLE_TYPES) {
-    const b = button()
-    b.addEventListener('click', () => {
-      cb.onSelectVehicle(type)
-      setVehicle(type)
-    })
-    vehButtons.set(type, b)
-    vehRow.appendChild(b)
+  for (const group of VEHICLE_GROUPS) {
+    const groupBody = section(group.key, vehSec)
+    const groupRow = row()
+    for (const type of group.types) {
+      const b = button()
+      b.addEventListener('click', () => {
+        cb.onSelectVehicle(type)
+        setVehicle(type)
+      })
+      vehButtons.set(type, b)
+      groupRow.appendChild(b)
+    }
+    groupBody.appendChild(groupRow)
   }
-  vehSec.appendChild(vehRow)
 
   // --- Audio ---
   const audioSec = section('menu.audio')
