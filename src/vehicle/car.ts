@@ -101,7 +101,10 @@ export function stepCar(
   const nx = car.x + vx * dt
   const nz = car.z + vz * dt
 
-  const resolved = resolveCircle(nx, nz, spec.radius, grid)
+  // Its own height goes in: land on a wall and you are stopped by it, but clear
+  // the roof and you are over it. A jump that a wall could cancel in mid-air was
+  // not a jump.
+  const resolved = resolveCircle(nx, nz, spec.radius, grid, car.y)
   if (resolved.x !== nx || resolved.z !== nz) {
     vx *= 0.3 // bleed speed on impact
     vz *= 0.3

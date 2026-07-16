@@ -4,10 +4,25 @@ import type { Vec2 } from '../geo/types'
 export class SpatialGrid {
   private readonly cell: number
   private readonly buckets = new Map<string, Vec2[][]>()
+  private readonly tops = new Map<Vec2[], number>()
 
-  constructor(footprints: Vec2[][], cellSize = 25) {
+  /**
+   * @param tops how high each footprint stands, in absolute metres, parallel to
+   *   `footprints`. Anything left out is treated as reaching the sky and is
+   *   never flown over — an obstacle of unknown height is not one to gamble a
+   *   car on.
+   */
+  constructor(footprints: Vec2[][], cellSize = 25, tops: number[] = []) {
     this.cell = cellSize
-    for (const fp of footprints) this.insert(fp)
+    footprints.forEach((fp, i) => {
+      this.insert(fp)
+      if (tops[i] !== undefined) this.tops.set(fp, tops[i])
+    })
+  }
+
+  /** The height of a footprint's top, or Infinity if nobody said. */
+  topOf(fp: Vec2[]): number {
+    return this.tops.get(fp) ?? Infinity
   }
 
   private key(cx: number, cz: number): string {

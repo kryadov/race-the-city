@@ -99,7 +99,7 @@ import { buildBridges } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildWater } from '../world/water'
 import { buildParking } from '../world/parking'
-import { buildProps, propFootprints } from '../world/props'
+import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
 import { SpatialGrid } from '../physics/grid'
@@ -333,7 +333,7 @@ async function loadCity(query: string): Promise<void> {
 
     const ground = buildGround(provider, RADIUS, world.green, GROUND_SEGMENTS)
     facades?.dispose() // the outgoing city's facade textures
-    const { mesh: buildingsMesh, footprints, facades: newFacades } = buildBuildings(world.buildings, provider)
+    const { mesh: buildingsMesh, footprints, tops, facades: newFacades } = buildBuildings(world.buildings, provider)
     facades = newFacades
     const normalRoads = world.roads.filter((r) => !r.bridge && !r.tunnel)
     const bridgeRoads = world.roads.filter((r) => r.bridge)
@@ -403,8 +403,14 @@ async function loadCity(query: string): Promise<void> {
     boostTimer = 0
     boost = 0 // don't carry a live boost into the new city
 
-    // Fountains and statues are as solid as walls; the grid takes polygons.
-    grid = new SpatialGrid(footprints.concat(propFootprints(world.props)), 25)
+    // Fountains and statues are as solid as walls; the grid takes polygons. It
+    // takes their heights too, so a car with a jump in it can clear a bungalow
+    // instead of being stopped in mid-air by ground it is nowhere near.
+    grid = new SpatialGrid(
+      footprints.concat(propFootprints(world.props)),
+      25,
+      tops.concat(propTops(world.props, provider)),
+    )
     car = createCar(0, 0)
     car.y = provider.heightAt(0, 0) + (HOVERS[vehicle] ? HOVER_H : 0)
     // resume the saved pose if we're re-loading the same city

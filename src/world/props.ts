@@ -10,6 +10,9 @@ interface PropVariant {
   /** How much room this specific shape takes on the ground, in metres — an
    * obelisk's plinth is not a column's, so this lives per variant, not per kind. */
   radius: number
+  /** How high it stands above the ground, in metres: what a car has to clear to
+   * fly over it rather than into it. */
+  top: number
   parts: () => Part[]
 }
 
@@ -37,6 +40,15 @@ function pickVariant(at: Vec2, count: number): number {
  * fountain. Squares rather than circles, because the grid takes polygons — and
  * at this size nobody can tell.
  */
+/** How high each prop stands, in absolute metres, parallel to `propFootprints`. */
+export function propTops(props: Prop[], provider: ElevationProvider): number[] {
+  return props.map((p) => {
+    const variants = VARIANTS[p.kind]
+    const v = variants[pickVariant(p.at, variants.length)]
+    return provider.heightAt(p.at.x, p.at.z) + v.top
+  })
+}
+
 export function propFootprints(props: Prop[]): Vec2[][] {
   return props.map((p) => {
     const variants = VARIANTS[p.kind]
@@ -63,6 +75,7 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
   fountain: [
     {
       radius: 3.3,
+      top: 3.9,
       parts: () => [
         { geo: ring(3.2, 0.55), mat: stone(0xa9a294) }, // basin wall
         { geo: disc(3.35, 0.14, 0.55), mat: stone(0xb9b2a4) }, // coping, wide enough to sit on
@@ -83,6 +96,7 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
     // 1. The original: a standing figure on a plinth. Thin and vertical.
     {
       radius: 0.75,
+      top: 2.7,
       parts: () => [
         { geo: boxGeo(1.2, 0.9, 1.2, 0.45), mat: stone(0x8d8778) },
         { geo: boxGeo(0.42, 1.5, 0.34, 1.65), mat: stone(0x9a9484) },
@@ -93,6 +107,7 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
     // the opposite silhouette of the standing figure, which is the point.
     {
       radius: 1.3,
+      top: 3.15,
       parts: () => [
         { geo: boxGeo(1.7, 1.0, 1.0, 0.5), mat: stone(0x8d8778) }, // plinth
         { geo: legs(1.0), mat: bronze(0x6b5a42) }, // planted on the plinth top
@@ -106,6 +121,7 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
     // figure — the skyline silhouette, not a street-level one.
     {
       radius: 0.5,
+      top: 3.35,
       parts: () => [
         { geo: boxGeo(0.6, 0.3, 0.6, 0.15), mat: stone(0x8d8778) }, // base
         { geo: pillar(0.16, 0.2, 2.0, 0.3), mat: stone(0x9a9484) }, // column
@@ -118,6 +134,7 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
     // simplest of the four, and the one that reads as a monument from furthest.
     {
       radius: 0.65,
+      top: 3.55,
       parts: () => [
         { geo: boxGeo(1.0, 0.4, 1.0, 0.2), mat: stone(0x8d8778) },
         { geo: pillar(0.12, 0.32, 3.0, 0.4), mat: stone(0x9a9484) },
@@ -129,6 +146,7 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
   flowerbed: [
     {
       radius: 1.7,
+      top: 0.55,
       parts: () => [
         { geo: ring(1.6, 0.22), mat: stone(0x9c9384) },
         { geo: disc(1.45, 0.14, 0.2), mat: soil() },

@@ -91,9 +91,12 @@ function batchMesh(batch: Batch, mat: THREE.Material): THREE.Mesh {
 export function buildBuildings(
   buildings: Building[],
   provider: ElevationProvider,
-): { mesh: THREE.Object3D; footprints: Vec2[][]; facades: FacadeMaterials } {
+): { mesh: THREE.Object3D; footprints: Vec2[][]; tops: number[]; facades: FacadeMaterials } {
   const group = new THREE.Group()
   const footprints: Vec2[][] = []
+  // The absolute height of each roof, parallel to `footprints`: what the physics
+  // needs to tell a car flying over a bungalow from one flying into a tower.
+  const tops: number[] = []
   const rng = makeRng(RNG_SEED)
   const wall = new THREE.Color()
   const roof = new THREE.Color()
@@ -133,6 +136,7 @@ export function buildBuildings(
     appendTo(batch, geo)
     geo.dispose() // its vertices live in the batch now
     footprints.push(b.footprint)
+    tops.push(avg + b.height)
   }
 
   for (const [kind, batch] of batches) group.add(batchMesh(batch, facades.of(kind)))
@@ -140,7 +144,7 @@ export function buildBuildings(
   // Doors and signs for every building in two instanced draws.
   group.add(buildEntrances(buildings, provider))
 
-  return { mesh: group, footprints, facades }
+  return { mesh: group, footprints, tops, facades }
 }
 
 /** Average and minimum terrain height sampled at a footprint's vertices. */

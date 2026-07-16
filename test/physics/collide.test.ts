@@ -35,3 +35,39 @@ describe('resolveCircle', () => {
     expect(Math.abs(p.z - 3)).toBeLessThan(2)
   })
 })
+
+describe('flying over an obstacle', () => {
+  // A 20m square building, 8m tall, sitting at the origin.
+  const box: Vec2[] = [
+    { x: -10, z: -10 },
+    { x: 10, z: -10 },
+    { x: 10, z: 10 },
+    { x: -10, z: 10 },
+  ]
+  const grid = new SpatialGrid([box], 25, [8])
+
+  it('lets a car that is over the roof carry straight on', () => {
+    expect(resolveCircle(0, 0, 2, grid, 9)).toEqual({ x: 0, z: 0 })
+  })
+
+  it('still stops one that is not high enough', () => {
+    const p = resolveCircle(0, 0, 2, grid, 3)
+    expect(Math.hypot(p.x, p.z), 'it should have been shoved out of the wall').toBeGreaterThan(1)
+  })
+
+  it('stops it at the roofline, not a metre under', () => {
+    // Level with the top counts as over it: you are on the roof, not in the wall.
+    expect(resolveCircle(0, 0, 2, grid, 8)).toEqual({ x: 0, z: 0 })
+    expect(resolveCircle(0, 0, 2, grid, 7.99)).not.toEqual({ x: 0, z: 0 })
+  })
+
+  it('never flies over something whose height nobody stated', () => {
+    // An obstacle of unknown height is not one to gamble a car on.
+    const blind = new SpatialGrid([box], 25)
+    expect(resolveCircle(0, 0, 2, blind, 500)).not.toEqual({ x: 0, z: 0 })
+  })
+
+  it('collides as it always did when the caller says nothing about height', () => {
+    expect(resolveCircle(0, 0, 2, grid)).not.toEqual({ x: 0, z: 0 })
+  })
+})
