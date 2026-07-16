@@ -22,12 +22,13 @@ export function buildBuildings(
     for (let i = 1; i < b.footprint.length; i++) shape.lineTo(b.footprint[i].x, b.footprint[i].z)
     shape.closePath()
 
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: b.height, bevelEnabled: false })
+    // Top sits at avg ground + height; the base is extended down to the lowest
+    // ground under the footprint (+margin) so no side floats over a slope.
+    const { avg, min } = groundStats(b.footprint, provider)
+    const skirt = avg - min + 0.5
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: b.height + skirt, bevelEnabled: false })
     geo.rotateX(Math.PI / 2) // extrude along +Y without mirroring z
-
-    // Sit the base on the ground at the footprint's average elevation.
-    const base = averageGround(b.footprint, provider)
-    geo.translate(0, base + b.height, 0)
+    geo.translate(0, avg + b.height, 0)
 
     const color = COLORS[footprints.length % COLORS.length]
     const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, flatShading: true, side: THREE.DoubleSide }))
@@ -38,8 +39,14 @@ export function buildBuildings(
   return { mesh: group, footprints }
 }
 
-function averageGround(ring: Vec2[], provider: ElevationProvider): number {
+/** Average and minimum terrain height sampled at a footprint's vertices. */
+export function groundStats(ring: Vec2[], provider: ElevationProvider): { avg: number; min: number } {
   let sum = 0
-  for (const p of ring) sum += provider.heightAt(p.x, p.z)
-  return sum / ring.length
+  let min = Infinity
+  for (const p of ring) {
+    const h = provider.heightAt(p.x, p.z)
+    sum += h
+    if (h < min) min = h
+  }
+  return { avg: sum / ring.length, min }
 }
