@@ -64,3 +64,71 @@ describe('props', () => {
     expect(b.min.y).toBeGreaterThan(39)
   })
 })
+
+describe('statues', () => {
+  // Spread widely so the position hash lands in every bucket; a tight grid
+  // (or a step matching the hash's own multiplier) could alias into one kind.
+  const scattered = (n: number): Prop[] =>
+    Array.from({ length: n }, (_, i) => at(i * 17.3, i * 29.7, 'statue'))
+
+  it('is not one shape copy-pasted down the street', () => {
+    // Every variant has at least 3 parts, so 3 meshes means only one shape
+    // was ever picked; more than 3 means a second (or third, or fourth) shape
+    // is standing among them.
+    const children = buildProps(scattered(60), flat).children.length
+    expect(children).toBeGreaterThan(3)
+  })
+
+  it('gives different statues different footprints', () => {
+    // The four kinds were designed with different ground radii (a horse needs
+    // more room than a bust on a column); if they all came out equal, variety
+    // isn't actually reaching the collision grid.
+    const widths = new Set(
+      propFootprints(scattered(60)).map((ring) => {
+        const half = Math.max(...ring.map((p) => Math.abs(p.x)))
+        return Math.round(half * 100)
+      }),
+    )
+    expect(widths.size).toBeGreaterThan(1)
+  })
+
+  it('picks the same shape for the same city on every build', () => {
+    const props = scattered(60)
+    const a = buildProps(props, flat)
+    const b = buildProps(props, flat)
+    expect(b.children.length).toBe(a.children.length)
+    const boxA = new THREE.Box3().setFromObject(a)
+    const boxB = new THREE.Box3().setFromObject(b)
+    expect(boxB.min.toArray()).toEqual(boxA.min.toArray())
+    expect(boxB.max.toArray()).toEqual(boxA.max.toArray())
+  })
+
+  it('picks by position, not by array order', () => {
+    // Same statues, listed in a different order — OSM gives no guarantee an
+    // element order is stable between parses of the same city. The radius
+    // chosen for a given spot must not depend on where it sits in the list.
+    const props = scattered(40)
+    const reversed = [...props].reverse()
+    const radiiByPos = (list: Prop[]): Map<string, number> => {
+      const out = new Map<string, number>()
+      propFootprints(list).forEach((ring, i) => {
+        const half = Math.max(...ring.map((p) => Math.abs(p.x - list[i].at.x)))
+        out.set(`${list[i].at.x},${list[i].at.z}`, half)
+      })
+      return out
+    }
+    const a = radiiByPos(props)
+    const b = radiiByPos(reversed)
+    for (const [key, half] of a) expect(b.get(key)).toBe(half)
+  })
+
+  it('still draws one instanced mesh per part per shape, how many ever statues', () => {
+    const few = buildProps(scattered(4), flat).children.length
+    const many = buildProps(scattered(80), flat).children.length
+    // Not exactly equal like the single-shape fountain case — more statues
+    // means more of the four shapes get used — but it must not grow linearly
+    // with the statue count the way one-mesh-per-statue would.
+    expect(many).toBeLessThan(80)
+    expect(many).toBeGreaterThanOrEqual(few)
+  })
+})
