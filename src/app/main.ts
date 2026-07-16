@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { createStage, syncCamera, type Stage } from './scene'
 import { startLoop } from './loop'
+import { ThemeController } from './theme'
 import { createCityInput } from '../ui/cityInput'
 import { createLoading } from '../ui/loading'
 import { geocode } from '../geo/geocode'
@@ -25,6 +26,7 @@ const ui = document.getElementById('ui')!
 const stage: Stage = createStage(app)
 const loading = createLoading(ui)
 const keyboard = new Keyboard()
+const theme = new ThemeController(stage)
 
 let worldGroup: import('three').Object3D[] = []
 let car: CarState | null = null
@@ -77,6 +79,7 @@ async function loadCity(query: string): Promise<void> {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
+    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh })
 
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
@@ -99,5 +102,11 @@ async function loadCity(query: string): Promise<void> {
   }
 }
 
-createCityInput(ui, (q) => void loadCity(q))
+const cityUi = createCityInput(ui, (q) => void loadCity(q), () => theme.toggle())
+theme.onChange = (mode) => cityUi.setViewMode(mode)
+window.addEventListener('keydown', (e) => {
+  const t = e.target as HTMLElement | null
+  if (t && (t.tagName === 'INPUT' || t.isContentEditable)) return // don't toggle while typing a city
+  if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
+})
 void loadCity('Тбилиси')
