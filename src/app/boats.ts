@@ -77,25 +77,26 @@ export function circleFits(
  * at 900m, so a boat beyond that is a boat nobody will ever see.
  */
 const LOOK = 900
-const LOOK_STEP = 60
+const LOOK_STEP = 40
 
 /**
- * The nearest spot to the middle of the map with room for a boat.
+ * The widest spot in this water that is actually within sight of the city.
  *
- * It used to take the widest part of the water, wherever that was. For a river
- * that fits in the map that is the same place; for a sea along the edge of one
- * it is a mile offshore, and the ship was out there, correctly afloat and
- * completely invisible.
+ * Not the widest spot outright: for a sea running along the edge of the map
+ * that is a mile offshore, and the ship was out there — afloat, correct and
+ * completely invisible. Not the nearest spot with any room either: that is
+ * always hard against the near bank, where only a rowboat fits, so a lake with
+ * a ship's worth of water in the middle of it got a dinghy at the shoreline.
+ * The widest water you can see from the city is the one you want.
  */
 export function spotNearMiddle(ring: Vec2[]): { x: number; z: number; r: number } | null {
-  let best: { x: number; z: number; r: number; d: number } | null = null
+  let best: { x: number; z: number; r: number } | null = null
   for (let x = -LOOK; x <= LOOK; x += LOOK_STEP) {
     for (let z = -LOOK; z <= LOOK; z += LOOK_STEP) {
-      const d = Math.hypot(x, z)
-      if (d > LOOK || (best && d >= best.d)) continue
+      if (Math.hypot(x, z) > LOOK) continue
       const r = roomAt(ring, x, z)
-      if (r < ROWBOAT_ROOM) continue
-      best = { x, z, r, d }
+      if (r < ROWBOAT_ROOM || (best && r <= best.r)) continue
+      best = { x, z, r }
     }
   }
   return best
@@ -170,7 +171,10 @@ export function createBoats(
     const fit = spotNearMiddle(ring)
     if (!fit) continue // a puddle, or nothing but open water miles off the map
     const big = fit.r >= SHIP_ROOM
-    if (rand() > (big ? 0.75 : 0.4)) continue // not every stretch has one
+    // Not every stretch of water has a boat on it — but the first one that can
+    // take one does. A city often has a single river or lake, and rolling the
+    // dice on it meant the water was simply empty, which is what it looked like.
+    if (afloat.length && rand() > (big ? 0.75 : 0.4)) continue
 
     // The hull has to stay wet, not just the point it turns about: a 38m ship
     // spinning about its middle reaches 19m out before it has gone anywhere.

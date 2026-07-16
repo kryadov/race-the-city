@@ -92,6 +92,21 @@ describe('where a boat goes', () => {
     expect(spot!.r).toBeGreaterThan(14)
   })
 
+  it('takes the widest water in sight, not the first damp spot by the bank', async () => {
+    // Nearest-with-any-room is always hard against the near shore, where only a
+    // rowboat fits — so a lake with room for a ship in the middle of it got a
+    // dinghy at the water's edge.
+    const { spotNearMiddle } = await import('../../src/app/boats')
+    const lake: Vec2[] = [
+      { x: -400, z: -400 },
+      { x: 400, z: -400 },
+      { x: 400, z: 400 },
+      { x: -400, z: 400 },
+    ]
+    const spot = spotNearMiddle(lake)!
+    expect(spot.r, 'should find the middle of a 800m lake, not its rim').toBeGreaterThan(300)
+  })
+
   it('still finds nothing in a puddle', async () => {
     const { spotNearMiddle } = await import('../../src/app/boats')
     const puddle: Vec2[] = [
@@ -101,5 +116,24 @@ describe('where a boat goes', () => {
       { x: 0, z: 8 },
     ]
     expect(spotNearMiddle(puddle)).toBeNull()
+  })
+})
+
+describe('a lake with a ship on it', () => {
+  it('always puts one on the first water big enough, whatever the dice say', async () => {
+    // A city usually has one river or one lake. Rolling for it meant the water
+    // was simply empty — repeatedly, and that is exactly what it looked like.
+    const THREE = await import('three')
+    const { createBoats } = await import('../../src/app/boats')
+    const lake: Vec2[] = [
+      { x: -400, z: -400 },
+      { x: 400, z: -400 },
+      { x: 400, z: 400 },
+      { x: -400, z: 400 },
+    ]
+    const scene = new THREE.Scene()
+    // rand() = 0.99: every random gate in the module says no.
+    createBoats(scene, [lake], { heightAt: () => 0 }, () => 0.99, 4)
+    expect((scene.children[0] as InstanceType<typeof THREE.Group>).children.length).toBeGreaterThan(0)
   })
 })
