@@ -1,6 +1,6 @@
 export type VehicleType =
   | 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
-  | 'retro' | 'ev' | 'minivan'
+  | 'retro' | 'ev' | 'minivan' | 'tanker'
 
 export const VEHICLE_TYPES: readonly VehicleType[] = [
   'car',
@@ -13,6 +13,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'minivan',
   'truck',
   'lorry',
+  'tanker',
   'bus',
   'tractor',
 ]
@@ -23,7 +24,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
  */
 export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType[] }[] = [
   { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan'] },
-  { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus'] },
+  { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus', 'tanker'] },
   { key: 'vehGroup.special', types: ['tractor'] },
   { key: 'vehGroup.exotic', types: ['motorbike'] },
 ]
@@ -178,5 +179,10 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
   minivan: {
     key: 'minivan', accel: 62, brakeAccel: 60, dragForward: 1.9, gripLateral: 5.5,
     turnRate: 2.0, turnSpeedRef: 9, maxSpeed: 36, maxReverse: 12, radius: 1.6,
+  },
+  // A fuel tanker: the sloshing load makes it the loosest heavy thing here.
+  tanker: {
+    key: 'tanker', accel: 34, brakeAccel: 44, dragForward: 1.5, gripLateral: 2.6,
+    turnRate: 0.9, turnSpeedRef: 12, maxSpeed: 27, maxReverse: 8, radius: 2.4,
   },
 }

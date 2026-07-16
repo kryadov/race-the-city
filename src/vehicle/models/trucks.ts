@@ -70,3 +70,33 @@ export function buildLorry(): THREE.Group {
   g.add(mirror(3.3, 2.1, 1.25, 1), mirror(3.3, 2.1, -1.25, -1))
   return g
 }
+
+/** A fuel tanker: cab up front, a fat cylinder on the frame behind it. */
+export function buildTanker(): THREE.Group {
+  const g = new THREE.Group()
+  const cab = 0xc8433a
+  g.add(box(1.9, 1.5, 2.3, cab, 2.5, 1.5, 0)) // cab
+  g.add(glass(0.1, 0.6, 2.0, 3.42, 1.9, 0)) // windscreen
+  g.add(box(5.6, 0.3, 2.1, 0x3a3a44, -0.6, 0.86, 0)) // chassis rail
+  // the tank itself: a cylinder lying along x
+  const tank = new THREE.CylinderGeometry(1.05, 1.05, 5.2, 16)
+  tank.rotateZ(Math.PI / 2) // axis Y → X
+  const tankMesh = new THREE.Mesh(tank, new THREE.MeshStandardMaterial({ color: 0xd9dde2, flatShading: true }))
+  tankMesh.position.set(-0.6, 1.75, 0)
+  g.add(tankMesh)
+  g.add(box(0.12, 1.9, 1.9, 0xb0b6bd, 1.98, 1.75, 0)) // front end cap ring
+  g.add(box(0.12, 1.9, 1.9, 0xb0b6bd, -3.2, 1.75, 0)) // rear end cap ring
+  g.add(box(0.5, 0.28, 0.5, 0xffcf3a, -0.6, 2.86, 0)) // top hatch
+  g.add(wheel(0.55, 0.4, 2.5, 0.55, 1.1), wheel(0.55, 0.4, 2.5, 0.55, -1.1)) // steer axle
+  g.add(wheel(0.55, 0.4, -1.6, 0.55, 1.1), wheel(0.55, 0.4, -1.6, 0.55, -1.1))
+  g.add(wheel(0.55, 0.4, -2.8, 0.55, 1.1), wheel(0.55, 0.4, -2.8, 0.55, -1.1)) // bogie
+  g.add(light(3.48, 1.0, 0.82), light(3.48, 1.0, -0.82))
+  const rx = -3.32, fx = 3.48
+  g.add(housingBar(0.5, 1.9, rx, 1.0, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.42, 0.26, rx, 1.0, 0.8, -1), lens(REAR_LIGHT_MAT, 0.42, 0.26, rx, 1.0, -0.8, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 1.0, 0.5, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 1.0, -0.5, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, fx, 0.7, 0.98, 1), lens(TURN_LEFT_MAT, 0.2, 0.18, fx, 0.7, -0.98, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.7, 1.2, 1.06), repeater(TURN_LEFT_MAT, 1.7, 1.2, -1.06))
+  g.add(mirror(3.3, 2.1, 1.16, 1), mirror(3.3, 2.1, -1.16, -1))
+  return g
+}
