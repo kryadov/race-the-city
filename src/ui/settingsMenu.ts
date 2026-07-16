@@ -17,6 +17,7 @@ export interface SettingsCallbacks {
   onSetTime: (t: number) => void
   onDriftFx: (on: boolean) => void
   onHud: (on: boolean) => void
+  onReset: () => void
 }
 
 export interface SettingsHandle {
@@ -245,7 +246,11 @@ export function createSettingsMenu(
   timeSlider.addEventListener('input', () => cb.onSetTime(Number(timeSlider.value)))
   timeSec.appendChild(timeSlider)
 
-  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec, timeSec)
+  const resetBtn = button()
+  resetBtn.style.cssText += ';width:100%;margin-top:6px;background:#5a2a30'
+  resetBtn.addEventListener('click', () => cb.onReset())
+
+  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec, timeSec, resetBtn)
   root.append(gear, panel)
 
   function paintLabels(): void {
@@ -253,6 +258,7 @@ export function createSettingsMenu(
     input.placeholder = t('input.placeholder')
     goBtn.textContent = t('input.go')
     defBtn.textContent = '★ ' + t('menu.setDefault')
+    resetBtn.textContent = t('menu.reset')
     for (const { el, key } of labels) el.textContent = t(key)
   }
   function paintStates(): void {

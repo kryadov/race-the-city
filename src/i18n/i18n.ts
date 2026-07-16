@@ -33,6 +33,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.time': 'Time of day',
     'menu.driftFx': 'Drift effects',
     'menu.hud': 'Dashboard',
+    'menu.reset': 'Reset settings',
     'hud.kmh': 'km/h',
   },
   ru: {
@@ -64,6 +65,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.time': 'Время суток',
     'menu.driftFx': 'Эффекты дрифта',
     'menu.hud': 'Панель',
+    'menu.reset': 'Сбросить настройки',
     'hud.kmh': 'км/ч',
   },
 }
