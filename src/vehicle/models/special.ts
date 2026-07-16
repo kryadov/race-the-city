@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import {
-  box, wheel, light, lens, glass, person, housingBar, repeater,
+  box, wheel, steers, light, lens, glass, person, housingBar, repeater,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -16,7 +16,7 @@ export function buildTractor(): THREE.Group {
   pipe.position.set(0.75, 1.95, 0.42)
   g.add(pipe)
   g.add(wheel(0.95, 0.5, -0.85, 0.95, 0.8), wheel(0.95, 0.5, -0.85, 0.95, -0.8)) // big rear
-  g.add(wheel(0.5, 0.3, 1.0, 0.5, 0.62), wheel(0.5, 0.3, 1.0, 0.5, -0.62)) // small front
+  g.add(steers(wheel(0.5, 0.3, 1.0, 0.5, 0.62)), steers(wheel(0.5, 0.3, 1.0, 0.5, -0.62))) // small front
   g.add(light(1.24, 1.3, 0.42), light(1.24, 1.3, -0.42))
   const rx = -1.2, fx = 1.2
   g.add(lens(REAR_LIGHT_MAT, 0.22, 0.2, rx, 1.2, 0.45, -1), lens(REAR_LIGHT_MAT, 0.22, 0.2, rx, 1.2, -0.45, -1))
@@ -44,7 +44,7 @@ export function buildCrane(): THREE.Group {
   g.add(box(0.3, 0.6, 0.3, 0x3a3a44, -2.6, 2.4, 0)) // counterweight
   g.add(box(0.5, 0.24, 0.5, 0x3a3a44, 2.2, 0.5, 1.35), box(0.5, 0.24, 0.5, 0x3a3a44, 2.2, 0.5, -1.35)) // outriggers
   g.add(box(0.5, 0.24, 0.5, 0x3a3a44, -2.2, 0.5, 1.35), box(0.5, 0.24, 0.5, 0x3a3a44, -2.2, 0.5, -1.35))
-  g.add(wheel(0.6, 0.42, 2.2, 0.6, 1.05), wheel(0.6, 0.42, 2.2, 0.6, -1.05))
+  g.add(steers(wheel(0.6, 0.42, 2.2, 0.6, 1.05)), steers(wheel(0.6, 0.42, 2.2, 0.6, -1.05)))
   g.add(wheel(0.6, 0.42, 0.4, 0.6, 1.05), wheel(0.6, 0.42, 0.4, 0.6, -1.05))
   g.add(wheel(0.6, 0.42, -2.2, 0.6, 1.05), wheel(0.6, 0.42, -2.2, 0.6, -1.05))
   g.add(light(3.06, 1.3, 0.8), light(3.06, 1.3, -0.8))
@@ -96,7 +96,7 @@ export function buildCombine(): THREE.Group {
   for (let i = -3; i <= 3; i++) g.add(box(0.5, 0.1, 0.1, 0xb8bec6, 2.95, 0.75, i * 0.5))
   g.add(box(0.3, 0.9, 3.4, body, 2.1, 1.3, 0)) // header throat
   g.add(wheel(0.85, 0.55, 0.9, 0.85, 1.05), wheel(0.85, 0.55, 0.9, 0.85, -1.05)) // big drive wheels
-  g.add(wheel(0.45, 0.3, -2.3, 0.45, 0.75), wheel(0.45, 0.3, -2.3, 0.45, -0.75)) // small steer wheels
+  g.add(steers(wheel(0.45, 0.3, -2.3, 0.45, 0.75)), steers(wheel(0.45, 0.3, -2.3, 0.45, -0.75))) // a combine steers on the rear
   g.add(light(2.3, 3.3, 0.6), light(2.3, 3.3, -0.6))
   const rx = -2.62
   g.add(housingBar(0.4, 1.9, rx, 1.6, 0, -1))
@@ -105,26 +105,39 @@ export function buildCombine(): THREE.Group {
   return g
 }
 
-/** A walk-behind tiller: two wheels, handlebars, and a driver on foot behind. */
+/**
+ * A walk-behind tiller pulling a trailer, with the driver riding it — the way
+ * they are actually used to get about. The handlebars reach back to the seat.
+ */
 export function buildTiller(): THREE.Group {
   const g = new THREE.Group()
   const body = 0xd94f2b
-  g.add(box(0.8, 0.5, 0.6, body, 0.1, 0.62, 0)) // engine block
-  g.add(box(0.3, 0.34, 0.34, 0x3a3a44, 0.55, 0.62, 0)) // exhaust/filter
-  g.add(box(0.16, 0.3, 0.16, 0xb8bec6, 0.1, 0.95, 0)) // filler neck
-  // handlebars raked back over the driver
+  g.add(box(0.8, 0.5, 0.6, body, 0.6, 0.62, 0)) // engine block
+  g.add(box(0.3, 0.34, 0.34, 0x3a3a44, 1.05, 0.62, 0)) // exhaust/filter
+  g.add(box(0.16, 0.3, 0.16, 0xb8bec6, 0.6, 0.95, 0)) // filler neck
+  g.add(steers(wheel(0.32, 0.18, 0.6, 0.32, 0.42)), steers(wheel(0.32, 0.18, 0.6, 0.32, -0.42)))
+
+  // handlebars, raked back to where the driver sits
   const bars = new THREE.Group()
-  bars.add(box(1.5, 0.07, 0.07, 0x3a3a44, -0.6, 0, 0.28))
-  bars.add(box(1.5, 0.07, 0.07, 0x3a3a44, -0.6, 0, -0.28))
-  bars.add(box(0.08, 0.07, 0.62, 0x1c2733, -1.32, 0.06, 0)) // cross grip
-  bars.position.set(0, 0.72, 0)
-  bars.rotation.z = -0.3
+  bars.add(box(1.3, 0.07, 0.07, 0x3a3a44, -0.55, 0, 0.28))
+  bars.add(box(1.3, 0.07, 0.07, 0x3a3a44, -0.55, 0, -0.28))
+  bars.add(box(0.08, 0.07, 0.62, 0x1c2733, -1.16, 0.06, 0)) // cross grip
+  bars.position.set(0.5, 0.78, 0)
+  bars.rotation.z = -0.12
   g.add(bars)
-  g.add(wheel(0.32, 0.18, 0.1, 0.32, 0.42), wheel(0.32, 0.18, 0.1, 0.32, -0.42))
-  g.add(box(0.4, 0.3, 0.5, 0x3a3a44, -0.5, 0.3, 0)) // tine guard
-  g.add(person(-1.3, 1.0, 0, false, true)) // walking behind
-  g.add(light(0.62, 0.85, 0))
-  g.add(housingBar(0.2, 0.4, -0.52, 0.7, 0, -1))
-  g.add(lens(REAR_LIGHT_MAT, 0.18, 0.3, -0.52, 0.7, 0, -1))
+
+  // trailer: drawbar, flat bed, plank seat, low sides
+  g.add(box(0.7, 0.09, 0.12, 0x3a3a44, 0.05, 0.5, 0)) // drawbar
+  g.add(box(1.7, 0.1, 1.0, 0x8a6a4a, -1.15, 0.5, 0)) // bed
+  g.add(box(1.7, 0.22, 0.08, 0x8a6a4a, -1.15, 0.65, 0.5)) // side
+  g.add(box(1.7, 0.22, 0.08, 0x8a6a4a, -1.15, 0.65, -0.5))
+  g.add(box(0.08, 0.28, 1.0, 0x8a6a4a, -1.96, 0.68, 0)) // tailboard
+  g.add(box(0.4, 0.08, 0.9, 0x6b5138, -0.72, 0.62, 0)) // plank seat
+  g.add(wheel(0.3, 0.14, -1.5, 0.3, 0.56), wheel(0.3, 0.14, -1.5, 0.3, -0.56))
+  g.add(person(-0.72, 0.66, 0, false, true)) // riding, not trudging along behind
+
+  g.add(light(1.12, 0.85, 0))
+  g.add(housingBar(0.2, 0.4, -2.0, 0.72, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.3, 0.18, -2.0, 0.72, 0, -1))
   return g
 }

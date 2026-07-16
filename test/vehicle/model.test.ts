@@ -36,6 +36,37 @@ describe('buildVehicleMesh', () => {
     }
   })
 
+  it('gives the wheeled vehicles a steered axle', () => {
+    // tracked runs on tracks and the roller articulates its frame; neither yaws a wheel
+    const noSteer = new Set(['hover', 'tracked', 'roller'])
+    for (const type of VEHICLE_TYPES) {
+      if (noSteer.has(type)) continue
+      let steered = 0
+      buildVehicleMesh(type).traverse((o) => {
+        if ((o.userData as { steers?: boolean }).steers) steered++
+      })
+      expect(steered, type).toBeGreaterThan(0)
+    }
+  })
+
+  it('never steers a wheel it cannot spin', () => {
+    // a steered mark on a non-wheel would yaw some random box
+    for (const type of VEHICLE_TYPES) {
+      buildVehicleMesh(type).traverse((o) => {
+        const d = o.userData as { wheelRadius?: number; steers?: boolean }
+        if (d.steers) expect(d.wheelRadius, type).toBeGreaterThan(0)
+      })
+    }
+  })
+
+  it('leaves the tracked hull with nothing that steers', () => {
+    let steered = 0
+    buildVehicleMesh('tracked').traverse((o) => {
+      if ((o.userData as { steers?: boolean }).steers) steered++
+    })
+    expect(steered).toBe(0)
+  })
+
   it('builds the hovercar with no wheels', () => {
     let wheels = 0
     buildVehicleMesh('hover').traverse((o) => {

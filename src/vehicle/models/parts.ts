@@ -40,10 +40,21 @@ export function wheel(radius: number, width: number, x: number, y: number, z: nu
   return g
 }
 
+/**
+ * Mark a wheel as steered: the render loop yaws it with the steering input.
+ * Which axle steers is the vehicle's business — a combine steers on its rear
+ * wheels, a tracked hull steers on neither — so it is tagged, not inferred.
+ */
+export function steers<T extends THREE.Object3D>(w: T): T {
+  w.userData.steers = true
+  return w
+}
+
+/** Four wheels on two axles; the front pair steers, as on most things. */
 export function fourWheels(radius: number, width: number, axleX: number, halfTrack: number, y: number): THREE.Object3D[] {
   return [
-    wheel(radius, width, axleX, y, halfTrack),
-    wheel(radius, width, axleX, y, -halfTrack),
+    steers(wheel(radius, width, axleX, y, halfTrack)),
+    steers(wheel(radius, width, axleX, y, -halfTrack)),
     wheel(radius, width, -axleX, y, halfTrack),
     wheel(radius, width, -axleX, y, -halfTrack),
   ]

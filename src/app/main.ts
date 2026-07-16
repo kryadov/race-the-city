@@ -370,7 +370,7 @@ async function loadCity(query: string): Promise<void> {
         // bikes bank into corners; everything else stays upright
         const leanTarget = LEANS[vehicle] ? input.steer * Math.min(1, Math.abs(fwd) / 12) * MAX_LEAN : 0
         lean += (leanTarget - lean) * (1 - Math.exp(-6 * dt))
-        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle])
+        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle], input.steer)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import {
-  box, wheel, glass, light, lens, person, housingBar,
+  box, wheel, steers, glass, light, lens, person, housingBar,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -13,7 +13,7 @@ export function buildMotorbike(): THREE.Group {
   g.add(box(0.5, 0.3, 0.36, 0x1b6ca8, -0.78, 0.86, 0)) // tail unit
   g.add(box(0.1, 0.55, 0.08, 0x555a63, 0.78, 0.9, 0)) // fork
   g.add(box(0.07, 0.07, 0.72, 0x2a2d34, 0.8, 1.16, 0)) // handlebar
-  g.add(wheel(0.42, 0.16, 0.85, 0.42, 0), wheel(0.42, 0.16, -0.8, 0.42, 0))
+  g.add(steers(wheel(0.42, 0.16, 0.85, 0.42, 0)), wheel(0.42, 0.16, -0.8, 0.42, 0))
   g.add(light(1.0, 0.95, 0)) // headlight
   const rx = -0.95, fx = 0.95
   g.add(lens(REAR_LIGHT_MAT, 0.22, 0.12, rx, 0.88, 0, -1))

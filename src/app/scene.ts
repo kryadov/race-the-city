@@ -126,7 +126,18 @@ const basis = new THREE.Matrix4()
 const leanQuat = new THREE.Quaternion()
 const FWD_AXIS = new THREE.Vector3(1, 0, 0)
 
-export function syncCamera(stage: Stage, car: CarState, dt: number, provider: ElevationProvider, lean = 0, level = false): void {
+/** How far a steered wheel turns at full lock, radians. */
+const MAX_STEER_YAW = 0.5
+
+export function syncCamera(
+  stage: Stage,
+  car: CarState,
+  dt: number,
+  provider: ElevationProvider,
+  lean = 0,
+  level = false,
+  steer = 0,
+): void {
   stage.carMesh.position.set(car.x, car.y, car.z)
 
   // Orient to the terrain: build a basis from the surface normal + heading so
@@ -146,11 +157,15 @@ export function syncCamera(stage: Stage, car: CarState, dt: number, provider: El
   // local +x tips the model's up-vector toward its right (+z).
   if (lean !== 0) stage.carMesh.quaternion.multiply(leanQuat.setFromAxisAngle(FWD_AXIS, lean))
 
-  // Spin wheels by rolling distance (forward speed / radius).
+  // Spin wheels by rolling distance (forward speed / radius), and point the
+  // steered ones where the driver is asking. Both live on the same group: the
+  // yaw is set outright, the roll accumulates.
   const forward = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
+  const yaw = steer * MAX_STEER_YAW
   stage.carMesh.traverse((o) => {
-    const r = (o.userData as { wheelRadius?: number }).wheelRadius
-    if (r) o.rotation.z -= (forward / r) * dt
+    const d = o.userData as { wheelRadius?: number; steers?: boolean }
+    if (d.wheelRadius) o.rotation.z -= (forward / d.wheelRadius) * dt
+    if (d.steers) o.rotation.y = yaw
   })
 
   const d = stage.camDist * stage.camDistScale

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import {
-  box, wheel, fourWheels, light, lens, housingBar, glass, repeater, mirror,
+  box, wheel, steers, fourWheels, light, lens, housingBar, glass, repeater, mirror,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -57,7 +57,7 @@ export function buildLorry(): THREE.Group {
   g.add(box(2.3, 0.5, 2.3, 0x2a3440, 2.5, 0.6, 0)) // cab chassis
   g.add(box(8.0, 0.3, 2.2, 0x2a3440, -2.5, 0.85, 0)) // trailer chassis
   g.add(box(0.5, 1.4, 2.2, 0x8e1b12, 1.35, 2.6, 0)) // cab-to-trailer fairing
-  g.add(wheel(0.65, 0.45, 3.0, 0.65, 1.15), wheel(0.65, 0.45, 3.0, 0.65, -1.15)) // steer axle
+  g.add(steers(wheel(0.65, 0.45, 3.0, 0.65, 1.15)), steers(wheel(0.65, 0.45, 3.0, 0.65, -1.15))) // steer axle
   g.add(wheel(0.65, 0.45, 1.5, 0.65, 1.15), wheel(0.65, 0.45, 1.5, 0.65, -1.15)) // drive axle
   for (const wx of [-4.2, -5.4]) g.add(wheel(0.65, 0.45, wx, 0.65, 1.15), wheel(0.65, 0.45, wx, 0.65, -1.15))
   g.add(light(3.78, 1.05, 0.95), light(3.78, 1.05, -0.95))
@@ -87,7 +87,7 @@ export function buildTanker(): THREE.Group {
   g.add(box(0.12, 1.9, 1.9, 0xb0b6bd, 1.98, 1.75, 0)) // front end cap ring
   g.add(box(0.12, 1.9, 1.9, 0xb0b6bd, -3.2, 1.75, 0)) // rear end cap ring
   g.add(box(0.5, 0.28, 0.5, 0xffcf3a, -0.6, 2.86, 0)) // top hatch
-  g.add(wheel(0.55, 0.4, 2.5, 0.55, 1.1), wheel(0.55, 0.4, 2.5, 0.55, -1.1)) // steer axle
+  g.add(steers(wheel(0.55, 0.4, 2.5, 0.55, 1.1)), steers(wheel(0.55, 0.4, 2.5, 0.55, -1.1))) // steer axle
   g.add(wheel(0.55, 0.4, -1.6, 0.55, 1.1), wheel(0.55, 0.4, -1.6, 0.55, -1.1))
   g.add(wheel(0.55, 0.4, -2.8, 0.55, 1.1), wheel(0.55, 0.4, -2.8, 0.55, -1.1)) // bogie
   g.add(light(3.48, 1.0, 0.82), light(3.48, 1.0, -0.82))

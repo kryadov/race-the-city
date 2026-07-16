@@ -214,10 +214,11 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
     key: 'combine', accel: 24, brakeAccel: 38, dragForward: 1.3, gripLateral: 3.8,
     turnRate: 1.5, turnSpeedRef: 6, maxSpeed: 13, maxReverse: 6, radius: 2.2,
   },
-  // A walk-behind tiller: tiny, slow, spins on the spot.
+  // A tiller and its trailer: slow, narrow, spins on the spot. The radius is
+  // half its width — the rig is long, so like the lorry it may clip lengthwise.
   tiller: {
     key: 'tiller', accel: 22, brakeAccel: 30, dragForward: 1.6, gripLateral: 6,
-    turnRate: 2.6, turnSpeedRef: 3, maxSpeed: 8, maxReverse: 4, radius: 0.5,
+    turnRate: 2.6, turnSpeedRef: 3, maxSpeed: 8, maxReverse: 4, radius: 0.6,
   },
   // Tracks bite: it crawls, but it will not slide out from under you.
   tracked: {
