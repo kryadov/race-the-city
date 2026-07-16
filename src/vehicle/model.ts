@@ -124,6 +124,22 @@ function housingBar(h: number, w: number, surfX: number, y: number, z: number, f
   return m
 }
 
+/** Tinted glass shared by every cabin window. */
+const GLASS_MAT = new THREE.MeshStandardMaterial({
+  color: 0x22303f,
+  transparent: true,
+  opacity: 0.5,
+  roughness: 0.1,
+  flatShading: true,
+})
+
+/** A window pane. Dimensions follow box(): w=x, h=y, d=z. */
+function glass(w: number, h: number, d: number, x: number, y: number, z: number): THREE.Mesh {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), GLASS_MAT)
+  m.position.set(x, y, z)
+  return m
+}
+
 const SKIN_MAT = new THREE.MeshStandardMaterial({ color: 0xe0ac69, flatShading: true })
 const SHIRT_MAT = new THREE.MeshStandardMaterial({ color: 0x2f5fd0, flatShading: true })
 const TROUSER_MAT = new THREE.MeshStandardMaterial({ color: 0x33363d, flatShading: true })
@@ -172,7 +188,10 @@ function mirror(x: number, y: number, zBody: number, out: number): THREE.Object3
 function buildCar(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(4, 0.8, 1.9, 0xe63946, 0, 0.65, 0)) // body (x ∈ [-2, 2])
-  g.add(box(2.1, 0.7, 1.7, 0xb5303b, -0.15, 1.25, 0)) // cabin
+  g.add(box(2.1, 0.7, 1.7, 0xb5303b, -0.15, 1.25, 0)) // cabin (x ∈ [-1.2, 0.9])
+  // glass: windscreen, rear window, side windows
+  g.add(glass(0.07, 0.48, 1.5, 0.91, 1.3, 0), glass(0.07, 0.48, 1.5, -1.21, 1.3, 0))
+  g.add(glass(1.75, 0.44, 0.06, -0.15, 1.32, 0.86), glass(1.75, 0.44, 0.06, -0.15, 1.32, -0.86))
   g.add(...fourWheels(0.5, 0.4, 1.3, 0.95, 0.45))
   g.add(light(2.08, 0.65, 0.7), light(2.08, 0.65, -0.7)) // headlights, slightly proud
   // rear cluster: a dark housing bar carrying red stops + amber indicators, all proud
@@ -191,6 +210,8 @@ function buildTruck(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(4.2, 1.7, 2.2, 0x5b7186, -1.3, 1.45, 0)) // cargo box (rear at x = -3.4)
   g.add(box(2.0, 1.2, 2.15, 0xffb703, 2.0, 1.15, 0)) // cab (front at x = 3.0)
+  g.add(glass(0.07, 0.6, 1.85, 3.01, 1.4, 0)) // windscreen
+  g.add(glass(1.5, 0.5, 0.06, 1.9, 1.4, 1.08), glass(1.5, 0.5, 0.06, 1.9, 1.4, -1.08)) // side windows
   g.add(box(7.0, 0.4, 2.0, 0x2a3440, 0, 0.55, 0)) // chassis
   g.add(...fourWheels(0.72, 0.5, 2.1, 1.05, 0.7))
   g.add(wheel(0.72, 0.5, -0.4, 0.7, 1.05)) // extra rear axle
@@ -211,7 +232,9 @@ function buildTruck(): THREE.Group {
 function buildSports(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(4.3, 0.55, 2.0, 0x00b4d8, 0, 0.5, 0)) // low body (x ∈ [-2.15, 2.15])
-  g.add(box(1.7, 0.45, 1.6, 0x0077b6, 0.1, 0.95, 0)) // low cabin
+  g.add(box(1.7, 0.45, 1.6, 0x0077b6, 0.1, 0.95, 0)) // low cabin (x ∈ [-0.75, 0.95])
+  g.add(glass(0.06, 0.32, 1.4, 0.96, 0.97, 0), glass(0.06, 0.32, 1.4, -0.76, 0.97, 0))
+  g.add(glass(1.45, 0.3, 0.06, 0.1, 0.98, 0.81), glass(1.45, 0.3, 0.06, 0.1, 0.98, -0.81))
   g.add(box(1.0, 0.12, 1.9, 0x023047, -1.9, 0.95, 0)) // rear wing
   g.add(...fourWheels(0.46, 0.45, 1.45, 1.0, 0.42))
   g.add(light(2.23, 0.5, 0.75), light(2.23, 0.5, -0.75)) // headlights, slightly proud
@@ -250,7 +273,8 @@ function buildMotorbike(): THREE.Group {
 function buildBus(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(9, 2.4, 2.5, 0xf1a208, 0, 1.75, 0)) // body (x ∈ [-4.5, 4.5])
-  g.add(box(8.4, 0.62, 2.54, 0x1c2733, 0, 2.35, 0)) // window band
+  g.add(glass(8.4, 0.62, 2.54, 0, 2.35, 0)) // window band
+  g.add(glass(0.07, 0.7, 2.3, 4.51, 2.3, 0), glass(0.07, 0.7, 2.3, -4.51, 2.3, 0)) // windscreen + rear
   g.add(box(9, 0.3, 2.3, 0x2a3440, 0, 0.55, 0)) // chassis
   g.add(...fourWheels(0.62, 0.42, 3.3, 1.2, 0.62))
   g.add(wheel(0.62, 0.42, 1.4, 0.62, 1.2), wheel(0.62, 0.42, 1.4, 0.62, -1.2)) // mid axle
@@ -287,7 +311,9 @@ function buildRaceCar(): THREE.Group {
 function buildTractor(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(2.4, 0.8, 1.2, 0x2e7d32, 0, 1.05, 0)) // body (x ∈ [-1.2, 1.2])
-  g.add(box(1.0, 1.0, 1.15, 0x1b5e20, -0.5, 1.95, 0)) // cab
+  g.add(box(1.0, 1.0, 1.15, 0x1b5e20, -0.5, 1.95, 0)) // cab (x ∈ [-1.0, 0.0])
+  g.add(glass(0.06, 0.6, 0.95, 0.01, 2.0, 0), glass(0.06, 0.6, 0.95, -1.01, 2.0, 0)) // front/rear glass
+  g.add(glass(0.85, 0.55, 0.06, -0.5, 2.0, 0.58), glass(0.85, 0.55, 0.06, -0.5, 2.0, -0.58)) // side glass
   g.add(box(0.9, 0.28, 1.3, 0x33363d, 0.1, 0.5, 0)) // sump
   const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.1, 6), new THREE.MeshStandardMaterial({ color: 0x33363d, flatShading: true }))
   pipe.position.set(0.75, 1.95, 0.42)
@@ -307,6 +333,8 @@ function buildLorry(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(8.2, 2.7, 2.5, 0xecf0f1, -2.5, 2.15, 0)) // trailer (rear at x = -6.6)
   g.add(box(2.4, 2.2, 2.45, 0xc0392b, 2.5, 1.8, 0)) // cab (front at x = 3.7)
+  g.add(glass(0.07, 0.8, 2.1, 3.71, 2.3, 0)) // windscreen
+  g.add(glass(1.7, 0.6, 0.06, 2.4, 2.3, 1.23), glass(1.7, 0.6, 0.06, 2.4, 2.3, -1.23)) // side windows
   g.add(box(2.3, 0.5, 2.3, 0x2a3440, 2.5, 0.6, 0)) // cab chassis
   g.add(box(8.0, 0.3, 2.2, 0x2a3440, -2.5, 0.85, 0)) // trailer chassis
   g.add(box(0.5, 1.4, 2.2, 0x8e1b12, 1.35, 2.6, 0)) // cab-to-trailer fairing
