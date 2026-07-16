@@ -161,7 +161,9 @@ export function syncCamera(
   // steered ones where the driver is asking. Both live on the same group: the
   // yaw is set outright, the roll accumulates.
   const forward = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
-  const yaw = steer * MAX_STEER_YAW
+  // Negated: a +y rotation swings the wheel's +x nose toward -z, but the model's
+  // right is +z, so a right lock without this points the wheels left.
+  const yaw = -steer * MAX_STEER_YAW
   stage.carMesh.traverse((o) => {
     const d = o.userData as { wheelRadius?: number; steers?: boolean }
     if (d.wheelRadius) o.rotation.z -= (forward / d.wheelRadius) * dt
