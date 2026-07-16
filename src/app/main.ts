@@ -29,10 +29,12 @@ import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
 import { createPauseButton } from '../ui/pauseButton'
+import { createHelpOverlay } from '../ui/helpOverlay'
 import { createAutopilot } from './autopilot'
 import { createTimeTrial } from './timeTrial'
 import { createTrialHud } from '../ui/trialHud'
 import { createAircraft } from './aircraft'
+import { countFor, gapFor, type Density } from './density'
 import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
 import { createPedestrians, type Pedestrians } from './pedestrians'
@@ -61,6 +63,8 @@ import {
   setDemo,
   getTrial,
   setTrial,
+  getDensity,
+  setDensity,
   getQuality,
   setQuality,
   getUnits,
@@ -159,7 +163,8 @@ const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
 nitro.setEnabled(getNitro())
 const flame = createNitroFlame()
-const sky2 = createAircraft(stage.scene)
+let density: Density = getDensity()
+const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
 let trains: Trains | null = null
 let traffic: Traffic | null = null
 let people: Pedestrians | null = null
@@ -215,6 +220,7 @@ let timeOfDay = 0.35 // start mid-morning
 showVehicle(vehicle)
 audio.setVehicle(vehicle)
 // Pausing resets the engine's idle timer, so resuming doesn't start mid-fade.
+createHelpOverlay(ui) // nothing else tells you the horn is on H
 const pause = createPauseButton(ui, (paused) => {
   audio.setDucked(paused) // music drops but plays on
   audio.setVehicle(vehicle) // resets the engine's idle timer, so resuming doesn't start mid-fade
@@ -235,6 +241,8 @@ let stopLoop: (() => void) | null = null
 let loading_ = false
 let currentCity = '' // the loaded city query, for session save/restore
 let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
+let lastRailways: import('../geo/types').Railway[] = []
+let lastWater: import('../geo/types').Vec2[][] = []
 
 async function loadCity(query: string): Promise<void> {
   if (loading_) return
@@ -385,16 +393,18 @@ async function loadCity(query: string): Promise<void> {
     )
     hud.setDistance(odometer)
     trains?.dispose() // the outgoing city's trains ran on its railways
-    trains = createTrains(stage.scene, world.railways, provider)
+    trains = createTrains(stage.scene, world.railways, provider, Math.random, countFor(density, 5))
     traffic?.dispose()
-    traffic = createTraffic(stage.scene, world.roads, provider)
+    traffic = createTraffic(stage.scene, world.roads, provider, Math.random, countFor(density, 16))
     people?.dispose()
-    people = createPedestrians(stage.scene, world.roads, provider)
+    people = createPedestrians(stage.scene, world.roads, provider, Math.random, countFor(density, 22))
     boats?.dispose()
-    boats = createBoats(stage.scene, world.water, provider)
+    boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4))
     herds?.dispose()
     herds = createLivestock(stage.scene, world.fields, provider)
     lastRoads = world.roads
+    lastRailways = world.railways
+    lastWater = world.water
     autopilot.reset(world.roads, car)
     trial.reset(world.roads, provider, car)
     currentCity = query
@@ -601,6 +611,7 @@ const menu = createSettingsMenu(
     demo: getDemo(),
     trial: getTrial(),
     quality: getQuality(),
+    density,
     units: getUnits(),
     weather: getWeather(),
     zoom: getZoom(),
@@ -650,6 +661,22 @@ const menu = createSettingsMenu(
     onRoadDetail: (on) => {
       setRoadDetail(on)
       if (roadDetailMesh) roadDetailMesh.visible = on
+    },
+    onDensity: (d) => {
+      density = d
+      setDensity(d)
+      // Rebuild the populations at the new size. They're laid out at creation, so
+      // there is nothing to resize in place — and a city reload would be a far
+      // heavier way to do it.
+      if (!car) return
+      trains?.dispose()
+      trains = createTrains(stage.scene, lastRailways, provider, Math.random, countFor(density, 5))
+      traffic?.dispose()
+      traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, countFor(density, 16))
+      people?.dispose()
+      people = createPedestrians(stage.scene, lastRoads, provider, Math.random, countFor(density, 22))
+      boats?.dispose()
+      boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
     },
     onTrial: (on) => {
       setTrial(on)

@@ -5,7 +5,8 @@ import { buildRoadGraph, nextNode, type RoadGraph } from '../world/roadGraph'
 import type { Circle } from '../physics/collide'
 
 /** Cars kept alive around the player. */
-const COUNT = 16 // few enough to drive through the streets, not thread a jam
+/** Cars at 'normal'. Few enough to drive through the streets, not thread a jam. */
+const COUNT = 16
 /**
  * Recycle and respawn distances. The scene's fog runs 300..900m, so both sit
  * beyond it: a car culled at 420m visibly winks out, and one spawned at 90m
@@ -71,6 +72,7 @@ export function createTraffic(
   roads: Road[],
   provider: ElevationProvider,
   rand: () => number = Math.random,
+  count = COUNT,
 ): Traffic {
   const group = new THREE.Group()
   scene.add(group)
@@ -99,7 +101,7 @@ export function createTraffic(
     return { at, to, s: 0, speed: 7 + rand() * 6 }
   }
 
-  for (let i = 0; i < COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const a = spawn(null)
     if (a) agents.push(a)
   }

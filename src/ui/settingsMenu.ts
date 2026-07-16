@@ -5,6 +5,7 @@ import { type AudioState, TRACK_NAMES } from '../audio/audio'
 import { WEATHER_SETTINGS, type WeatherSetting } from '../app/weather'
 import { pickRandomCity } from '../app/cities'
 import { QUALITIES, type Quality } from '../app/scene'
+import { DENSITIES, type Density } from '../app/density'
 import { UNITS, type Units } from './hud'
 
 const QUALITY_EMOJI: Record<Quality, string> = { low: '🐢', normal: '⚖', high: '✨' }
@@ -55,6 +56,7 @@ export interface SettingsCallbacks {
   onDemo: (on: boolean) => void
   onTrial: (on: boolean) => void
   onQuality: (q: Quality) => void
+  onDensity: (d: Density) => void
   onUnits: (u: Units) => void
   onWeather: (w: WeatherSetting) => void
   onZoom: (v: number) => void
@@ -95,6 +97,7 @@ export function createSettingsMenu(
     demo: boolean
     trial: boolean
     quality: Quality
+    density: Density
     units: Units
     weather: WeatherSetting
     zoom: number
@@ -114,6 +117,7 @@ export function createSettingsMenu(
   let demo = initial.demo
   let trial = initial.trial
   let quality = initial.quality
+  let density = initial.density
   let units = initial.units
   let weather = initial.weather
 
@@ -427,6 +431,25 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(trialBtn)
+  // How busy the world is: cars, people, trains, boats and aircraft together.
+  const densityLbl = document.createElement('div')
+  densityLbl.style.cssText = 'font-size:12px;opacity:.7;margin:8px 0 4px'
+  labels.push({ el: densityLbl, key: 'menu.density' })
+  mapSec.appendChild(densityLbl)
+  const densityRow = row()
+  const densityBtns = new Map<Density, HTMLButtonElement>()
+  for (const d of DENSITIES) {
+    const b = button()
+    b.style.cssText += ';flex:1'
+    b.addEventListener('click', () => {
+      density = d
+      cb.onDensity(d)
+      paintStates()
+    })
+    densityBtns.set(d, b)
+    densityRow.appendChild(b)
+  }
+  mapSec.appendChild(densityRow)
   function paintLabelsToggle(): void {
     labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
     driftBtn.textContent = `${driftFx ? '☑' : '☐'} ${t('menu.driftFx')}`
@@ -535,6 +558,10 @@ export function createSettingsMenu(
     neonBtn.textContent = t('view.neon')
     dayBtn.style.background = view === 'day' ? ACTIVE : INACTIVE
     neonBtn.style.background = view === 'neon' ? ACTIVE : INACTIVE
+    for (const [d, b] of densityBtns) {
+      b.textContent = t('density.' + d)
+      b.style.background = d === density ? ACTIVE : INACTIVE
+    }
     for (const [type, b] of vehButtons) {
       b.textContent = `${VEHICLE_EMOJI[type]} ${t('vehicle.' + type)}`
       b.style.background = type === vehicle ? ACTIVE : INACTIVE

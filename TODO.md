@@ -104,7 +104,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Speedometer sized to match the minimap** — done in v0.67.0
 - [ ] Full-screen map on a key; minimap zoom
 - [x] **Pause button next to the ⚙ button** (Escape too) — done in v0.63.0
-- [ ] Controls help overlay
+- [x] Controls help overlay (? button, or the ? key) — done in v0.80.0
 - [x] Shareable link with the city in the URL (`?city=…`) — done in v0.41.0
 - [x] Save position / session (city + car pose) — done in v0.48.0
 - [x] Camera zoom slider — done in v0.39.0; auto pull-in near buildings v0.53.0, in tunnels v0.47.0

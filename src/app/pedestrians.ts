@@ -4,7 +4,8 @@ import type { ElevationProvider } from '../terrain/provider'
 import { buildRoadGraph, nextNode, type RoadGraph } from '../world/roadGraph'
 import type { Circle } from '../physics/collide'
 
-const COUNT = 22 // ambience, not a crowd to thread
+/** People at 'normal': ambience, not a crowd to thread. */
+const COUNT = 22
 /**
  * Recycled and respawned beyond the fog (300..900m), so you never see one
  * blink out or appear. They're small, but a figure vanishing at 260m is still a
@@ -61,6 +62,7 @@ export function createPedestrians(
   roads: Road[],
   provider: ElevationProvider,
   rand: () => number = Math.random,
+  count = COUNT,
 ): Pedestrians {
   const group = new THREE.Group()
   scene.add(group)
@@ -97,7 +99,7 @@ export function createPedestrians(
     }
   }
 
-  for (let i = 0; i < COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const w = spawn(null)
     if (w) walkers.push(w)
   }

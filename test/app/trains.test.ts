@@ -122,13 +122,15 @@ describe('aircraft', () => {
     expect((scene.children[0] as THREE.Group).children.some((c) => c.visible)).toBe(false)
   })
 
-  it('flies everything at a believable height, not through the rooftops', () => {
+  it('flies everything above the rooftops', () => {
+    // They fly low on purpose — the chase camera looks down, so a true cruising
+    // altitude is out of shot for good — but never through the town.
     const scene = new THREE.Scene()
     const p = createAircraft(scene, Math.random)
     for (let i = 0; i < 4000; i++) {
       p.update(0.1, 0, 0, 0)
       for (const f of (scene.children[0] as THREE.Group).children) {
-        if (f.visible) expect(f.position.y).toBeGreaterThan(100)
+        if (f.visible) expect(f.position.y).toBeGreaterThan(60)
       }
     }
   })

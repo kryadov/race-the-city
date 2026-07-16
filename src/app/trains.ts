@@ -169,6 +169,7 @@ export function createTrains(
   railways: Railway[],
   provider: ElevationProvider,
   rand: () => number = Math.random,
+  maxTrains = 8,
 ): Trains {
   const group = new THREE.Group()
   scene.add(group)
@@ -176,6 +177,7 @@ export function createTrains(
   const running: { line: Vec2[]; cum: number[]; k: Kind; cars: THREE.Group[]; s: number; dir: number }[] = []
 
   for (const rail of railways) {
+    if (running.length >= maxTrains) break
     // A tunnelled line is underground. A train on it would be driving through
     // the buildings above it — which is exactly what Monaco did.
     if (rail.tunnel) continue

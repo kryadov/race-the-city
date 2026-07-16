@@ -14,11 +14,16 @@ interface Profile {
  * Aircraft are far away and genuinely a few pixels across at true size, so each
  * is drawn oversized — the higher it flies, the more it needs.
  */
+/**
+ * Heights are picked for the camera, not for realism. It follows the car and
+ * looks down, so anything at a true cruising altitude is out of shot for good.
+ * These fly low enough to cross the sky you can actually see.
+ */
 const PROFILES: Record<AircraftKind, Profile> = {
-  airliner: { alt: 430, speed: 95, scale: 9, trail: true },
-  jet: { alt: 620, speed: 150, scale: 7, trail: true },
-  turboprop: { alt: 260, speed: 55, scale: 6, trail: false },
-  helicopter: { alt: 130, speed: 28, scale: 3.2, trail: false },
+  airliner: { alt: 175, speed: 85, scale: 6, trail: true },
+  jet: { alt: 240, speed: 130, scale: 5, trail: true },
+  turboprop: { alt: 120, speed: 50, scale: 4.5, trail: false },
+  helicopter: { alt: 70, speed: 26, scale: 2.6, trail: false },
 }
 
 const SPAN = 3000 // how far out they enter and leave
@@ -30,8 +35,16 @@ export interface Aircraft {
   setEnabled(on: boolean): void
 }
 
+/**
+ * Aircraft ignore the fog, as the sky dome does.
+ *
+ * The fog runs 300..900m and the chase camera looks down at the car, so the only
+ * time an aircraft is in shot at all is when it's away toward the horizon — by
+ * which point the fog had swallowed it whole. They fly in clear air above the
+ * haze; the haze shouldn't be painted over them.
+ */
 const mat = (c: number): THREE.MeshStandardMaterial =>
-  new THREE.MeshStandardMaterial({ color: c, flatShading: true })
+  new THREE.MeshStandardMaterial({ color: c, flatShading: true, fog: false })
 
 /** Every airframe points +x. */
 function build(kind: AircraftKind): THREE.Group {
@@ -118,7 +131,13 @@ function trailMesh(): THREE.Mesh {
   geo.translate(-SPAN * 0.175, 0, 0)
   return new THREE.Mesh(
     geo,
-    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1, depthWrite: false }),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.1,
+      depthWrite: false,
+      fog: false,
+    }),
   )
 }
 
@@ -130,7 +149,11 @@ function trailMesh(): THREE.Mesh {
  * kinds differ in height, speed and silhouette, which is all you can read at
  * that range anyway.
  */
-export function createAircraft(scene: THREE.Scene, rand: () => number = Math.random): Aircraft {
+export function createAircraft(
+  scene: THREE.Scene,
+  rand: () => number = Math.random,
+  gapScale = 1,
+): Aircraft {
   const group = new THREE.Group()
   scene.add(group)
   const kinds = Object.keys(PROFILES) as AircraftKind[]
@@ -143,7 +166,7 @@ export function createAircraft(scene: THREE.Scene, rand: () => number = Math.ran
     frames.set(k, f)
   }
 
-  let wait = 6 + rand() * GAP_MAX
+  let wait = (6 + rand() * GAP_MAX) * gapScale
   let kind: AircraftKind | null = null
   let t = 0
   let heading = 0
@@ -182,7 +205,7 @@ export function createAircraft(scene: THREE.Scene, rand: () => number = Math.ran
       if (d > SPAN) {
         kind = null
         hide()
-        wait = GAP_MIN + rand() * (GAP_MAX - GAP_MIN)
+        wait = (GAP_MIN + rand() * (GAP_MAX - GAP_MIN)) * gapScale
         return
       }
 

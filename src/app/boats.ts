@@ -96,6 +96,7 @@ export function createBoats(
   water: Vec2[][],
   provider: ElevationProvider,
   rand: () => number = Math.random,
+  maxBoats = 6,
 ): Boats {
   const group = new THREE.Group()
   scene.add(group)
@@ -103,6 +104,7 @@ export function createBoats(
   const afloat: Afloat[] = []
 
   for (const ring of water) {
+    if (afloat.length >= maxBoats) break
     if (ring.length < 3) continue
     const fit = inradius(ring)
     if (fit.r < ROWBOAT_ROOM) continue // a puddle

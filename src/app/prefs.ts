@@ -200,6 +200,27 @@ export function clearSession(): void {
   }
 }
 
+const DENSITY_KEY = 'rtc.density'
+
+/** How busy the streets are. */
+export function getDensity(): import('./density').Density {
+  try {
+    const v = localStorage.getItem(DENSITY_KEY)
+    if (v === 'low' || v === 'high') return v
+  } catch {
+    /* ignore */
+  }
+  return 'normal'
+}
+
+export function setDensity(d: import('./density').Density): void {
+  try {
+    localStorage.setItem(DENSITY_KEY, d)
+  } catch {
+    /* ignore */
+  }
+}
+
 const TRIAL_KEY = 'rtc.trial'
 
 /** Whether the time trial is running (off by default). */
