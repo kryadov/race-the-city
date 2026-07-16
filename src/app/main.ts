@@ -39,6 +39,8 @@ import {
   setClouds,
   getRoadDetail,
   setRoadDetail,
+  getZoom,
+  setZoom,
   resetSettings,
 } from './prefs'
 import { AudioEngine } from '../audio/audio'
@@ -285,6 +287,7 @@ const menu = createSettingsMenu(
     clouds: getClouds(),
     roadDetail: getRoadDetail(),
     weather: getWeather(),
+    zoom: getZoom(),
   },
   {
     onLoadCity: (q) => void loadCity(q),
@@ -330,6 +333,10 @@ const menu = createSettingsMenu(
       setWeather(w)
       weather.setWeather(w)
     },
+    onZoom: (v) => {
+      stage.camDist = clampCamDist(v)
+      setZoom(stage.camDist)
+    },
     onReset: () => {
       resetSettings()
       location.reload()
@@ -339,11 +346,17 @@ const menu = createSettingsMenu(
 theme.onChange = (mode) => menu.setViewMode(mode)
 
 const clampCamDist = (d: number): number => Math.min(CAM_DIST_MAX, Math.max(CAM_DIST_MIN, d))
+stage.camDist = clampCamDist(getZoom()) // restore the saved zoom
+const applyZoom = (d: number): void => {
+  stage.camDist = clampCamDist(d)
+  setZoom(stage.camDist)
+  menu.setZoom(stage.camDist) // keep the menu slider in sync with the keys
+}
 window.addEventListener('keydown', (e) => {
   const tgt = e.target as HTMLElement | null
   if (tgt && (tgt.tagName === 'INPUT' || tgt.isContentEditable)) return // ignore while typing a city
-  if (e.key === '+' || e.key === '=') stage.camDist = clampCamDist(stage.camDist - CAM_DIST_STEP) // zoom in
-  else if (e.key === '-' || e.key === '_') stage.camDist = clampCamDist(stage.camDist + CAM_DIST_STEP) // zoom out
+  if (e.key === '+' || e.key === '=') applyZoom(stage.camDist - CAM_DIST_STEP) // zoom in
+  else if (e.key === '-' || e.key === '_') applyZoom(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
 })
 void loadCity(getDefaultCity())

@@ -115,6 +115,27 @@ export function setClouds(on: boolean): void {
   }
 }
 
+const ZOOM_KEY = 'rtc.zoom'
+
+/** Persisted camera zoom (camDist multiplier; 1 = default). */
+export function getZoom(): number {
+  try {
+    const v = Number(localStorage.getItem(ZOOM_KEY))
+    if (Number.isFinite(v) && v > 0) return v
+  } catch {
+    /* ignore */
+  }
+  return 1
+}
+
+export function setZoom(v: number): void {
+  try {
+    localStorage.setItem(ZOOM_KEY, String(v))
+  } catch {
+    /* ignore */
+  }
+}
+
 const ROAD_DETAIL_KEY = 'rtc.roadDetail'
 
 /** Whether road dressing (lamps, signs, lane lines) is shown (on by default). */

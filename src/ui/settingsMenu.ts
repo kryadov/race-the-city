@@ -24,6 +24,7 @@ export interface SettingsCallbacks {
   onClouds: (on: boolean) => void
   onRoadDetail: (on: boolean) => void
   onWeather: (w: Weather) => void
+  onZoom: (v: number) => void
   onReset: () => void
 }
 
@@ -31,6 +32,7 @@ export interface SettingsHandle {
   setViewMode(mode: ViewMode): void
   setVehicle(type: VehicleType): void
   setTime(t: number): void
+  setZoom(v: number): void
 }
 
 function button(): HTMLButtonElement {
@@ -55,6 +57,7 @@ export function createSettingsMenu(
     clouds: boolean
     roadDetail: boolean
     weather: Weather
+    zoom: number
   },
   cb: SettingsCallbacks,
 ): SettingsHandle {
@@ -301,11 +304,26 @@ export function createSettingsMenu(
   timeSlider.addEventListener('input', () => cb.onSetTime(Number(timeSlider.value)))
   timeSec.appendChild(timeSlider)
 
+  // --- Zoom --- (mirrors the +/- keys; higher = farther)
+  const zoomSec = section('menu.zoom')
+  const zoomSlider = document.createElement('input')
+  zoomSlider.type = 'range'
+  zoomSlider.min = '0.4'
+  zoomSlider.max = '3'
+  zoomSlider.step = '0.05'
+  zoomSlider.value = String(initial.zoom)
+  zoomSlider.style.cssText = 'width:100%;direction:rtl' // left = closer
+  let zoomDragging = false
+  zoomSlider.addEventListener('pointerdown', () => (zoomDragging = true))
+  window.addEventListener('pointerup', () => (zoomDragging = false))
+  zoomSlider.addEventListener('input', () => cb.onZoom(Number(zoomSlider.value)))
+  zoomSec.appendChild(zoomSlider)
+
   const resetBtn = button()
   resetBtn.style.cssText += ';width:100%;margin-top:6px;background:#5a2a30'
   resetBtn.addEventListener('click', () => cb.onReset())
 
-  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec, timeSec, resetBtn)
+  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec, timeSec, zoomSec, resetBtn)
   root.append(gear, panel)
 
   function paintLabels(): void {
@@ -351,6 +369,9 @@ export function createSettingsMenu(
     setVehicle,
     setTime(t: number) {
       if (!timeDragging) timeSlider.value = String(t)
+    },
+    setZoom(v: number) {
+      if (!zoomDragging) zoomSlider.value = String(v)
     },
   }
 }
