@@ -36,11 +36,11 @@ export function buildTracked(): THREE.Group {
   g.add(box(0.5, 0.3, 1.6, body, 1.9, 1.1, 0)) // sloped nose
   // track slabs down each side
   for (const z of [1.0, -1.0]) {
-    g.add(box(4.0, 0.5, 0.42, 0x24242a, 0, 0.55, z)) // track run
-    g.add(box(0.42, 0.42, 0.42, 0x24242a, 2.0, 0.72, z)) // front idler cover
-    g.add(box(0.42, 0.42, 0.42, 0x24242a, -2.0, 0.72, z)) // rear sprocket cover
+    g.add(box(4.0, 0.5, 0.42, 0x24242a, 0, 0.25, z)) // track run
+    g.add(box(0.42, 0.42, 0.42, 0x24242a, 2.0, 0.42, z)) // front idler cover
+    g.add(box(0.42, 0.42, 0.42, 0x24242a, -2.0, 0.42, z)) // rear sprocket cover
     // road wheels peeking out of the track — these spin
-    for (const x of [1.2, 0, -1.2]) g.add(wheel(0.3, 0.3, x, 0.55, z))
+    for (const x of [1.2, 0, -1.2]) g.add(wheel(0.3, 0.3, x, 0.30, z))
   }
   g.add(light(2.18, 1.2, 0.6), light(2.18, 1.2, -0.6))
   const rx = -2.02
@@ -74,7 +74,7 @@ export function buildHover(): THREE.Group {
   g.add(light(2.32, 0.9, 0.6), light(2.32, 0.9, -0.6))
   const rx = -2.05, fx = 2.32
   g.add(housingBar(0.3, 1.7, rx, 1.0, 0, -1))
-  g.add(lens(REAR_LIGHT_MAT, 0.3, 1.3, rx, 1.0, 0, -1)) // one bar
+  g.add(lens(REAR_LIGHT_MAT, 1.3, 0.3, rx, 1.0, 0, -1)) // one bar
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 0.72, 0.8, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 0.72, -0.8, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.7, 0.82, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.7, -0.82, 1))
   return g

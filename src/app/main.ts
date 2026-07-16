@@ -78,7 +78,7 @@ import { SpatialGrid } from '../physics/grid'
 import { pointInPolygon } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
-import { VEHICLES, LEANS, HOVERS, type VehicleType } from '../vehicle/vehicles'
+import { VEHICLES, LEANS, HOVERS, HOVER_H, type VehicleType } from '../vehicle/vehicles'
 import {
   buildVehicleMesh,
   REAR_LIGHT_MAT,
@@ -267,7 +267,7 @@ async function loadCity(query: string): Promise<void> {
 
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
-    car.y = provider.heightAt(0, 0)
+    car.y = provider.heightAt(0, 0) + (HOVERS[vehicle] ? HOVER_H : 0)
     // resume the saved pose if we're re-loading the same city
     const sess = getSession()
     odometer = 0
@@ -275,7 +275,7 @@ async function loadCity(query: string): Promise<void> {
       car.x = sess.x
       car.z = sess.z
       car.heading = sess.heading
-      car.y = provider.heightAt(sess.x, sess.z)
+      car.y = provider.heightAt(sess.x, sess.z) + (HOVERS[vehicle] ? HOVER_H : 0)
       odometer = sess.dist ?? 0
     }
     // scatter nitro pickups on road vertices around the car — must run after the
@@ -293,7 +293,7 @@ async function loadCity(query: string): Promise<void> {
     loading.show(t('loading.build'), 1)
     // warm-up: place the camera, precompile all shaders and upload geometry to the
     // GPU while the loader is still up, so the first gameplay frames don't stutter.
-    syncCamera(stage, car, 0.016, provider)
+    syncCamera(stage, car, 0.016, provider, 0, !!HOVERS[vehicle])
     stage.renderer.compile(stage.scene, stage.camera)
     stage.renderer.render(stage.scene, stage.camera)
     loading.hide()

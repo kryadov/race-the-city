@@ -112,14 +112,14 @@ export function buildEv(): THREE.Group {
   const body = 0xe8eef2 // pearl white
   g.add(box(4.3, 0.62, 1.85, body, 0, 0.62, 0))
   g.add(box(3.1, 0.52, 1.78, body, -0.15, 1.16, 0)) // smooth cabin
-  g.add(glass(0.1, 0.4, 1.6, 1.3, 1.2, 0)) // steep windscreen
-  g.add(glass(0.1, 0.36, 1.6, -1.68, 1.2, 0)) // rear screen
+  g.add(glass(0.1, 0.4, 1.6, 1.4, 1.2, 0)) // steep windscreen
+  g.add(glass(0.1, 0.36, 1.6, -1.7, 1.2, 0)) // rear screen
   g.add(...fourWheels(0.46, 0.34, 1.42, 0.94, 0.46))
   // full-width light bar instead of separate headlights
   g.add(light(2.12, 0.82, 0.5), light(2.12, 0.82, 0), light(2.12, 0.82, -0.5))
   const rx = -2.12, fx = 2.12
   g.add(housingBar(0.26, 1.86, rx, 0.86, 0, -1))
-  g.add(lens(REAR_LIGHT_MAT, 0.26, 1.5, rx, 0.86, 0, -1)) // single bar
+  g.add(lens(REAR_LIGHT_MAT, 1.5, 0.26, rx, 0.86, 0, -1)) // single bar
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 0.6, 0.82, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 0.6, -0.82, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.6, 0.84, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.6, -0.84, 1))
   g.add(repeater(TURN_RIGHT_MAT, 1.3, 0.9, 0.94), repeater(TURN_LEFT_MAT, 1.3, 0.9, -0.94))

@@ -91,7 +91,7 @@ export function buildTanker(): THREE.Group {
   g.add(wheel(0.55, 0.4, -1.6, 0.55, 1.1), wheel(0.55, 0.4, -1.6, 0.55, -1.1))
   g.add(wheel(0.55, 0.4, -2.8, 0.55, 1.1), wheel(0.55, 0.4, -2.8, 0.55, -1.1)) // bogie
   g.add(light(3.48, 1.0, 0.82), light(3.48, 1.0, -0.82))
-  const rx = -3.32, fx = 3.48
+  const rx = -3.4, fx = 3.48
   g.add(housingBar(0.5, 1.9, rx, 1.0, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.42, 0.26, rx, 1.0, 0.8, -1), lens(REAR_LIGHT_MAT, 0.42, 0.26, rx, 1.0, -0.8, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 1.0, 0.5, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 1.0, -0.5, -1))

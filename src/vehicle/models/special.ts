@@ -75,7 +75,7 @@ export function buildRoller(): THREE.Group {
   g.add(drum)
   g.add(box(0.3, 0.5, 1.8, 0x3a3a44, 0.5, 1.0, 0)) // drum yoke
   g.add(wheel(0.5, 0.5, -1.5, 0.5, 0.7), wheel(0.5, 0.5, -1.5, 0.5, -0.7))
-  g.add(light(0.6, 2.2, 0.5), light(0.6, 2.2, -0.5))
+  g.add(light(0.6, 1.3, 0.5), light(0.6, 1.3, -0.5))
   const rx = -1.72
   g.add(housingBar(0.3, 1.2, rx, 1.3, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.26, 0.22, rx, 1.3, 0.45, -1), lens(REAR_LIGHT_MAT, 0.26, 0.22, rx, 1.3, -0.45, -1))
@@ -118,11 +118,11 @@ export function buildTiller(): THREE.Group {
   bars.add(box(1.5, 0.07, 0.07, 0x3a3a44, -0.6, 0, -0.28))
   bars.add(box(0.08, 0.07, 0.62, 0x1c2733, -1.32, 0.06, 0)) // cross grip
   bars.position.set(0, 0.72, 0)
-  bars.rotation.z = 0.3
+  bars.rotation.z = -0.3
   g.add(bars)
   g.add(wheel(0.32, 0.18, 0.1, 0.32, 0.42), wheel(0.32, 0.18, 0.1, 0.32, -0.42))
   g.add(box(0.4, 0.3, 0.5, 0x3a3a44, -0.5, 0.3, 0)) // tine guard
-  g.add(person(-1.3, 0.0, 0, false, true)) // walking behind
+  g.add(person(-1.3, 1.0, 0, false, true)) // walking behind
   g.add(light(0.62, 0.85, 0))
   g.add(housingBar(0.2, 0.4, -0.52, 0.7, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.18, 0.3, -0.52, 0.7, 0, -1))
