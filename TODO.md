@@ -17,7 +17,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Brake tuning — low-speed brake can overshoot into reverse (same class as the fixed friction bug)
 - [x] Drift effects — tyre skid marks + smoke — done in v0.16.0
 - [ ] Damage / dents, collision bounce with impulse
-- [ ] Headlights (esp. at night, tie into day/night), brake lights
+- [x] Headlights (glow + spotlight that brightens at night) — done in v0.19.0
 - [ ] Speedometer / HUD (km/h)
 
 ## 🏁 Gameplay modes

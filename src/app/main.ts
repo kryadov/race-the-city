@@ -10,7 +10,7 @@ import {
 } from './scene'
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
-import { applyDayNight } from './daynight'
+import { applyDayNight, sunElevation } from './daynight'
 import { createDriftFx } from './driftfx'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
@@ -58,6 +58,8 @@ const touch = createTouchControls(ui)
 const theme = new ThemeController(stage)
 const driftFx = createDriftFx(stage.scene)
 driftFx.setEnabled(getDriftFx())
+const headlight = new THREE.SpotLight(0xfff2c0, 0, 70, Math.PI / 5, 0.5, 1.2)
+stage.scene.add(headlight, headlight.target)
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
@@ -161,6 +163,14 @@ async function loadCity(query: string): Promise<void> {
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
         applyDayNight(stage, timeOfDay, theme.current === 'neon')
         menu.setTime(timeOfDay)
+        const night = Math.max(0, Math.min(1, (0.12 - sunElevation(timeOfDay)) / 0.45))
+        headlight.intensity = night * 4
+        if (night > 0) {
+          const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
+          headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)
+          headlight.target.position.set(car.x + hx * 24, car.y, car.z + hz * 24)
+          headlight.target.updateMatrixWorld()
+        }
         syncCamera(stage, car, dt, provider)
         minimap.update(car)
         roadLabels.update(stage.camera, car.x, car.z)
