@@ -12,6 +12,7 @@ import { startLoop } from './loop'
 import { ThemeController } from './theme'
 import { applyDayNight, sunElevation } from './daynight'
 import { createDriftFx } from './driftfx'
+import { createWeather } from './weather'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createHud } from '../ui/hud'
@@ -30,6 +31,8 @@ import {
   setHud,
   getShadows,
   setShadows,
+  getWeather,
+  setWeather,
   resetSettings,
 } from './prefs'
 import { AudioEngine } from '../audio/audio'
@@ -75,6 +78,8 @@ const driftFx = createDriftFx(stage.scene)
 driftFx.setEnabled(getDriftFx())
 const headlight = new THREE.SpotLight(0xfff2c0, 0, 70, Math.PI / 5, 0.5, 1.2)
 stage.scene.add(headlight, headlight.target)
+const weather = createWeather(stage.scene, stage.scene.fog as THREE.Fog)
+weather.setWeather(getWeather())
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
@@ -201,6 +206,7 @@ async function loadCity(query: string): Promise<void> {
           headlight.target.updateMatrixWorld()
         }
         syncCamera(stage, car, dt, provider)
+        weather.update(stage.camera.position, dt)
         minimap.update(car)
         roadLabels.update(stage.camera, car.x, car.z)
         stage.renderer.render(stage.scene, stage.camera)
@@ -226,6 +232,7 @@ const menu = createSettingsMenu(
     driftFx: getDriftFx(),
     hud: getHud(),
     shadows: getShadows(),
+    weather: getWeather(),
   },
   {
     onLoadCity: (q) => void loadCity(q),
@@ -258,6 +265,10 @@ const menu = createSettingsMenu(
     onShadows: (on) => {
       setShadows(on)
       stage.sun.castShadow = on
+    },
+    onWeather: (w) => {
+      setWeather(w)
+      weather.setWeather(w)
     },
     onReset: () => {
       resetSettings()

@@ -2,6 +2,9 @@ import { t, getLang, setLang, onLangChange, LANGS } from '../i18n/i18n'
 import { VEHICLE_TYPES, type VehicleType } from '../vehicle/vehicles'
 import type { ViewMode } from '../app/theme'
 import { type AudioState, TRACK_NAMES } from '../audio/audio'
+import { WEATHERS, type Weather } from '../app/weather'
+
+const WEATHER_EMOJI: Record<Weather, string> = { clear: '☀', rain: '🌧', snow: '❄', fog: '🌫' }
 
 const VEHICLE_EMOJI: Record<VehicleType, string> = { car: '🚗', truck: '🚚', sports: '🏎' }
 const ACTIVE = '#e63946'
@@ -18,6 +21,7 @@ export interface SettingsCallbacks {
   onDriftFx: (on: boolean) => void
   onHud: (on: boolean) => void
   onShadows: (on: boolean) => void
+  onWeather: (w: Weather) => void
   onReset: () => void
 }
 
@@ -46,6 +50,7 @@ export function createSettingsMenu(
     driftFx: boolean
     hud: boolean
     shadows: boolean
+    weather: Weather
   },
   cb: SettingsCallbacks,
 ): SettingsHandle {
@@ -56,6 +61,7 @@ export function createSettingsMenu(
   let driftFx = initial.driftFx
   let hud = initial.hud
   let shadows = initial.shadows
+  let weather = initial.weather
 
   const gear = document.createElement('button')
   gear.textContent = '⚙'
@@ -66,6 +72,7 @@ export function createSettingsMenu(
   const panel = document.createElement('div')
   panel.style.cssText =
     'position:absolute;top:70px;right:16px;width:264px;pointer-events:auto;display:none;' +
+    'max-height:calc(100vh - 90px);overflow-y:auto;' +
     'background:rgba(11,14,19,.94);color:#fff;padding:14px;border-radius:12px;' +
     'font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4)'
   gear.addEventListener('click', () => {
@@ -243,6 +250,18 @@ export function createSettingsMenu(
     shadowsBtn.textContent = `${shadows ? '☑' : '☐'} ${t('menu.shadows')}`
   }
 
+  const weatherBtn = button()
+  weatherBtn.style.cssText += ';width:100%;margin-top:4px'
+  weatherBtn.addEventListener('click', () => {
+    weather = WEATHERS[(WEATHERS.indexOf(weather) + 1) % WEATHERS.length]
+    cb.onWeather(weather)
+    paintWeather()
+  })
+  mapSec.appendChild(weatherBtn)
+  function paintWeather(): void {
+    weatherBtn.textContent = `${WEATHER_EMOJI[weather]} ${t('weather.' + weather)}`
+  }
+
   // --- Time of day ---
   const timeSec = section('menu.time')
   const timeSlider = document.createElement('input')
@@ -290,6 +309,7 @@ export function createSettingsMenu(
     paintAudio()
     paintMelody()
     paintLabelsToggle()
+    paintWeather()
   }
   paint()
   onLangChange(paint)
