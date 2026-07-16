@@ -229,6 +229,11 @@ async function loadCity(query: string): Promise<void> {
     driftFx.reset()
 
     loading.show(t('loading.build'), 1)
+    // warm-up: place the camera, precompile all shaders and upload geometry to the
+    // GPU while the loader is still up, so the first gameplay frames don't stutter.
+    syncCamera(stage, car, 0.016, provider)
+    stage.renderer.compile(stage.scene, stage.camera)
+    stage.renderer.render(stage.scene, stage.camera)
     loading.hide()
 
     if (!stopLoop) {
