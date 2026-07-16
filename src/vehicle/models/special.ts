@@ -52,7 +52,7 @@ export function buildCrane(): THREE.Group {
   g.add(wheel(0.6, 0.42, -2.2, 0.6, 1.05), wheel(0.6, 0.42, -2.2, 0.6, -1.05))
   g.add(light(3.06, 1.3, 0.8), light(3.06, 1.3, -0.8))
   const rx = -3.12
-  g.add(housingBar(0.4, 1.8, rx, 1.0, 0, -1))
+  g.add(housingBar(1.8, 0.4, rx, 1.0, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.34, 0.24, rx, 1.0, 0.7, -1), lens(REAR_LIGHT_MAT, 0.34, 0.24, rx, 1.0, -0.7, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 1.0, 0.35, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 1.0, -0.35, -1))
   g.add(repeater(TURN_RIGHT_MAT, 1.6, 1.1, 1.16), repeater(TURN_LEFT_MAT, 1.6, 1.1, -1.16))
@@ -82,7 +82,7 @@ export function buildRoller(): THREE.Group {
   g.add(wheel(0.5, 0.5, -1.5, 0.5, 0.7), wheel(0.5, 0.5, -1.5, 0.5, -0.7))
   g.add(light(0.6, 1.3, 0.5), light(0.6, 1.3, -0.5))
   const rx = -1.72
-  g.add(housingBar(0.3, 1.2, rx, 1.3, 0, -1))
+  g.add(housingBar(1.2, 0.3, rx, 1.3, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.26, 0.22, rx, 1.3, 0.45, -1), lens(REAR_LIGHT_MAT, 0.26, 0.22, rx, 1.3, -0.45, -1))
   return g
 }
@@ -106,7 +106,7 @@ export function buildCombine(): THREE.Group {
   g.add(steers(wheel(0.45, 0.3, -2.3, 0.45, 0.75)), steers(wheel(0.45, 0.3, -2.3, 0.45, -0.75))) // a combine steers on the rear
   g.add(light(2.3, 3.3, 0.6), light(2.3, 3.3, -0.6))
   const rx = -2.62
-  g.add(housingBar(0.4, 1.9, rx, 1.6, 0, -1))
+  g.add(housingBar(1.9, 0.4, rx, 1.6, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.34, 0.26, rx, 1.6, 0.8, -1), lens(REAR_LIGHT_MAT, 0.34, 0.26, rx, 1.6, -0.8, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 1.6, 0.4, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 1.6, -0.4, -1))
   return g
@@ -146,7 +146,7 @@ export function buildTiller(): THREE.Group {
   g.add(person(-0.72, 0.66, 0, false, true)) // riding, not trudging along behind
 
   g.add(light(1.12, 0.85, 0))
-  g.add(housingBar(0.2, 0.4, -2.0, 0.72, 0, -1))
+  g.add(housingBar(0.4, 0.2, -2.0, 0.72, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.3, 0.18, -2.0, 0.72, 0, -1))
   return g
 }

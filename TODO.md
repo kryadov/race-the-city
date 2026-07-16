@@ -42,9 +42,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Grouped, collapsible vehicle picker** (4 groups by purpose) — done in v0.58.0
 - [x] **Nitro: flame from the exhaust** — pinned to the mesh's rear bbox face, so every
       vehicle gets one in the right place — done in v0.64.0
-- [ ] **`lens(mat, w, h, …)` and `housingBar(h, w, …)` take their args in opposite orders** —
-      that trap produced two 1.5m-tall "light bars" in v0.58.0 that the whole suite passed.
-      Give them a shared arg order (or named args) before the next vehicle is added.
+- [x] **`lens` and `housingBar` now take `w, h` in the same order** — the mismatch that shipped
+      two 1.5m-tall "light bars" in v0.58.0 — done in v0.68.1
 - [x] **Steered wheels turn with the input** — tagged per vehicle, since a combine steers on its
       rear and a tracked hull on neither — done in v0.62.0
 - [x] **Tiller pulls a trailer** and the driver rides it — done in v0.62.0
@@ -84,6 +83,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Stars at night** — hashed from the view direction in the sky shader, no new
       objects or draw calls — done in v0.60.0
 - [x] Clouds + menu toggle — done in v0.27.0
+- [ ] **A moon at night** — a disc opposite the sun, like the sun disc in the sky shader
 - [ ] Bloom / post-processing for neon mode
 - [ ] Water reflections, ripple animation
 - [ ] Rounder low-poly buildings, more colour variety

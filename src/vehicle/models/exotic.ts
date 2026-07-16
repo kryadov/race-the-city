@@ -46,7 +46,7 @@ export function buildTracked(): THREE.Group {
   }
   g.add(light(2.18, 1.2, 0.6), light(2.18, 1.2, -0.6))
   const rx = -2.02
-  g.add(housingBar(0.36, 1.4, rx, 1.4, 0, -1))
+  g.add(housingBar(1.4, 0.36, rx, 1.4, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.3, 0.24, rx, 1.4, 0.55, -1), lens(REAR_LIGHT_MAT, 0.3, 0.24, rx, 1.4, -0.55, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 1.4, 0.2, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 1.4, -0.2, -1))
   return g
@@ -75,7 +75,7 @@ export function buildHover(): THREE.Group {
   }
   g.add(light(2.32, 0.9, 0.6), light(2.32, 0.9, -0.6))
   const rx = -2.05, fx = 2.32
-  g.add(housingBar(0.3, 1.7, rx, 1.0, 0, -1))
+  g.add(housingBar(1.7, 0.3, rx, 1.0, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 1.3, 0.3, rx, 1.0, 0, -1)) // one bar
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 0.72, 0.8, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 0.72, -0.8, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.7, 0.82, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.7, -0.82, 1))

@@ -17,7 +17,7 @@ export function buildTruck(): THREE.Group {
   g.add(light(3.08, 1.1, 0.9), light(3.08, 1.1, -0.9)) // headlights, slightly proud
   // rear cluster low on the cargo
   const rx = -3.4, fx = 3.0
-  g.add(housingBar(0.52, 2.3, rx, 0.98, 0, -1))
+  g.add(housingBar(2.3, 0.52, rx, 0.98, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 0.98, 0.55, -1), lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 0.98, -0.55, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.28, 0.26, rx, 0.98, 0.98, -1), lens(TURN_LEFT_MAT, 0.28, 0.26, rx, 0.98, -0.98, -1))
   // front indicators + mirrors on the cab
@@ -38,7 +38,7 @@ export function buildBus(): THREE.Group {
   g.add(wheel(0.62, 0.42, 1.4, 0.62, 1.2), wheel(0.62, 0.42, 1.4, 0.62, -1.2)) // mid axle
   g.add(light(4.58, 0.95, 0.9), light(4.58, 0.95, -0.9))
   const rx = -4.5, fx = 4.5
-  g.add(housingBar(0.5, 2.3, rx, 1.0, 0, -1))
+  g.add(housingBar(2.3, 0.5, rx, 1.0, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.5, 0.34, rx, 1.0, 0.6, -1), lens(REAR_LIGHT_MAT, 0.5, 0.34, rx, 1.0, -0.6, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.28, 0.26, rx, 1.0, 1.05, -1), lens(TURN_LEFT_MAT, 0.28, 0.26, rx, 1.0, -1.05, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.24, 0.22, fx, 0.7, 1.05, 1), lens(TURN_LEFT_MAT, 0.24, 0.22, fx, 0.7, -1.05, 1))
@@ -62,7 +62,7 @@ export function buildLorry(): THREE.Group {
   for (const wx of [-4.2, -5.4]) g.add(wheel(0.65, 0.45, wx, 0.65, 1.15), wheel(0.65, 0.45, wx, 0.65, -1.15))
   g.add(light(3.78, 1.05, 0.95), light(3.78, 1.05, -0.95))
   const rx = -6.6, fx = 3.7
-  g.add(housingBar(0.52, 2.3, rx, 1.15, 0, -1))
+  g.add(housingBar(2.3, 0.52, rx, 1.15, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 1.15, 0.6, -1), lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 1.15, -0.6, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.28, 0.26, rx, 1.15, 1.02, -1), lens(TURN_LEFT_MAT, 0.28, 0.26, rx, 1.15, -1.02, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.22, fx, 0.8, 1.05, 1), lens(TURN_LEFT_MAT, 0.22, 0.22, fx, 0.8, -1.05, 1))
@@ -92,7 +92,7 @@ export function buildTanker(): THREE.Group {
   g.add(wheel(0.55, 0.4, -2.8, 0.55, 1.1), wheel(0.55, 0.4, -2.8, 0.55, -1.1)) // bogie
   g.add(light(3.48, 1.0, 0.82), light(3.48, 1.0, -0.82))
   const rx = -3.4, fx = 3.48
-  g.add(housingBar(0.5, 1.9, rx, 1.0, 0, -1))
+  g.add(housingBar(1.9, 0.5, rx, 1.0, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.42, 0.26, rx, 1.0, 0.8, -1), lens(REAR_LIGHT_MAT, 0.42, 0.26, rx, 1.0, -0.8, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 1.0, 0.5, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 1.0, -0.5, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, fx, 0.7, 0.98, 1), lens(TURN_LEFT_MAT, 0.2, 0.18, fx, 0.7, -0.98, 1))

@@ -15,7 +15,7 @@ export function buildCar(): THREE.Group {
   g.add(light(2.08, 0.65, 0.7), light(2.08, 0.65, -0.7)) // headlights, slightly proud
   // rear cluster: a dark housing bar carrying red stops + amber indicators, all proud
   const rx = -2.0, fx = 2.0
-  g.add(housingBar(0.5, 1.9, rx, 0.72, 0, -1))
+  g.add(housingBar(1.9, 0.5, rx, 0.72, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.44, 0.34, rx, 0.72, 0.4, -1), lens(REAR_LIGHT_MAT, 0.44, 0.34, rx, 0.72, -0.4, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.24, 0.24, rx, 0.72, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.24, rx, 0.72, -0.82, -1))
   // front indicators beside the headlights + side mirrors on the cabin
@@ -36,7 +36,7 @@ export function buildSports(): THREE.Group {
   g.add(light(2.23, 0.5, 0.75), light(2.23, 0.5, -0.75)) // headlights, slightly proud
   // sports: a slim LED strip across the tail with amber tips, all on one housing bar
   const rx = -2.15, fx = 2.15
-  g.add(housingBar(0.22, 1.95, rx, 0.6, 0, -1))
+  g.add(housingBar(1.95, 0.22, rx, 0.6, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 1.1, 0.12, rx, 0.6, 0, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.24, 0.12, rx, 0.6, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.12, rx, 0.6, -0.82, -1))
   // front indicators + mirrors
@@ -75,7 +75,7 @@ export function buildCabrio(): THREE.Group {
   g.add(person(-0.25, 1.0, 0.36, false, false)) // driver, head above the screen
   g.add(light(2.13, 0.66, 0.7), light(2.13, 0.66, -0.7))
   const rx = -2.05, fx = 2.05
-  g.add(housingBar(0.44, 1.9, rx, 0.74, 0, -1))
+  g.add(housingBar(1.9, 0.44, rx, 0.74, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.44, 0.3, rx, 0.74, 0.4, -1), lens(REAR_LIGHT_MAT, 0.44, 0.3, rx, 0.74, -0.4, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.24, 0.22, rx, 0.74, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.22, rx, 0.74, -0.82, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 0.62, 0.86, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 0.62, -0.86, 1))
@@ -97,7 +97,7 @@ export function buildRetro(): THREE.Group {
   g.add(...fourWheels(0.52, 0.42, 1.4, 0.95, 0.52))
   g.add(light(2.28, 0.9, 0.62), light(2.28, 0.9, -0.62))
   const rx = -2.28, fx = 2.28
-  g.add(housingBar(0.4, 1.7, rx, 0.9, 0, -1))
+  g.add(housingBar(1.7, 0.4, rx, 0.9, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.4, 0.28, rx, 0.9, 0.55, -1), lens(REAR_LIGHT_MAT, 0.4, 0.28, rx, 0.9, -0.55, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 0.9, 0.85, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 0.9, -0.85, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 0.86, 0.86, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 0.86, -0.86, 1))
@@ -118,7 +118,7 @@ export function buildEv(): THREE.Group {
   // full-width light bar instead of separate headlights
   g.add(light(2.12, 0.82, 0.5), light(2.12, 0.82, 0), light(2.12, 0.82, -0.5))
   const rx = -2.12, fx = 2.12
-  g.add(housingBar(0.26, 1.86, rx, 0.86, 0, -1))
+  g.add(housingBar(1.86, 0.26, rx, 0.86, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 1.5, 0.26, rx, 0.86, 0, -1)) // single bar
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 0.6, 0.82, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 0.6, -0.82, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.6, 0.84, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.6, -0.84, 1))
@@ -140,7 +140,7 @@ export function buildMinivan(): THREE.Group {
   g.add(...fourWheels(0.44, 0.36, 1.5, 0.98, 0.44))
   g.add(light(2.3, 0.82, 0.66), light(2.3, 0.82, -0.66))
   const rx = -2.32, fx = 2.3
-  g.add(housingBar(0.8, 1.86, rx, 1.3, 0, -1))
+  g.add(housingBar(1.86, 0.8, rx, 1.3, 0, -1))
   g.add(lens(REAR_LIGHT_MAT, 0.7, 0.24, rx, 1.3, 0.78, -1), lens(REAR_LIGHT_MAT, 0.7, 0.24, rx, 1.3, -0.78, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 0.86, 0.8, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 0.86, -0.8, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, fx, 0.6, 0.88, 1), lens(TURN_LEFT_MAT, 0.2, 0.18, fx, 0.6, -0.88, 1))

@@ -128,8 +128,14 @@ export function lens(mat: THREE.MeshStandardMaterial, w: number, h: number, surf
   return m
 }
 
-/** A dark housing frame just behind the lenses (also proud of the body, so it reads as a recessed cluster). */
-export function housingBar(h: number, w: number, surfX: number, y: number, z: number, face: number): THREE.Mesh {
+/**
+ * A dark housing frame just behind the lenses (also proud of the body, so it
+ * reads as a recessed cluster).
+ *
+ * Takes `w, h` in the same order as lens() — they used to be reversed, and that
+ * shipped two 1.5m-tall "light bars" in v0.58.0 which every test passed.
+ */
+export function housingBar(w: number, h: number, surfX: number, y: number, z: number, face: number): THREE.Mesh {
   const outFace = surfX + face * HOUSING_PROUD
   const m = new THREE.Mesh(new THREE.BoxGeometry(HOUSING_D, h, w), HOUSING_MAT)
   m.position.set(outFace - face * (HOUSING_D / 2), y, z)
