@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { Road, Vec2 } from '../geo/types'
-import type { SpatialGrid } from '../physics/grid'
+import { SpatialGrid } from '../physics/grid'
 import type { ElevationProvider } from '../terrain/provider'
 import { createCar, stepCar, type CarInput, type CarState } from '../vehicle/car'
 import { buildVehicleMesh } from '../vehicle/model'
@@ -52,7 +52,13 @@ export interface Runner {
 export interface Rivals {
   enabled(): boolean
   setEnabled(on: boolean): void
-  reset(roads: Road[], provider: ElevationProvider, car: CarState, course: Vec2[]): void
+  /**
+   * @param grid the city's buildings. Taken here rather than at construction:
+   *   `main.ts` replaces the grid wholesale when a city loads, so a rival
+   *   holding the one from startup would be driving round an empty world and
+   *   through every wall in this one.
+   */
+  reset(roads: Road[], grid: SpatialGrid, provider: ElevationProvider, car: CarState, course: Vec2[]): void
   update(dt: number, car: CarState, playerTaken: number, course: Vec2[]): RaceState
   dispose(): void
 }
@@ -97,17 +103,14 @@ interface Racer {
  * over the road graph to the gate it is chasing, so it drives the streets
  * rather than sliding through the city on a rail.
  */
-export function createRivals(
-  scene: THREE.Scene,
-  grid: SpatialGrid,
-  provider: ElevationProvider,
-): Rivals {
+export function createRivals(scene: THREE.Scene): Rivals {
   const group = new THREE.Group()
   group.visible = false
   scene.add(group)
 
   let on = false
-  let height = provider
+  let height: ElevationProvider = { heightAt: () => 0 }
+  let solid = new SpatialGrid([], 25)
   let graph: RoadGraph = { nodes: [], nearest: () => -1 }
   let racers: Racer[] = []
 
@@ -148,7 +151,7 @@ export function createRivals(
       steer: Math.max(-1, Math.min(1, err * STEER_GAIN)),
       brake: false,
     }
-    r.car = stepCar(r.car, input, dt, grid, height, r.spec)
+    r.car = stepCar(r.car, input, dt, solid, height, r.spec)
   }
 
   const show = (r: Racer): void => {
@@ -166,8 +169,9 @@ export function createRivals(
       on = v
       group.visible = v
     },
-    reset(roads, prov, car, course) {
+    reset(roads, buildings, prov, car, course) {
       height = prov
+      solid = buildings
       graph = buildRoadGraph(roads)
       // The meshes are the expensive part and never change: build them once and
       // put them back on the grid on every reset. `dispose` is what frees them.

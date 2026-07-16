@@ -62,6 +62,11 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Demo / autopilot mode** (menu toggle) — done in v0.72.0. Built the road graph it needed
       (`src/world/roadGraph.ts`), which traffic and pedestrians can now use too.
 - [x] Time trial — gates, lap clock, best lap kept in localStorage — done in v0.77.0
+- [x] **Races with rivals** — three AI cars race the gate course, each on an A* route over the
+      road graph, driven through the same physics as the player; HUD shows your place — v0.83.0
+- [x] Fireworks when you finish a lap — v0.83.0
+- [ ] **Goals and missions** — pick up a passenger, deliver them inside a time limit
+- [ ] Rivals and traffic as solid obstacles (today you drive through both)
 - [x] Free objectives — nitro speed-boost pickups scattered on roads — done in v0.45.0
       (drive-to-a-point / coins still open)
 - [x] Traffic — AI cars walking the road graph, kept around the player — done in v0.75.0

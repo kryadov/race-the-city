@@ -69,6 +69,8 @@ export interface SettingsCallbacks {
 export interface SettingsHandle {
   setViewMode(mode: ViewMode): void
   setVehicle(type: VehicleType): void
+  /** The trial can be switched on from outside — racing needs its gates. */
+  setTrial(on: boolean): void
   setTime(t: number): void
   setZoom(v: number): void
 }
@@ -603,6 +605,10 @@ export function createSettingsMenu(
       paintStates()
     },
     setVehicle,
+    setTrial(on: boolean) {
+      trial = on
+      paintLabels()
+    },
     setTime(t: number) {
       if (!timeDragging) timeSlider.value = String(t)
     },

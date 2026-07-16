@@ -261,10 +261,7 @@ const occHeight = new Map<import('../geo/types').Vec2[], number>()
 let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
-// After grid and provider, not up with the trial it belongs to: both are read
-// here and now, and a const declared further down is still in its temporal dead
-// zone at module scope — the same trap that took the whole app down in v0.82.0.
-const rivals = createRivals(stage.scene, grid, provider)
+const rivals = createRivals(stage.scene)
 // Rivals race the trial's gates. Racing with the trial off would put three cars
 // on a course that does not exist, so the switch only bites once both are on.
 rivals.setEnabled(getRace() && getTrial())
@@ -442,7 +439,7 @@ async function loadCity(query: string): Promise<void> {
     lastWater = world.water
     autopilot.reset(world.roads, car)
     trial.reset(world.roads, provider, car)
-    rivals.reset(world.roads, provider, car, trial.course())
+    rivals.reset(world.roads, grid, provider, car, trial.course())
     currentCity = query
     driftFx.reset()
 
@@ -655,7 +652,7 @@ function applyTrial(on: boolean): void {
   trialHud.setVisible(on)
   if (on && car) trial.reset(lastRoads, provider, car)
   rivals.setEnabled(on && getRace())
-  if (on && car && getRace()) rivals.reset(lastRoads, provider, car, trial.course())
+  if (on && car && getRace()) rivals.reset(lastRoads, grid, provider, car, trial.course())
 }
 
 const menu = createSettingsMenu(
@@ -750,10 +747,12 @@ const menu = createSettingsMenu(
       // There is nothing to race without gates, so switching the race on brings
       // the trial with it — course, HUD and all — rather than leaving you
       // wondering why three cars appeared and nothing else did.
-      if (on && !trial.enabled()) applyTrial(true)
-      else {
+      if (on && !trial.enabled()) {
+        applyTrial(true)
+        menu.setTrial(true) // or its checkbox sits there unticked over a running trial
+      } else {
         rivals.setEnabled(on && trial.enabled())
-        if (on && car && trial.enabled()) rivals.reset(lastRoads, provider, car, trial.course())
+        if (on && car && trial.enabled()) rivals.reset(lastRoads, grid, provider, car, trial.course())
       }
     },
     onDemo: (on) => {
@@ -812,7 +811,7 @@ const menu = createSettingsMenu(
       autopilot.reset(lastRoads, car)
       if (trial.enabled()) {
         trial.reset(lastRoads, provider, car)
-        rivals.reset(lastRoads, provider, car, trial.course()) // back on the start line with you
+        rivals.reset(lastRoads, grid, provider, car, trial.course()) // back on the start line with you
       }
     },
     onReset: () => {
