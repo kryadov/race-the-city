@@ -116,7 +116,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 
 ## ⚙️ Data & performance
 - [ ] Overpass caching proxy (if we hit rate limits — designed for)
-- [ ] Instancing for buildings (perf on large cities)
+- [x] **Batch buildings** — merged into one mesh per class; ~470 draw calls for central
+      St Petersburg became a handful — done in v0.79.0 (merging, not instancing: every
+      building is a different shape)
 - [ ] Web Worker for parsing / mesh building (no frame hitch on load)
 - [x] Loading progress bar with percentages — done in v0.44.0
 - [x] Low/normal/high rendering modes — done in v0.52.0

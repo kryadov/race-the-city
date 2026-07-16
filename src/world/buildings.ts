@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Building, Vec2 } from '../geo/types'
+import type { Building, BuildingKind, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { createFacadeMaterials, type FacadeMaterials } from './facade'
 import { facadeUVs } from './facadeUv'
@@ -42,9 +42,51 @@ function paintVolume(geo: THREE.BufferGeometry, wall: THREE.Color, roof: THREE.C
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 }
 
+/** Vertex data piling up for one building class, before it is merged. */
+interface Batch {
+  pos: number[]
+  nor: number[]
+  col: number[]
+  uv: number[]
+}
+
+const newBatch = (): Batch => ({ pos: [], nor: [], col: [], uv: [] })
+
+function appendTo(batch: Batch, geo: THREE.BufferGeometry): void {
+  const push = (dst: number[], attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute): void => {
+    const a = attr.array as ArrayLike<number>
+    for (let i = 0; i < a.length; i++) dst.push(a[i])
+  }
+  push(batch.pos, geo.attributes.position)
+  push(batch.nor, geo.attributes.normal)
+  push(batch.col, geo.attributes.color)
+  push(batch.uv, geo.attributes.uv)
+}
+
+function batchMesh(batch: Batch, mat: THREE.Material): THREE.Mesh {
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(batch.pos, 3))
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(batch.nor, 3))
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(batch.col, 3))
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(batch.uv, 2))
+  return new THREE.Mesh(geo, mat)
+}
+
 /**
- * Extrudes each footprint from its ground level up by its height. Returns one
- * merged-material group of meshes and the flat footprints for the physics grid.
+ * Extrudes each footprint from its ground level up by its height, and merges the
+ * lot into one mesh per building class.
+ *
+ * A mesh each meant a draw call each — around 470 for a couple of kilometres of
+ * central St Petersburg, and again for the shadow pass. Merging costs nothing
+ * visually: every building's geometry is already baked in world space with an
+ * identity transform, its colour lives in a vertex attribute and its facade in
+ * the UVs, so the only thing a separate mesh was buying was the draw call.
+ *
+ * The UVs must be laid before merging: facadeUVs tells roof from wall by the
+ * extrude groups, and merging throws those away.
+ *
+ * Returns the merged group, the flat footprints for the physics grid, and the
+ * facade materials so the caller can light the windows and dispose them.
  */
 export function buildBuildings(
   buildings: Building[],
@@ -57,6 +99,7 @@ export function buildBuildings(
   const roof = new THREE.Color()
   // Six materials for the whole city, one per class, rather than one each.
   const facades = createFacadeMaterials()
+  const batches = new Map<BuildingKind, Batch>()
 
   for (const b of buildings) {
     if (b.footprint.length < 3) continue
@@ -81,9 +124,18 @@ export function buildBuildings(
     paintVolume(geo, wall, roof)
     // Storeys fitted to this building, so the roof never slices a window row.
     facadeUVs(geo, avg, b.height)
-    group.add(new THREE.Mesh(geo, facades.of(b.kind)))
+
+    let batch = batches.get(b.kind)
+    if (!batch) {
+      batch = newBatch()
+      batches.set(b.kind, batch)
+    }
+    appendTo(batch, geo)
+    geo.dispose() // its vertices live in the batch now
     footprints.push(b.footprint)
   }
+
+  for (const [kind, batch] of batches) group.add(batchMesh(batch, facades.of(kind)))
 
   // Doors and signs for every building in two instanced draws.
   group.add(buildEntrances(buildings, provider))

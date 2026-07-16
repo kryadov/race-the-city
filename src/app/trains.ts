@@ -236,9 +236,25 @@ export function createTrains(
           // Each carriage sits a car-length back along the same track, so the
           // whole train follows the curve instead of pivoting as one stick —
           // and 'back' is whichever way it happens to be running.
-          const p = at(tr.line, tr.cum, tr.s - tr.dir * i * (tr.k.len + 1.2))
-          car.position.set(p.x, provider.heightAt(p.x, p.z), p.z)
-          car.rotation.y = -(p.angle + (tr.dir < 0 ? Math.PI : 0)) // face the way it's going
+          const centre = tr.s - tr.dir * i * (tr.k.len + 1.2)
+          const p = at(tr.line, tr.cum, centre)
+          // Pitch to the grade: sample the track a half-carriage either side and
+          // sit on the line between them, the way a bogie at each end would. A
+          // carriage held level while the track climbs sinks into the hill at one
+          // end and hangs off it at the other.
+          const halfLen = tr.k.len / 2
+          const back = at(tr.line, tr.cum, centre - halfLen)
+          const front = at(tr.line, tr.cum, centre + halfLen)
+          const yBack = provider.heightAt(back.x, back.z)
+          const yFront = provider.heightAt(front.x, front.z)
+          const run = Math.hypot(front.x - back.x, front.z - back.z) || 1
+
+          car.position.set(p.x, (yBack + yFront) / 2, p.z)
+          const facing = -(p.angle + (tr.dir < 0 ? Math.PI : 0)) // face the way it's going
+          car.rotation.set(0, facing, 0)
+          // Nose up when the track climbs ahead of us; the sign follows the
+          // direction of travel, since the model's +x is its front.
+          car.rotateZ(Math.atan2((yFront - yBack) * tr.dir, run))
           // A carriage is long; cover it with a couple of circles rather than
           // one, or you can drive through its middle.
           for (const along of [-0.25, 0.25]) {

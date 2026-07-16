@@ -763,7 +763,10 @@ window.addEventListener('beforeunload', saveSession)
 
 // Poll the deployed version.json; offer a reload once a newer build is live.
 const updateNotice = createUpdateNotice(ui)
-const UPDATE_POLL_MS = 5 * 60 * 1000
+// A minute, not five. The bar can only appear in the window between a deploy and
+// your next reload, and on a five-minute timer that window is usually shut
+// before it ever fires.
+const UPDATE_POLL_MS = 60 * 1000
 async function checkForUpdate(): Promise<void> {
   try {
     const url = new URL('version.json', location.href)
@@ -777,4 +780,11 @@ async function checkForUpdate(): Promise<void> {
   }
 }
 setInterval(() => void checkForUpdate(), UPDATE_POLL_MS)
+// And the moment you come back to the tab: browsers throttle timers in
+// background tabs, so returning to a tab left open all day would otherwise sit
+// there saying nothing.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) void checkForUpdate()
+})
+window.addEventListener('focus', () => void checkForUpdate())
 void checkForUpdate()

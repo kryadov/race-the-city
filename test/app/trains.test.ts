@@ -149,3 +149,38 @@ describe('aircraft', () => {
     expect(rotor.rotation.y).not.toBe(before)
   })
 })
+
+describe('trains on a grade', () => {
+  /** A 600m line climbing 1-in-10. */
+  const hillLine: Railway = { points: [v(0, 0), v(300, 0), v(600, 0)], tram: false }
+  const hill = { heightAt: (x: number) => x * 0.1 }
+
+  it('sits the carriage on the track, not level with the map', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [hillLine], hill, () => 0.5)
+    t.update(0.016, 0)
+    for (const car of (scene.children[0] as THREE.Group).children) {
+      // the track at that x is 0.1x high; the carriage must be there too
+      expect(Math.abs(car.position.y - car.position.x * 0.1)).toBeLessThan(1.5)
+    }
+  })
+
+  it('pitches the carriage to the grade rather than holding it level', () => {
+    // Level on a 1-in-10 climb buries one end in the hill and hangs the other off it.
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [hillLine], hill, () => 0.5)
+    t.update(0.016, 0)
+    const car = (scene.children[0] as THREE.Group).children[0]
+    const pitched = new THREE.Vector3(1, 0, 0).applyEuler(car.rotation)
+    expect(Math.abs(pitched.y), 'the carriage is flat on a 1-in-10').toBeGreaterThan(0.05)
+  })
+
+  it('keeps it level on the flat', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0.5)
+    t.update(0.016, 0)
+    const car = (scene.children[0] as THREE.Group).children[0]
+    const dir = new THREE.Vector3(1, 0, 0).applyEuler(car.rotation)
+    expect(Math.abs(dir.y)).toBeLessThan(0.01)
+  })
+})
