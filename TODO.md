@@ -21,20 +21,13 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 
 ## 🚗 Vehicles & physics
 - [x] More vehicles — six more incl. a leaning motorbike — done in v0.51.0 (custom colours still open)
-- [ ] **Ten more vehicles** (requested; shipped set is car, sports, racecar, truck, lorry, bus,
-      motorbike, tractor, cabrio):
-  - [ ] Mobile crane (авто-кран)
-  - [ ] Minivan (минивэн)
-  - [ ] Tracked all-terrain vehicle (гусеничный вездеход) — tracks, not wheels
-  - [ ] Hovercraft / wheel-less aero car (аэро-мобиль) — floats, no wheels
-  - [ ] Electric car (электромобиль)
-  - [ ] Retro car (ретро)
-  - [ ] Tanker truck (цистерна)
-  - [ ] Walk-behind tractor (мотоблок)
-  - [ ] Road roller (каток)
-  - [ ] Combine harvester (комбайн)
-- [ ] **Group the vehicle picker into collapsible categories** — 19 types is too many for one
-      flat list; reuse the collapsible groups from v0.57.0
+- [x] **Ten more vehicles** — crane, minivan, tracked ATV, hovercar, EV, retro, tanker, tiller,
+      roller, combine — done in v0.58.0 (19 types total)
+- [x] **Grouped, collapsible vehicle picker** (4 groups by purpose) — done in v0.58.0
+- [ ] **Nitro: flame from the exhaust** while the boost is active
+- [ ] **`lens(mat, w, h, …)` and `housingBar(h, w, …)` take their args in opposite orders** —
+      that trap produced two 1.5m-tall "light bars" in v0.58.0 that the whole suite passed.
+      Give them a shared arg order (or named args) before the next vehicle is added.
 - [ ] Custom vehicle colours
 - [ ] Brake tuning — low-speed brake can overshoot into reverse (same class as the fixed friction bug)
 - [x] Drift effects — tyre skid marks + smoke — done in v0.16.0 (2x longer trail in v0.38.0)
@@ -70,18 +63,25 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       oscillator loops: Cruise / Chill / Upbeat)
 - [ ] **Fade the engine out after ~10s stationary** — idle engine drone is tiring when parked;
       bring it back on throttle
+- [ ] **Per-vehicle engine sound** — a tiller and a racecar share one drone today
+      (`engineFrequency()` in `src/audio/audio.ts` is speed-only, no vehicle input)
 - [ ] Horn / indicator sounds, checkpoint chime
 - [ ] Positional audio (engine quieter as camera pulls back)
 
 ## 🖥 UI / UX
 - [ ] Full-screen map on a key; minimap zoom
-- [ ] Pause menu; controls help overlay
+- [ ] **Pause button next to the ⚙ button** — freeze the sim (and engine audio) from the corner
+- [ ] Controls help overlay
 - [x] Shareable link with the city in the URL (`?city=…`) — done in v0.41.0
 - [x] Save position / session (city + car pose) — done in v0.48.0
 - [x] Camera zoom slider — done in v0.39.0; auto pull-in near buildings v0.53.0, in tunnels v0.47.0
 - [x] Random-city button — done in v0.43.0
 - [x] Collapsible menu groups + reset-location button — done in v0.57.0
 - [x] Notify when a new version is deployed — done in v0.50.0
+- [ ] **Update notice: make dismiss stick** — `updateNotice.ts:9` claims "never shown twice for
+      the same version" and `show(version: string)` takes the version, but the implementation
+      ignores it and never dedupes. `main.ts:579` re-polls every 5 min, so ✕ only hides the bar
+      until the next poll and it pops back. Remember the dismissed version.
 
 ## ⚙️ Data & performance
 - [ ] Overpass caching proxy (if we hit rate limits — designed for)
