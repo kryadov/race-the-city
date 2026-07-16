@@ -11,6 +11,20 @@ export interface Entrance {
   kind: BuildingKind
 }
 
+/**
+ * Door colour per class. A black slab read as a hole punched in the wall — these
+ * are a painted timber door for homes, and glazing where the ground floor is a
+ * shopfront.
+ */
+const DOOR_COLOR: Record<BuildingKind, number> = {
+  house: 0x6d4326, // varnished timber
+  apartments: 0x4a5a6b, // painted communal door
+  retail: 0x4a6f86, // glass
+  office: 0x53788f, // glass
+  civic: 0x7a5a34, // heavy timber
+  industrial: 0x6a7079, // steel shutter
+}
+
 /** Signage colour per class. Houses don't get a sign; industry gets a plain plate. */
 const SIGN_COLOR: Partial<Record<BuildingKind, number>> = {
   retail: 0xe8434f,
@@ -96,15 +110,18 @@ export function buildEntrances(buildings: Building[], provider: ElevationProvide
   doorGeo.translate(0, 1.15, 0) // sit on the ground, not through it
   const doorMesh = new THREE.InstancedMesh(
     doorGeo,
-    new THREE.MeshStandardMaterial({ color: 0x30251c, flatShading: true }),
+    new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }),
     doors.length,
   )
   doors.forEach((e, i) => {
     q.setFromAxisAngle(up, e.angle)
     pos.set(e.x, provider.heightAt(e.x, e.z), e.z)
     doorMesh.setMatrixAt(i, m.compose(pos, q, one))
+    col.setHex(DOOR_COLOR[e.kind])
+    doorMesh.setColorAt(i, col)
   })
   doorMesh.instanceMatrix.needsUpdate = true
+  if (doorMesh.instanceColor) doorMesh.instanceColor.needsUpdate = true
   group.add(doorMesh)
 
   if (signs.length) {

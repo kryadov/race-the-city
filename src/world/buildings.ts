@@ -5,7 +5,9 @@ import { createFacadeMaterials, type FacadeMaterials } from './facade'
 import { facadeUVs } from './facadeUv'
 import { buildEntrances } from './entrances'
 
-const COLORS = [0xcbb7a3, 0xbfae99, 0xd4c4b0, 0xc2b280, 0xb9a68f, 0xd8cab6, 0xc7b49c]
+// A tight range of warm stones. Neighbours should read apart without the street
+// turning into a patchwork — the eye notices the outlines, not the palette.
+const COLORS = [0xcbbdaa, 0xc6b7a4, 0xd0c3b2, 0xc9bba9, 0xccbfad]
 const RNG_SEED = 0x5ee7b1d // fixed seed → identical facades on every browser/reload
 
 /** Deterministic PRNG (mulberry32), so building shades don't reshuffle per load. */
@@ -74,10 +76,11 @@ export function buildBuildings(
     // Jitter each facade off the palette so neighbours never share a shade, and
     // give the roof a darker, greyer tone so volumes read apart from the road.
     wall.setHex(COLORS[Math.floor(rng() * COLORS.length)])
-    wall.offsetHSL((rng() - 0.5) * 0.04, (rng() - 0.5) * 0.12, (rng() - 0.5) * 0.16)
-    roof.copy(wall).offsetHSL(0, -0.3, -0.17)
+    wall.offsetHSL((rng() - 0.5) * 0.015, (rng() - 0.5) * 0.05, (rng() - 0.5) * 0.06)
+    roof.copy(wall).offsetHSL(0, -0.22, -0.12)
     paintVolume(geo, wall, roof)
-    facadeUVs(geo, avg) // windows by the metre, roof aimed at the tile's plain strip
+    // Storeys fitted to this building, so the roof never slices a window row.
+    facadeUVs(geo, avg, b.height)
     group.add(new THREE.Mesh(geo, facades.of(b.kind)))
     footprints.push(b.footprint)
   }

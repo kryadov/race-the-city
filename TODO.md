@@ -12,7 +12,11 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       `relation[...]`, so any water mapped as a multipolygon relation (most large rivers — the
       Neva, the Moskva) never arrives. Needs relation members + outer-ring stitching by node id,
       and care: `>;` on a river relation can drag in the whole waterway far past the bbox.
-- [ ] Pedestrian zones, squares, parking (`highway=pedestrian`, `amenity=parking`)
+- [ ] **Parking, marked out** — `amenity=parking` areas with painted bays (and
+      `highway=pedestrian` squares while we're there)
+- [ ] **Flowerbeds, fountains and statues** — OSM has all three:
+      `landuse=flowerbed`, `amenity=fountain`, `historic=memorial` / `tourism=artwork`
+      (+ `man_made=obelisk`). Mostly nodes, so they'd be scattered props like the trees.
 - [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)
 - [ ] **Drivable bridges** — deck as a real surface: parse `layer`, span flat between abutments
       instead of following terrain, add pillars/railings/ramps. Blocked on `ElevationProvider.heightAt`
