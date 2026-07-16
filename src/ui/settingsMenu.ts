@@ -3,6 +3,7 @@ import { VEHICLE_TYPES, type VehicleType } from '../vehicle/vehicles'
 import type { ViewMode } from '../app/theme'
 import { type AudioState, TRACK_NAMES } from '../audio/audio'
 import { WEATHER_SETTINGS, type WeatherSetting } from '../app/weather'
+import { pickRandomCity } from '../app/cities'
 
 const WEATHER_EMOJI: Record<WeatherSetting, string> = { auto: '🔄', clear: '☀', rain: '🌧', snow: '❄', fog: '🌫' }
 
@@ -114,11 +115,18 @@ export function createSettingsMenu(
   const goBtn = button()
   goBtn.style.background = ACTIVE
   cityRow.append(input, goBtn)
+  const randomBtn = button()
+  randomBtn.style.cssText += ';width:100%;margin-top:6px'
   const defBtn = button()
   defBtn.style.cssText += ';width:100%;margin-top:6px'
   const shareBtn = button()
   shareBtn.style.cssText += ';width:100%;margin-top:6px'
-  citySec.append(cityRow, defBtn, shareBtn)
+  citySec.append(cityRow, randomBtn, defBtn, shareBtn)
+  randomBtn.addEventListener('click', () => {
+    const city = pickRandomCity(input.value.trim())
+    input.value = city
+    cb.onLoadCity(city)
+  })
   shareBtn.addEventListener('click', () => {
     cb.onShareCity()
     shareBtn.textContent = '✓ ' + t('menu.shared')
@@ -338,6 +346,7 @@ export function createSettingsMenu(
     gear.title = t('menu.title')
     input.placeholder = t('input.placeholder')
     goBtn.textContent = t('input.go')
+    randomBtn.textContent = '🎲 ' + t('menu.random')
     defBtn.textContent = '★ ' + t('menu.setDefault')
     shareBtn.textContent = '🔗 ' + t('menu.share')
     resetBtn.textContent = t('menu.reset')
