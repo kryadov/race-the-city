@@ -1,13 +1,14 @@
 {
   "name": "race-the-city",
   "private": true,
-  "version": "0.82.1",
+  "version": "0.82.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "boot-check": "node scripts/boot-check.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {

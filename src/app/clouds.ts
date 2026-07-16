@@ -5,12 +5,18 @@ const CLOUDS_CLEAR = 12
 const CLOUDS_OVERCAST = 40
 const PUFFS = 5
 const SPREAD = 480 // horizontal scatter around the camera
+/** Height above the ground, not above sea level. */
 const Y_MIN = 130
 const Y_MAX = 175
 const DRIFT = 1.5 // slow wind (m/s)
 
 export interface Clouds {
-  update(cam: THREE.Vector3, dt: number): void
+  /**
+   * @param groundY the height of the land here. Cloud heights are measured from
+   *   it, not from sea level: a city 150m up had them drifting through its
+   *   trees.
+   */
+  update(cam: THREE.Vector3, dt: number, groundY: number): void
   /**
    * How much cloud there is: 0 a clear day, 1 an overcast one.
    *
@@ -63,9 +69,9 @@ export function createClouds(scene: THREE.Scene): Clouds {
 
   let drift = 0
   return {
-    update(cam, dt) {
+    update(cam, dt, groundY) {
       drift = (drift + DRIFT * dt) % (SPREAD * 2)
-      group.position.set(cam.x + drift - SPREAD, 0, cam.z)
+      group.position.set(cam.x + drift - SPREAD, groundY, cam.z)
     },
     setCover(cover) {
       const c = Math.max(0, Math.min(1, cover))

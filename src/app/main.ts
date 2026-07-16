@@ -604,7 +604,7 @@ async function loadCity(query: string): Promise<void> {
           }
         }
         weather.update(stage.camera.position, dt)
-        clouds.update(stage.camera.position, dt)
+        clouds.update(stage.camera.position, dt, car.y) // clouds ride above the land, not above sea level
         minimap.update(car, trial.nextGate())
         roadLabels.update(stage.camera, car.x, car.z)
         stage.renderer.render(stage.scene, stage.camera)

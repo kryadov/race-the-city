@@ -45,6 +45,18 @@ describe('cloud cover', () => {
     expect(dull, 'white fluff over a downpour').toBeLessThan(bright)
   })
 
+  it('rides above the land, not above sea level', () => {
+    // A city 150m up had them drifting through its trees: the heights were
+    // absolute, and the ground is wherever the DEM says it is.
+    const scene = new THREE.Scene()
+    const c = createClouds(scene)
+    const group = scene.children[0] as THREE.Group
+    c.update(new THREE.Vector3(0, 5, 0), 0.016, 0)
+    const atSeaLevel = group.position.y
+    c.update(new THREE.Vector3(0, 155, 0), 0.016, 150)
+    expect(group.position.y - atSeaLevel).toBeCloseTo(150)
+  })
+
   it('takes any number without breaking', () => {
     const scene = new THREE.Scene()
     const c = createClouds(scene)

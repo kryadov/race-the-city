@@ -128,5 +128,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🧹 Tech debt / polish
 - [x] Update Actions node (22) — v0.25.0
 - [x] Split the bundle (three vendor chunk) — v0.25.0
-- [ ] E2E test of a real city load (currently unit tests + headless smoke without network)
+- [x] **Boot check** — `npm run boot-check` runs the built app in headless Chrome and fails if it
+      doesn't start. Added after v0.82.0 shipped a black screen past clean types, 362 green tests
+      and a clean build — none of which load main.ts — done in v0.82.2
+- [ ] E2E test of a real city load (boot-check covers startup, but not a real Overpass fetch)
+- [ ] Run boot-check in CI, so a dead build can't be deployed
 - [x] Early-review nits (parse naming, cache db.close) — v0.25.0
