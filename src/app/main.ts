@@ -15,6 +15,7 @@ import { createDriftFx } from './driftfx'
 import { createWeather, WEATHERS, type WeatherSetting } from './weather'
 import { createClouds } from './clouds'
 import { createSky } from './sky'
+import { createNitro } from './nitro'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createHud } from '../ui/hud'
@@ -39,6 +40,8 @@ import {
   setClouds,
   getRoadDetail,
   setRoadDetail,
+  getNitro,
+  setNitro,
   getZoom,
   setZoom,
   resetSettings,
@@ -115,6 +118,11 @@ const clouds = createClouds(stage.scene)
 clouds.setEnabled(getClouds())
 const sky = createSky(stage.scene)
 const sunDir = new THREE.Vector3()
+const nitro = createNitro(stage.scene)
+nitro.setEnabled(getNitro())
+const BOOST_TIME = 2.5 // seconds of nitro boost per pickup
+const BOOST_MULT = 10 // top-speed multiplier while boosting
+let boostTimer = 0
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
@@ -208,6 +216,12 @@ async function loadCity(query: string): Promise<void> {
     theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
+    // scatter nitro pickups over the road vertices (skip the very centre spawn)
+    nitro.setSpots(
+      world.roads.flatMap((r) => r.points).filter((p) => Math.hypot(p.x, p.z) > 20),
+      provider,
+    )
+    boostTimer = 0
 
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
@@ -228,7 +242,14 @@ async function loadCity(query: string): Promise<void> {
           steer: Math.max(-1, Math.min(1, kb.steer + tc.steer)),
           brake: kb.brake || tc.brake,
         }
-        car = stepCar(car, input, dt, grid, provider, spec)
+        // nitro: collecting a bottle boosts the top speed for a short window
+        if (nitro.update(car.x, car.z, dt)) boostTimer = BOOST_TIME
+        const activeSpec =
+          boostTimer > 0
+            ? { ...spec, maxSpeed: spec.maxSpeed * BOOST_MULT, accel: spec.accel * 3 }
+            : spec
+        if (boostTimer > 0) boostTimer -= dt
+        car = stepCar(car, input, dt, grid, provider, activeSpec)
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
         hud.setSpeed(Math.abs(fwd) * 3.6)
@@ -316,6 +337,7 @@ const menu = createSettingsMenu(
     shadows: getShadows(),
     clouds: getClouds(),
     roadDetail: getRoadDetail(),
+    nitro: getNitro(),
     weather: getWeather(),
     zoom: getZoom(),
   },
@@ -359,6 +381,11 @@ const menu = createSettingsMenu(
     onRoadDetail: (on) => {
       setRoadDetail(on)
       if (roadDetailMesh) roadDetailMesh.visible = on
+    },
+    onNitro: (on) => {
+      setNitro(on)
+      nitro.setEnabled(on)
+      if (!on) boostTimer = 0
     },
     onWeather: (w) => {
       setWeather(w)

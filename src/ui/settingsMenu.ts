@@ -25,6 +25,7 @@ export interface SettingsCallbacks {
   onShadows: (on: boolean) => void
   onClouds: (on: boolean) => void
   onRoadDetail: (on: boolean) => void
+  onNitro: (on: boolean) => void
   onWeather: (w: WeatherSetting) => void
   onZoom: (v: number) => void
   onReset: () => void
@@ -58,6 +59,7 @@ export function createSettingsMenu(
     shadows: boolean
     clouds: boolean
     roadDetail: boolean
+    nitro: boolean
     weather: WeatherSetting
     zoom: number
   },
@@ -72,6 +74,7 @@ export function createSettingsMenu(
   let shadows = initial.shadows
   let clouds = initial.clouds
   let roadDetail = initial.roadDetail
+  let nitro = initial.nitro
   let weather = initial.weather
 
   const gear = document.createElement('button')
@@ -284,6 +287,14 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(roadDetailBtn)
+  const nitroBtn = button()
+  nitroBtn.style.cssText += ';width:100%;margin-top:4px'
+  nitroBtn.addEventListener('click', () => {
+    nitro = !nitro
+    cb.onNitro(nitro)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(nitroBtn)
   function paintLabelsToggle(): void {
     labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
     driftBtn.textContent = `${driftFx ? '☑' : '☐'} ${t('menu.driftFx')}`
@@ -291,6 +302,7 @@ export function createSettingsMenu(
     shadowsBtn.textContent = `${shadows ? '☑' : '☐'} ${t('menu.shadows')}`
     cloudsBtn.textContent = `${clouds ? '☑' : '☐'} ${t('menu.clouds')}`
     roadDetailBtn.textContent = `${roadDetail ? '☑' : '☐'} ${t('menu.roadDetail')}`
+    nitroBtn.textContent = `${nitro ? '☑' : '☐'} ${t('menu.nitro')}`
   }
 
   const weatherBtn = button()

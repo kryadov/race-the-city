@@ -115,6 +115,25 @@ export function setClouds(on: boolean): void {
   }
 }
 
+const NITRO_KEY = 'rtc.nitro'
+
+/** Whether nitro speed-boost pickups appear (on by default). */
+export function getNitro(): boolean {
+  try {
+    return localStorage.getItem(NITRO_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setNitro(on: boolean): void {
+  try {
+    localStorage.setItem(NITRO_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const ZOOM_KEY = 'rtc.zoom'
 
 /** Persisted camera zoom (camDist multiplier; 1 = default). */
