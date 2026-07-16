@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { buildGround } from '../world/ground'
 
 const mount = document.getElementById('app')!
 const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -17,11 +18,13 @@ const sun = new THREE.DirectionalLight(0xffffff, 1)
 sun.position.set(50, 100, 50)
 scene.add(sun)
 
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(2, 2, 2),
-  new THREE.MeshStandardMaterial({ color: 0xff6b35 }),
-)
-scene.add(cube)
+// TEMPORARY visual harness (Task 8): fake sine-wave elevation provider so ground
+// displacement is visible without network access. Replaced/expanded in later tasks.
+const fake = { heightAt: (x: number, z: number) => Math.sin(x * 0.05) * 4 + Math.cos(z * 0.05) * 4 }
+const ground = buildGround(fake, 200, 128)
+scene.add(ground)
+camera.position.set(0, 80, 160)
+camera.lookAt(0, 0, 0)
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
@@ -30,6 +33,5 @@ window.addEventListener('resize', () => {
 })
 
 renderer.setAnimationLoop(() => {
-  cube.rotation.y += 0.01
   renderer.render(scene, camera)
 })
