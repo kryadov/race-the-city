@@ -4,7 +4,7 @@ Drive a car around a **real city**, built on the fly from open data.
 Type a city name and you're behind the wheel of a low-poly version of its
 streets, buildings, and terrain. Everything runs right in the browser — no backend.
 
-- **Roads and buildings** — from [OpenStreetMap](https://www.openstreetmap.org) (Overpass API)
+- **Roads, buildings, and water** — from [OpenStreetMap](https://www.openstreetmap.org) (Overpass API)
 - **Ground elevation** — from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Terrarium format)
 - **3D and rendering** — [Three.js](https://threejs.org)
 
@@ -134,7 +134,7 @@ When you publish, respect the source licences:
 
 ## Roadmap ideas
 
-- Parks, water, and trees from OSM
+- Parks and trees from OSM
 - More vehicles and handling tuning
 - A racing mode on top: checkpoints, timer, best lap
 
