@@ -18,6 +18,7 @@ import { createWeather, WEATHERS, type WeatherSetting } from './weather'
 import { createClouds } from './clouds'
 import { createSky } from './sky'
 import { createNitro } from './nitro'
+import { withRetry, LOAD_ATTEMPTS } from './retry'
 import { createLoading } from '../ui/loading'
 import { createUpdateNotice } from '../ui/updateNotice'
 import { createVersionBadge } from '../ui/version'
@@ -169,7 +170,10 @@ async function loadCity(query: string): Promise<void> {
   hud.setCity(query)
   try {
     loading.show(t('loading.geocoding'), 0.05)
-    const center = await geocode(query)
+    const center = await withRetry(
+      () => geocode(query),
+      (n) => loading.show(`${t('loading.geocoding')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.05),
+    )
     // reflect the loaded city in the address bar so the URL is shareable
     const u = new URL(location.href)
     u.searchParams.set('city', query)
@@ -181,7 +185,10 @@ async function loadCity(query: string): Promise<void> {
     const key = bboxKey(bbox)
     let osm = await cacheGet(key)
     if (!osm) {
-      osm = await fetchOsm(bbox)
+      osm = await withRetry(
+        () => fetchOsm(bbox),
+        (n) => loading.show(`${t('loading.osm')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.2),
+      )
       await cachePut(key, osm)
     }
     loading.show(t('loading.osm'), 0.5)
@@ -189,9 +196,12 @@ async function loadCity(query: string): Promise<void> {
 
     loading.show(t('loading.terrain'), 0.65)
     try {
-      provider = await loadTerrarium(center, bbox, projector)
+      provider = await withRetry(
+        () => loadTerrarium(center, bbox, projector),
+        (n) => loading.show(`${t('loading.terrain')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.65),
+      )
     } catch {
-      provider = new FlatProvider() // graceful fallback
+      provider = new FlatProvider() // graceful fallback: flat ground beats no city
     }
     loading.show(t('loading.build'), 0.85)
 
