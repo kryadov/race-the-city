@@ -28,6 +28,10 @@ export function classifyRoad(highway: string | undefined): RoadKind {
   return HIGHWAY_MAP[highway] ?? 'other'
 }
 
+export function isWater(tags: Record<string, string>): boolean {
+  return tags.natural === 'water' || tags.waterway === 'riverbank' || tags.landuse === 'reservoir'
+}
+
 export function buildingHeight(tags: Record<string, string>): number {
   const h = parseFloat(tags.height)
   if (!Number.isNaN(h) && h > 0) return h
@@ -46,6 +50,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
 
   const roads: Road[] = []
   const buildings: Building[] = []
+  const water: Vec2[][] = []
 
   for (const el of json.elements) {
     if (el.type !== 'way' || !el.nodes || el.nodes.length < 2) continue
@@ -53,7 +58,10 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     const points = el.nodes.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
     if (points.length < 2) continue
 
-    if (tags.building) {
+    if (isWater(tags)) {
+      const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
+      if (ring.length >= 3) water.push(ring)
+    } else if (tags.building) {
       const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags) })
     } else if (tags.highway) {
@@ -63,7 +71,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  return { roads, buildings }
+  return { roads, buildings, water }
 }
 
 /** OSM closed ways repeat the first node last; drop it for a clean polygon. */

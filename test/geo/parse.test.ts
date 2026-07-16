@@ -51,6 +51,11 @@ describe('parseOsm', () => {
     expect(tall.footprint.length).toBeGreaterThanOrEqual(3)
   })
 
+  it('extracts water polygons', () => {
+    expect(world.water.length).toBe(1)
+    expect(world.water[0].length).toBeGreaterThanOrEqual(3)
+  })
+
   it('keeps the street name when present, omits it otherwise', () => {
     const named = world.roads.find((r) => r.name === 'Main St')
     expect(named).toBeDefined()
