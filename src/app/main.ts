@@ -19,7 +19,16 @@ import { createSettingsMenu } from '../ui/settingsMenu'
 import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
-import { getDefaultCity, setDefaultCity, getRoadLabels, setRoadLabels, getDriftFx, setDriftFx } from './prefs'
+import {
+  getDefaultCity,
+  setDefaultCity,
+  getRoadLabels,
+  setRoadLabels,
+  getDriftFx,
+  setDriftFx,
+  getHud,
+  setHud,
+} from './prefs'
 import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
@@ -52,6 +61,7 @@ const minimap = createMinimap(ui)
 const roadLabels = createRoadLabels(ui)
 roadLabels.setEnabled(getRoadLabels())
 const hud = createHud(ui)
+hud.setVisible(getHud())
 createVersionBadge(ui)
 const keyboard = new Keyboard()
 const touch = createTouchControls(ui)
@@ -195,6 +205,7 @@ const menu = createSettingsMenu(
     roadLabels: getRoadLabels(),
     time: timeOfDay,
     driftFx: getDriftFx(),
+    hud: getHud(),
   },
   {
     onLoadCity: (q) => void loadCity(q),
@@ -219,6 +230,10 @@ const menu = createSettingsMenu(
     onDriftFx: (on) => {
       setDriftFx(on)
       driftFx.setEnabled(on)
+    },
+    onHud: (on) => {
+      setHud(on)
+      hud.setVisible(on)
     },
   },
 )

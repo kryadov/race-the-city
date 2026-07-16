@@ -3,24 +3,26 @@ import { t, onLangChange } from '../i18n/i18n'
 export interface Hud {
   setSpeed(kmh: number): void
   setCity(name: string): void
+  setVisible(on: boolean): void
 }
 
-/** Bottom-centre HUD: current city name and speed in km/h. */
+/** Compact, muted panel under the ⚙ button: city name and speed in km/h. */
 export function createHud(root: HTMLElement): Hud {
   const box = document.createElement('div')
   box.style.cssText =
-    'position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;' +
-    'color:#fff;font-family:system-ui,sans-serif;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.6)'
+    'position:absolute;top:70px;right:16px;pointer-events:none;text-align:right;' +
+    'background:rgba(11,14,19,.45);padding:6px 12px;border-radius:10px;' +
+    'font-family:system-ui,sans-serif;color:rgba(255,255,255,.92)'
 
   const city = document.createElement('div')
-  city.style.cssText = 'font-size:15px;opacity:.85;margin-bottom:2px'
+  city.style.cssText = 'font-size:12px;opacity:.65;margin-bottom:1px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
 
   const speedLine = document.createElement('div')
   const speedNum = document.createElement('span')
-  speedNum.style.cssText = 'font-size:34px;font-weight:700;line-height:1'
+  speedNum.style.cssText = 'font-size:22px;font-weight:600;line-height:1'
   speedNum.textContent = '0'
   const unit = document.createElement('span')
-  unit.style.cssText = 'font-size:14px;opacity:.8;margin-left:4px'
+  unit.style.cssText = 'font-size:12px;opacity:.6;margin-left:3px'
   const paintUnit = (): void => {
     unit.textContent = t('hud.kmh')
   }
@@ -37,6 +39,9 @@ export function createHud(root: HTMLElement): Hud {
     },
     setCity(name) {
       city.textContent = name
+    },
+    setVisible(on) {
+      box.style.display = on ? 'block' : 'none'
     },
   }
 }

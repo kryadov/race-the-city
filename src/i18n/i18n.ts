@@ -32,6 +32,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.map': 'Map',
     'menu.time': 'Time of day',
     'menu.driftFx': 'Drift effects',
+    'menu.hud': 'Dashboard',
     'hud.kmh': 'km/h',
   },
   ru: {
@@ -62,6 +63,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.map': 'Карта',
     'menu.time': 'Время суток',
     'menu.driftFx': 'Эффекты дрифта',
+    'menu.hud': 'Панель',
     'hud.kmh': 'км/ч',
   },
 }
