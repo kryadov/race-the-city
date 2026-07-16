@@ -64,8 +64,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Time trial — checkpoints, timer, best time (localStorage)
 - [x] Free objectives — nitro speed-boost pickups scattered on roads — done in v0.45.0
       (drive-to-a-point / coins still open)
-- [ ] Traffic — simple AI cars on roads
-- [ ] Pedestrians (ambience)
+- [x] Traffic — AI cars walking the road graph, kept around the player — done in v0.75.0
+- [x] Pedestrians (ambience) — walking the pavements, incl. footways cars can't use — done in v0.75.0
 - [ ] **Livestock in the fields** — cows, goats, pigs on `landuse=farmland` / `meadow`
       (OSM does tag `landuse=animal_keeping`, but rarely; scatter them like the trees)
 - [x] **Planes crossing the sky** — one at a time, 420m up, with a contrail — done in v0.74.0

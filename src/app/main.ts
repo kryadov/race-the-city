@@ -32,6 +32,8 @@ import { createPauseButton } from '../ui/pauseButton'
 import { createAutopilot } from './autopilot'
 import { createPlanes } from './planes'
 import { createTrains, type Trains } from './trains'
+import { createTraffic, type Traffic } from './traffic'
+import { createPedestrians, type Pedestrians } from './pedestrians'
 import {
   getDefaultCity,
   setDefaultCity,
@@ -153,6 +155,8 @@ nitro.setEnabled(getNitro())
 const flame = createNitroFlame()
 const planes = createPlanes(stage.scene)
 let trains: Trains | null = null
+let traffic: Traffic | null = null
+let people: Pedestrians | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
@@ -355,6 +359,10 @@ async function loadCity(query: string): Promise<void> {
     hud.setDistance(odometer)
     trains?.dispose() // the outgoing city's trains ran on its railways
     trains = createTrains(stage.scene, world.railways, provider)
+    traffic?.dispose()
+    traffic = createTraffic(stage.scene, world.roads, provider)
+    people?.dispose()
+    people = createPedestrians(stage.scene, world.roads, provider)
     lastRoads = world.roads
     autopilot.reset(world.roads, car)
     currentCity = query
@@ -457,6 +465,8 @@ async function loadCity(query: string): Promise<void> {
         facades?.setNight(night) // windows come on behind them
         planes.update(dt, stage.camera.position.x, stage.camera.position.z, night)
         trains?.update(dt, night)
+        traffic?.update(dt, car.x, car.z, night)
+        people?.update(dt, car.x, car.z)
         if (night > 0) {
           const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
           headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)
