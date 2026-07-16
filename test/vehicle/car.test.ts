@@ -48,7 +48,7 @@ describe('stepCar (arcade drift)', () => {
   it('drifts more with lower lateral grip (all else equal)', () => {
     const slippery: VehicleSpec = { ...car, gripLateral: 2 }
     const grippy: VehicleSpec = { ...car, gripLateral: 12 }
-    const start = (): CarState => ({ x: 0, z: 0, y: 0, heading: 0, vx: 20, vz: 0 })
+    const start = (): CarState => ({ x: 0, z: 0, y: 0, heading: 0, vx: 20, vz: 0, vy: 0 })
     const hardTurn = { throttle: 0, steer: 1, brake: false }
     const a = stepCar(start(), hardTurn, 0.2, emptyGrid, flat, slippery)
     const b = stepCar(start(), hardTurn, 0.2, emptyGrid, flat, grippy)

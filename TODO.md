@@ -48,8 +48,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       rear and a tracked hull on neither — done in v0.62.0
 - [x] **Tiller pulls a trailer** and the driver rides it — done in v0.62.0
 - [ ] Custom vehicle colours
-- [ ] **Jumps** — carry speed off a crest and fly. `CarState` has no `vy` and no gravity today:
-      `stepCar` teleports Y onto the terrain every frame, so ramps do nothing.
+- [x] **Jumps** — gravity, `vy`, and a takeoff when the ground drops out from under you —
+      done in v0.71.0
 - [ ] Brake tuning — low-speed brake can overshoot into reverse (same class as the fixed friction bug)
 - [x] Drift effects — tyre skid marks + smoke — done in v0.16.0 (2x longer trail in v0.38.0)
 - [ ] Damage / dents, collision bounce with impulse

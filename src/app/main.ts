@@ -384,12 +384,15 @@ async function loadCity(query: string): Promise<void> {
               }
             : spec
         flame.update(boost > 0.05, dt)
+        // What counts as "the ground" for the car: a deck when it is already
+        // riding one, terrain otherwise. Judged from last frame's height, so
+        // driving *under* a bridge doesn't teleport the car up onto it. stepCar
+        // reads this, so gravity and jumps work off decks too.
         const prevY = car.y
-        car = stepCar(car, input, dt, grid, provider, activeSpec)
-        // stepCar plants the car on the terrain; lift it onto a deck if it is
-        // already riding one. Judged from last frame's height, so driving *under*
-        // a bridge doesn't teleport the car up onto it.
-        car.y = surfaceUnder(car.x, car.z, prevY, car.y, decks)
+        const surface: ElevationProvider = {
+          heightAt: (x, z) => surfaceUnder(x, z, prevY, provider.heightAt(x, z), decks),
+        }
+        car = stepCar(car, input, dt, grid, surface, activeSpec)
         const onDeck = decks.heightAt(car.x, car.z) !== null && Math.abs(car.y - prevY) < 2.5
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)

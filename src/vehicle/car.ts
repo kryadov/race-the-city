@@ -11,6 +11,12 @@ export interface CarState {
   heading: number
   vx: number
   vz: number
+  /**
+   * Vertical speed. While airborne this is real, falling under gravity; while on
+   * the ground it carries the rate the terrain is climbing at, which is what
+   * decides whether cresting a rise launches the car.
+   */
+  vy: number
 }
 export interface CarInput {
   throttle: number
@@ -19,8 +25,17 @@ export interface CarInput {
 }
 
 export function createCar(x = 0, z = 0): CarState {
-  return { x, z, y: 0, heading: 0, vx: 0, vz: 0 }
+  return { x, z, y: 0, heading: 0, vx: 0, vz: 0, vy: 0 }
 }
+
+/** Arcade gravity — heavier than life, so jumps land before you get bored. */
+export const GRAVITY = 18
+/** Climb rate the car must be carrying for a crest to throw it, m/s. */
+export const TAKEOFF_VY = 2.5
+/** Ceiling on the climb rate a slope can impart, m/s. */
+const MAX_CLIMB = 22
+/** Above the ground by more than this and the car is flying. */
+const AIR_EPS = 0.05
 
 /**
  * Arcade drift step. heading 0 faces +x; +heading rotates toward +z.
@@ -80,12 +95,39 @@ export function stepCar(
     vz *= 0.3
   }
 
-  return {
-    x: resolved.x,
-    z: resolved.z,
-    y: provider.heightAt(resolved.x, resolved.z) + (HOVERS[spec.key] ? HOVER_H : 0),
-    heading,
-    vx,
-    vz,
+  const groundY = provider.heightAt(resolved.x, resolved.z)
+
+  // A hovercraft holds its height: it floats, so nothing throws it.
+  if (HOVERS[spec.key]) {
+    return { x: resolved.x, z: resolved.z, y: groundY + HOVER_H, heading, vx, vz, vy: 0 }
   }
+
+  let y: number
+  let vy: number
+  if (car.y > groundY + AIR_EPS) {
+    // Airborne: fall, and land when the ground catches up.
+    vy = car.vy - GRAVITY * dt
+    y = car.y + vy * dt
+    if (y <= groundY) {
+      y = groundY
+      vy = 0
+    }
+  } else {
+    // On the ground. The terrain asks for this much climb per second:
+    const climb = Math.max(-MAX_CLIMB, Math.min(MAX_CLIMB, (groundY - car.y) / dt))
+    if (climb < 0 && car.vy > TAKEOFF_VY) {
+      // We were climbing and the ground has just dropped away — keep going up.
+      vy = car.vy
+      y = car.y + vy * dt
+      if (y < groundY) {
+        y = groundY
+        vy = climb
+      }
+    } else {
+      y = groundY
+      vy = climb // remembered, so the next frame knows if we crested a rise
+    }
+  }
+
+  return { x: resolved.x, z: resolved.z, y, heading, vx, vz, vy }
 }
