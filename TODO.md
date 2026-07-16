@@ -18,13 +18,12 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       `landuse=flowerbed`, `amenity=fountain`, `historic=memorial` / `tourism=artwork`
       (+ `man_made=obelisk`). Mostly nodes, so they'd be scattered props like the trees.
 - [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)
-- [ ] **Drivable bridges** — deck as a real surface: parse `layer`, span flat between abutments
-      instead of following terrain, add pillars/railings/ramps. Blocked on `ElevationProvider.heightAt`
-      being single-valued (one Y per X,Z) — needs a deck-aware surface query. Bridge lane markings,
-      labels and nitro spots currently render on the terrain *under* the deck (`main.ts` passes
-      unfiltered roads to `buildRoadDetail`).
-      - [ ] **Name the rivers** while doing this — `roadLabels` only labels roads today, and a
-            bridge is worth crossing when you can see what it crosses. Ship with the bridges.
+- [x] **Drivable bridges** — profiled decks that meet the ground at both ends, with railings and
+      piers; markings and lamps ride the deck — done in v0.69.0
+- [ ] **Name the rivers** — `roadLabels` only labels roads; a bridge is worth crossing when you
+      can see what it crosses. Waiting on relation-mapped rivers arriving at all (above).
+- [ ] **Bridge road labels sit on the terrain** — `roadLabels.setWorld` still reads the ground
+      provider, so a bridge's name floats under its deck.
 - [ ] **Manhole covers** on the roads — `man_made=manhole` exists in OSM but is mapped patchily;
       scattering them along road centrelines (like the nitro spots) will read better than the data
 - [x] **Buildings read by type** — windows, doors and signage from the OSM classification —
@@ -67,6 +66,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       (drive-to-a-point / coins still open)
 - [ ] Traffic — simple AI cars on roads
 - [ ] Pedestrians (ambience)
+- [ ] **Livestock in the fields** — cows, goats, pigs on `landuse=farmland` / `meadow`
+      (OSM does tag `landuse=animal_keeping`, but rarely; scatter them like the trees)
 - [ ] **Planes crossing the sky** — occasional, high up, with a contrail
 - [ ] **Trains on the rails** — freight, intercity and commuter EMUs, running the OSM railway
       polylines we already parse (`world.railways`, drawn as bare ribbons since v0.15.0)

@@ -91,7 +91,7 @@ export function buildRailways(railways: Vec2[][], provider: ElevationProvider): 
   return ribbonMesh(positions, 0x4a4038)
 }
 
-function emitRibbon(out: number[], sides: RibbonSide[], y: (v: Vec2) => number): void {
+export function emitRibbon(out: number[], sides: RibbonSide[], y: (v: Vec2) => number): void {
   for (let j = 0; j < sides.length - 1; j++) {
     const l0 = sides[j].left, r0 = sides[j].right
     const l1 = sides[j + 1].left, r1 = sides[j + 1].right
@@ -100,7 +100,7 @@ function emitRibbon(out: number[], sides: RibbonSide[], y: (v: Vec2) => number):
   }
 }
 
-function ribbonMesh(positions: number[], color: number): THREE.Mesh {
+export function ribbonMesh(positions: number[], color: number): THREE.Mesh {
   const geo = new THREE.BufferGeometry()
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
   geo.computeVertexNormals()

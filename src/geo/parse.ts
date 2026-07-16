@@ -136,6 +136,8 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       if (tags.name) road.name = tags.name
       if (tags.bridge && tags.bridge !== 'no') road.bridge = true
       if (tags.tunnel && tags.tunnel !== 'no') road.tunnel = true
+      const layer = parseInt(tags.layer, 10)
+      if (!Number.isNaN(layer) && layer !== 0) road.layer = layer
       roads.push(road)
     }
   }

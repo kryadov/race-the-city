@@ -73,6 +73,8 @@ import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
 import { buildRoads, buildRailways, roadWidth } from '../world/roads'
+import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../world/bridge'
+import { buildBridges } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildWater } from '../world/water'
 import { buildParking } from '../world/parking'
@@ -185,6 +187,7 @@ let worldGroup: import('three').Object3D[] = []
 let roadDetailMesh: import('three').Object3D | null = null
 let facades: import('../world/facade').FacadeMaterials | null = null
 let tunnelSegs: { ax: number; az: number; bx: number; bz: number; r2: number }[] = []
+let decks: DeckIndex = { heightAt: () => null }
 // Buildings indexed for the camera-occlusion test, with their heights.
 let occGrid = new SpatialGrid([], 25)
 const occHeight = new Map<import('../geo/types').Vec2[], number>()
@@ -257,11 +260,24 @@ async function loadCity(query: string): Promise<void> {
     const { mesh: buildingsMesh, footprints, facades: newFacades } = buildBuildings(world.buildings, provider)
     facades = newFacades
     const normalRoads = world.roads.filter((r) => !r.bridge && !r.tunnel)
+    const bridgeRoads = world.roads.filter((r) => r.bridge)
     const roadsMesh = buildRoads(normalRoads, provider)
-    const bridgesMesh = buildRoads(world.roads.filter((r) => r.bridge), provider, { lift: 4, color: 0x6e6f77 })
+    // Decks are profiled to meet the ground at both ends, so they can be driven
+    // onto — not stamped at a fixed lift with the road left underneath.
+    const deckList = buildDecks(bridgeRoads, provider)
+    decks = createDeckIndex(deckList)
+    const bridgesMesh = buildBridges(deckList, provider)
     const tunnelsMesh = buildRoads(world.roads.filter((r) => r.tunnel && !r.bridge), provider, { color: 0x3d3e45 })
     const railsMesh = buildRailways(world.railways, provider)
-    roadDetailMesh = buildRoadDetail(world.roads, provider)
+    // A bridge's markings, lamps and signs belong on its deck. Everything else
+    // reads the terrain, so the road running *under* an overpass keeps its own.
+    const deckProvider: ElevationProvider = {
+      heightAt: (x, z) => decks.heightAt(x, z) ?? provider.heightAt(x, z),
+    }
+    const detail = new THREE.Group()
+    detail.add(buildRoadDetail(normalRoads.concat(world.roads.filter((r) => r.tunnel && !r.bridge)), provider))
+    if (bridgeRoads.length) detail.add(buildRoadDetail(bridgeRoads, deckProvider))
+    roadDetailMesh = detail
     roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider)
     const parkingMesh = buildParking(world.parking, provider)
@@ -319,7 +335,7 @@ async function loadCity(query: string): Promise<void> {
     // scatter nitro pickups on road vertices around the car — must run after the
     // pose above is settled, so a resumed session gets bottles where it left off
     nitro.setSpots(
-      world.roads.flatMap((r) => r.points),
+      normalRoads.flatMap((r) => r.points), // skip bridges: their points are the deck's, not the ground's
       provider,
       car.x,
       car.z,
@@ -368,7 +384,13 @@ async function loadCity(query: string): Promise<void> {
               }
             : spec
         flame.update(boost > 0.05, dt)
+        const prevY = car.y
         car = stepCar(car, input, dt, grid, provider, activeSpec)
+        // stepCar plants the car on the terrain; lift it onto a deck if it is
+        // already riding one. Judged from last frame's height, so driving *under*
+        // a bridge doesn't teleport the car up onto it.
+        car.y = surfaceUnder(car.x, car.z, prevY, car.y, decks)
+        const onDeck = decks.heightAt(car.x, car.z) !== null && Math.abs(car.y - prevY) < 2.5
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
         hud.setSpeed(Math.abs(fwd) * 3.6)
@@ -426,7 +448,7 @@ async function loadCity(query: string): Promise<void> {
         // Wheels wind on toward the lock rather than snapping to it, so the
         // angle reflects how long you've held the turn.
         steerVis += (input.steer - steerVis) * (1 - Math.exp(-STEER_EASE * dt))
-        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle], steerVis)
+        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle] || onDeck, steerVis)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)
