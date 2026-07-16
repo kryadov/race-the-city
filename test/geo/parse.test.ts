@@ -56,6 +56,12 @@ describe('parseOsm', () => {
     expect(world.water[0].length).toBeGreaterThanOrEqual(3)
   })
 
+  it('extracts green areas and tree points', () => {
+    expect(world.green.length).toBe(1)
+    expect(world.green[0].length).toBeGreaterThanOrEqual(3)
+    expect(world.trees.length).toBe(1)
+  })
+
   it('keeps the street name when present, omits it otherwise', () => {
     const named = world.roads.find((r) => r.name === 'Main St')
     expect(named).toBeDefined()

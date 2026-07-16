@@ -32,6 +32,17 @@ export function isWater(tags: Record<string, string>): boolean {
   return tags.natural === 'water' || tags.waterway === 'riverbank' || tags.landuse === 'reservoir'
 }
 
+const GREEN_LANDUSE = new Set(['grass', 'forest', 'meadow', 'recreation_ground', 'village_green'])
+export function isGreen(tags: Record<string, string>): boolean {
+  return (
+    tags.leisure === 'park' ||
+    tags.leisure === 'garden' ||
+    tags.natural === 'wood' ||
+    tags.natural === 'scrub' ||
+    GREEN_LANDUSE.has(tags.landuse)
+  )
+}
+
 export function buildingHeight(tags: Record<string, string>): number {
   const h = parseFloat(tags.height)
   if (!Number.isNaN(h) && h > 0) return h
@@ -42,15 +53,19 @@ export function buildingHeight(tags: Record<string, string>): number {
 
 export function parseOsm(json: OverpassResponse, projector: Projector): WorldData {
   const nodes = new Map<number, Vec2>()
+  const trees: Vec2[] = []
   for (const el of json.elements) {
     if (el.type === 'node' && el.lat !== undefined && el.lon !== undefined) {
-      nodes.set(el.id, projector.toLocal({ lat: el.lat, lon: el.lon }))
+      const local = projector.toLocal({ lat: el.lat, lon: el.lon })
+      nodes.set(el.id, local)
+      if (el.tags?.natural === 'tree') trees.push(local)
     }
   }
 
   const roads: Road[] = []
   const buildings: Building[] = []
   const water: Vec2[][] = []
+  const green: Vec2[][] = []
 
   for (const el of json.elements) {
     if (el.type !== 'way' || !el.nodes || el.nodes.length < 2) continue
@@ -61,6 +76,9 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     if (isWater(tags)) {
       const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
       if (ring.length >= 3) water.push(ring)
+    } else if (isGreen(tags)) {
+      const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
+      if (ring.length >= 3) green.push(ring)
     } else if (tags.building) {
       const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags) })
@@ -71,7 +89,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  return { roads, buildings, water }
+  return { roads, buildings, water, green, trees }
 }
 
 /** OSM closed ways repeat the first node last; drop it for a clean polygon. */

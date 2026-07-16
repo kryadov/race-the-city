@@ -8,4 +8,10 @@ export type RoadKind =
 
 export interface Road { points: Vec2[]; kind: RoadKind; name?: string }
 export interface Building { footprint: Vec2[]; height: number }
-export interface WorldData { roads: Road[]; buildings: Building[]; water: Vec2[][] }
+export interface WorldData {
+  roads: Road[]
+  buildings: Building[]
+  water: Vec2[][]
+  green: Vec2[][]
+  trees: Vec2[]
+}

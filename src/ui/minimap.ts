@@ -5,7 +5,7 @@ const VIEW_RADIUS = 260 // world metres from centre to edge
 const OS_SCALE = 0.5 // offscreen px per metre
 
 export interface Minimap {
-  setWorld(roads: Road[], buildings: Vec2[][], water: Vec2[][], radius: number): void
+  setWorld(roads: Road[], buildings: Vec2[][], water: Vec2[][], green: Vec2[][], radius: number): void
   update(car: { x: number; z: number; heading: number }): void
 }
 
@@ -42,13 +42,22 @@ export function createMinimap(root: HTMLElement): Minimap {
   }
 
   return {
-    setWorld(roads, buildings, water, radius) {
+    setWorld(roads, buildings, water, green, radius) {
       radiusM = radius
       const dim = Math.max(1, Math.round(2 * radius * OS_SCALE))
       const os = document.createElement('canvas')
       os.width = dim
       os.height = dim
       const g = os.getContext('2d')!
+
+      g.fillStyle = 'rgba(76,122,66,.5)'
+      for (const gp of green) {
+        if (gp.length < 3) continue
+        g.beginPath()
+        trace(g, gp)
+        g.closePath()
+        g.fill()
+      }
 
       g.fillStyle = 'rgba(47,109,176,.55)'
       for (const wp of water) {
