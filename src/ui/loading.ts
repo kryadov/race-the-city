@@ -1,5 +1,6 @@
 export interface Loading {
-  show(msg: string): void
+  /** Show a status line; pass a 0..1 fraction to also show a percentage bar. */
+  show(msg: string, frac?: number): void
   error(msg: string): void
   hide(): void
 }
@@ -23,19 +24,38 @@ export function createLoading(root: HTMLElement): Loading {
 
   const text = document.createElement('div')
 
-  box.append(spinner, text)
+  const barTrack = document.createElement('div')
+  barTrack.style.cssText =
+    'width:180px;height:6px;margin:12px auto 2px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden'
+  const barFill = document.createElement('div')
+  barFill.style.cssText = 'height:100%;width:0%;background:#e63946;border-radius:3px;transition:width .2s ease'
+  barTrack.appendChild(barFill)
+  const pct = document.createElement('div')
+  pct.style.cssText = 'font-size:12px;opacity:.7;margin-top:4px'
+
+  box.append(spinner, text, barTrack, pct)
   root.appendChild(box)
 
   return {
-    show(msg) {
+    show(msg, frac) {
       box.style.display = 'block'
       spinner.style.display = 'block'
       text.style.color = '#fff'
       text.textContent = msg
+      const hasBar = frac !== undefined
+      barTrack.style.display = hasBar ? 'block' : 'none'
+      pct.style.display = hasBar ? 'block' : 'none'
+      if (hasBar) {
+        const p = Math.round(Math.max(0, Math.min(1, frac)) * 100)
+        barFill.style.width = p + '%'
+        pct.textContent = p + '%'
+      }
     },
     error(msg) {
       box.style.display = 'block'
       spinner.style.display = 'none' // an error isn't loading — drop the spinner
+      barTrack.style.display = 'none'
+      pct.style.display = 'none'
       text.style.color = '#ff8080'
       text.textContent = msg
     },

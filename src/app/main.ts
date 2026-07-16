@@ -141,7 +141,7 @@ async function loadCity(query: string): Promise<void> {
   loading_ = true
   hud.setCity(query)
   try {
-    loading.show(t('loading.geocoding'))
+    loading.show(t('loading.geocoding'), 0.05)
     const center = await geocode(query)
     // reflect the loaded city in the address bar so the URL is shareable
     const u = new URL(location.href)
@@ -150,21 +150,23 @@ async function loadCity(query: string): Promise<void> {
     const projector = new Projector(center)
     const bbox = bboxAround(center, RADIUS)
 
-    loading.show(t('loading.osm'))
+    loading.show(t('loading.osm'), 0.2)
     const key = bboxKey(bbox)
     let osm = await cacheGet(key)
     if (!osm) {
       osm = await fetchOsm(bbox)
       await cachePut(key, osm)
     }
+    loading.show(t('loading.osm'), 0.5)
     const world = parseOsm(osm, projector)
 
-    loading.show(t('loading.terrain'))
+    loading.show(t('loading.terrain'), 0.65)
     try {
       provider = await loadTerrarium(center, bbox, projector)
     } catch {
       provider = new FlatProvider() // graceful fallback
     }
+    loading.show(t('loading.build'), 0.85)
 
     // clear previous world (and free its GPU resources)
     for (const obj of worldGroup) {
@@ -212,6 +214,7 @@ async function loadCity(query: string): Promise<void> {
     car.y = provider.heightAt(0, 0)
     driftFx.reset()
 
+    loading.show(t('loading.build'), 1)
     loading.hide()
 
     if (!stopLoop) {
