@@ -28,6 +28,31 @@ describe('trains', () => {
     expect(countCars(scene)).toBeGreaterThan(1) // several carriages
   })
 
+  it('runs trams in a city that has mainline track as well', () => {
+    // The bug: candidates were taken in list order until the count ran out, and
+    // `parse.ts` emits every mainline line before the first tram. Prague has 260
+    // railway ways and 52 tram ways, so the mainline filled every slot and not
+    // one tram ever ran.
+    const scene = new THREE.Scene()
+    const mainlines: Railway[] = Array.from({ length: 20 }, (_, i) => ({
+      points: [v(0, i * 10), v(1000, i * 10)],
+      tram: false,
+      tunnel: false,
+    }))
+    const trams: Railway[] = Array.from({ length: 5 }, (_, i) => ({
+      points: [v(0, 500 + i * 10), v(600, 500 + i * 10)],
+      tram: true,
+      tunnel: false,
+    }))
+    createTrains(scene, [...mainlines, ...trams], flat, () => 0.5, 4)
+    const group = scene.children[0] as THREE.Group
+    // A tram is the one that carries a pantograph; nothing else does.
+    const pantographs = group.children.filter((car) =>
+      car.children.some((part) => part.type === 'Group'),
+    )
+    expect(pantographs.length).toBeGreaterThan(0)
+  })
+
   it('leaves a short siding alone', () => {
     // an intercity on a 40m stub would be absurd
     const scene = new THREE.Scene()

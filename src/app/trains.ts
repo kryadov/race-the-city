@@ -252,16 +252,35 @@ export function createTrains(
 
   const running: { line: Vec2[]; cum: number[]; k: Kind; cars: THREE.Group[]; s: number; dir: number }[] = []
 
+  // Every line worth running something on, trams kept apart from the mainline.
+  const trams: Railway[] = []
+  const mainlines: Railway[] = []
   for (const rail of railways) {
-    if (running.length >= maxTrains) break
     // A tunnelled line is underground. A train on it would be driving through
     // the buildings above it — which is exactly what Monaco did.
     if (rail.tunnel) continue
-    const line = rail.points
-    if (line.length < 2) continue
-    const cum = measure(line)
+    if (rail.points.length < 2) continue
+    const cum = measure(rail.points)
     const total = cum[cum.length - 1]
     if (total < (rail.tram ? MIN_TRAM_LINE : MIN_LINE)) continue
+    ;(rail.tram ? trams : mainlines).push(rail)
+  }
+
+  // Alternate between the two, tram first, rather than taking the list in order
+  // until the count runs out. `parse.ts` emits every mainline line before the
+  // first tram, so in order meant the mainline took every slot: Prague has 52
+  // tram ways and never ran a single tram. The tram is also the one you actually
+  // meet — it comes down the street you are driving on — so it leads.
+  const picked: Railway[] = []
+  for (let i = 0; picked.length < maxTrains && (i < trams.length || i < mainlines.length); i++) {
+    if (i < trams.length) picked.push(trams[i])
+    if (picked.length < maxTrains && i < mainlines.length) picked.push(mainlines[i])
+  }
+
+  for (const rail of picked) {
+    const line = rail.points
+    const cum = measure(line)
+    const total = cum[cum.length - 1]
 
     // Tram tracks run down the street. Putting an intercity on one drives a
     // full-length train through the traffic — a tram is the only thing that
