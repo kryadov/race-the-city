@@ -81,6 +81,7 @@ import { buildBridges } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildWater } from '../world/water'
 import { buildParking } from '../world/parking'
+import { buildProps } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
 import { SpatialGrid } from '../physics/grid'
@@ -287,6 +288,7 @@ async function loadCity(query: string): Promise<void> {
     roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider)
     const parkingMesh = buildParking(world.parking, provider)
+    const propsMesh = buildProps(world.props, provider)
     const greenMesh = buildGreenery(world.green, world.trees, provider, center.lat)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
     ground.receiveShadow = true
@@ -298,7 +300,7 @@ async function loadCity(query: string): Promise<void> {
     greenMesh.traverse((o) => {
       o.castShadow = true
     })
-    for (const obj of [ground, seaMesh, greenMesh, waterMesh, parkingMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
+    for (const obj of [ground, seaMesh, greenMesh, waterMesh, parkingMesh, propsMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }

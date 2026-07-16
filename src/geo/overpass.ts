@@ -32,6 +32,11 @@ export function overpassQuery(b: BBox): string {
   way["natural"~"wood|scrub"](${box});
   way["landuse"~"grass|forest|meadow|recreation_ground|village_green"](${box});
   node["natural"="tree"](${box});
+  node["amenity"="fountain"](${box});
+  way["amenity"="fountain"](${box});
+  node["historic"~"memorial|monument"](${box});
+  node["tourism"="artwork"](${box});
+  way["landuse"="flowerbed"](${box});
   way["natural"="coastline"](${box});
   way["railway"~"rail|light_rail|tram|narrow_gauge"](${box});
 );

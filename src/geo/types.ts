@@ -16,6 +16,9 @@ export interface Road {
   layer?: number
 }
 /** What a building is for — decides its facade: windows, doors and signage. */
+export type PropKind = 'fountain' | 'statue' | 'flowerbed'
+export interface Prop { at: Vec2; kind: PropKind }
+
 export type BuildingKind = 'house' | 'apartments' | 'retail' | 'office' | 'industrial' | 'civic'
 
 export interface Building { footprint: Vec2[]; height: number; kind: BuildingKind }
@@ -26,6 +29,8 @@ export interface WorldData {
   green: Vec2[][]
   parking: Vec2[][]
   trees: Vec2[]
+  /** Ornaments dotted about: fountains, statues, flowerbeds. */
+  props: Prop[]
   coast: Vec2[][]
   railways: Vec2[][]
 }

@@ -15,9 +15,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       painted over
 - [x] **Parking, marked out** — `amenity=parking` tarmac with painted bays — done in v0.68.0
 - [ ] Pedestrian squares (`highway=pedestrian`)
-- [ ] **Flowerbeds, fountains and statues** — OSM has all three:
-      `landuse=flowerbed`, `amenity=fountain`, `historic=memorial` / `tourism=artwork`
-      (+ `man_made=obelisk`). Mostly nodes, so they'd be scattered props like the trees.
+- [x] **Flowerbeds, fountains and statues** — from `amenity=fountain`, `historic=memorial|monument`,
+      `tourism=artwork`, `landuse=flowerbed`; one instanced draw per kind — done in v0.73.0
 - [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)
 - [x] **Drivable bridges** — profiled decks that meet the ground at both ends, with railings and
       piers; markings and lamps ride the deck — done in v0.69.0

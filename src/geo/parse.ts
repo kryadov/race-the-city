@@ -1,5 +1,5 @@
 import type { Projector } from './project'
-import type { Building, BuildingKind, Road, RoadKind, Vec2, WorldData } from './types'
+import type { Building, BuildingKind, Prop, PropKind, Road, RoadKind, Vec2, WorldData } from './types'
 
 export interface OverpassMember {
   type: 'node' | 'way' | 'relation'
@@ -32,6 +32,15 @@ const DEFAULT_BUILDING_HEIGHT = 9
 export function classifyRoad(highway: string | undefined): RoadKind {
   if (!highway) return 'other'
   return HIGHWAY_MAP[highway] ?? 'other'
+}
+
+/** The ornament this tagging describes, or null if it isn't one. */
+export function classifyProp(tags: Record<string, string>): PropKind | null {
+  if (tags.amenity === 'fountain') return 'fountain'
+  if (tags.historic === 'memorial' || tags.historic === 'monument') return 'statue'
+  if (tags.tourism === 'artwork') return 'statue'
+  if (tags.landuse === 'flowerbed') return 'flowerbed'
+  return null
 }
 
 export function isParking(tags: Record<string, string>): boolean {
@@ -99,11 +108,16 @@ export function buildingHeight(tags: Record<string, string>): number {
 export function parseOsm(json: OverpassResponse, projector: Projector): WorldData {
   const nodes = new Map<number, Vec2>()
   const trees: Vec2[] = []
+  const props: Prop[] = []
   for (const el of json.elements) {
     if (el.type === 'node' && el.lat !== undefined && el.lon !== undefined) {
       const local = projector.toLocal({ lat: el.lat, lon: el.lon })
       nodes.set(el.id, local)
       if (el.tags?.natural === 'tree') trees.push(local)
+      else {
+        const kind = classifyProp(el.tags ?? {})
+        if (kind) props.push({ at: local, kind })
+      }
     }
   }
 
@@ -126,6 +140,17 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     const points = el.nodes.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
     if (points.length < 2) continue
 
+    const propKind = classifyProp(tags)
+    if (propKind) {
+      let cx = 0
+      let cz = 0
+      for (const p of points) {
+        cx += p.x
+        cz += p.z
+      }
+      props.push({ at: { x: cx / points.length, z: cz / points.length }, kind: propKind })
+      continue
+    }
     if (tags.natural === 'coastline') {
       coast.push(points) // linear boundary between land and sea
     } else if (isWater(tags)) {
@@ -172,7 +197,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  return { roads, buildings, water, green, parking, trees, coast, railways }
+  return { roads, buildings, water, green, parking, trees, props, coast, railways }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */
