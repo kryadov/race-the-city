@@ -11,6 +11,7 @@ import {
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
 import { applyDayNight } from './daynight'
+import { createDriftFx } from './driftfx'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createSettingsMenu } from '../ui/settingsMenu'
@@ -53,6 +54,7 @@ createVersionBadge(ui)
 const keyboard = new Keyboard()
 const touch = createTouchControls(ui)
 const theme = new ThemeController(stage)
+const driftFx = createDriftFx(stage.scene)
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
@@ -128,6 +130,7 @@ async function loadCity(query: string): Promise<void> {
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
     car.y = provider.heightAt(0, 0)
+    driftFx.reset()
 
     loading.hide()
 
@@ -149,6 +152,7 @@ async function loadCity(query: string): Promise<void> {
         audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
         prevForward = fwd
+        driftFx.update(car, dt, provider)
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
         applyDayNight(stage, timeOfDay, theme.current === 'neon')
         menu.setTime(timeOfDay)

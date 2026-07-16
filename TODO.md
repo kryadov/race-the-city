@@ -15,7 +15,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🚗 Vehicles & physics
 - [ ] More vehicles (motorbike, bus, race car); custom colours
 - [ ] Brake tuning — low-speed brake can overshoot into reverse (same class as the fixed friction bug)
-- [ ] Drift effects — tyre skid marks on the road, dust/smoke particles
+- [x] Drift effects — tyre skid marks + smoke — done in v0.16.0
 - [ ] Damage / dents, collision bounce with impulse
 - [ ] Headlights (esp. at night, tie into day/night), brake lights
 - [ ] Speedometer / HUD (km/h)
