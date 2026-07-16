@@ -76,9 +76,30 @@ export const REAR_LIGHT_MAT = new THREE.MeshStandardMaterial({
   flatShading: true,
 })
 
-/** A rear/brake light at the vehicle's back. */
-function rearLight(x: number, y: number, z: number): THREE.Mesh {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), REAR_LIGHT_MAT)
+// Amber turn-signals. Left and right are separate materials so the loop can
+// blink one side independently; colour is clearly distinct from the red brakes.
+// The model faces +x, so its left side is -z and its right side is +z.
+const amber = (): THREE.MeshStandardMaterial =>
+  new THREE.MeshStandardMaterial({ color: 0x3a2600, emissive: 0xffa000, emissiveIntensity: 0, flatShading: true })
+export const TURN_LEFT_MAT = amber()
+export const TURN_RIGHT_MAT = amber()
+
+const HOUSING_MAT = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, flatShading: true })
+
+/** A tail/brake light block set into a dark housing (housing sits just behind it). */
+function tailLight(w: number, h: number, d: number, x: number, y: number, z: number): THREE.Object3D {
+  const g = new THREE.Group()
+  const housing = new THREE.Mesh(new THREE.BoxGeometry(d * 0.6, h + 0.14, w + 0.14), HOUSING_MAT)
+  housing.position.set(x - d * 0.35, y, z)
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(d, h, w), REAR_LIGHT_MAT)
+  lamp.position.set(x, y, z)
+  g.add(housing, lamp)
+  return g
+}
+
+/** A turn-signal lamp; `mat` selects which side blinks. */
+function turn(mat: THREE.MeshStandardMaterial, x: number, y: number, z: number): THREE.Mesh {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), mat)
   m.position.set(x, y, z)
   return m
 }
@@ -89,7 +110,10 @@ function buildCar(): THREE.Group {
   g.add(box(2.1, 0.7, 1.7, 0xb5303b, -0.15, 1.25, 0)) // cabin
   g.add(...fourWheels(0.5, 0.4, 1.3, 0.95, 0.45))
   g.add(light(2, 0.65, 0.7), light(2, 0.65, -0.7))
-  g.add(rearLight(-2, 0.7, 0.7), rearLight(-2, 0.7, -0.7))
+  // saloon: tall vertical tail-light blocks in the corners
+  g.add(tailLight(0.16, 0.42, 0.14, -2, 0.72, 0.72), tailLight(0.16, 0.42, 0.14, -2, 0.72, -0.72))
+  g.add(turn(TURN_RIGHT_MAT, -2.0, 0.5, 0.92), turn(TURN_LEFT_MAT, -2.0, 0.5, -0.92))
+  g.add(turn(TURN_RIGHT_MAT, 2.02, 0.55, 0.9), turn(TURN_LEFT_MAT, 2.02, 0.55, -0.9))
   return g
 }
 
@@ -102,7 +126,11 @@ function buildTruck(): THREE.Group {
   g.add(wheel(0.72, 0.5, -0.4, 0.7, 1.05)) // extra rear axle
   g.add(wheel(0.72, 0.5, -0.4, 0.7, -1.05))
   g.add(light(3, 1.1, 0.9), light(3, 1.1, -0.9))
-  g.add(rearLight(-3.4, 1.0, 0.9), rearLight(-3.4, 1.0, -0.9))
+  // lorry: a stacked pair of round-ish light blocks each side, low on the cargo
+  g.add(tailLight(0.34, 0.24, 0.14, -3.4, 1.2, 0.92), tailLight(0.34, 0.24, 0.14, -3.4, 0.85, 0.92))
+  g.add(tailLight(0.34, 0.24, 0.14, -3.4, 1.2, -0.92), tailLight(0.34, 0.24, 0.14, -3.4, 0.85, -0.92))
+  g.add(turn(TURN_RIGHT_MAT, -3.4, 0.55, 1.02), turn(TURN_LEFT_MAT, -3.4, 0.55, -1.02))
+  g.add(turn(TURN_RIGHT_MAT, 2.95, 0.7, 1.0), turn(TURN_LEFT_MAT, 2.95, 0.7, -1.0))
   return g
 }
 
@@ -113,7 +141,10 @@ function buildSports(): THREE.Group {
   g.add(box(1.0, 0.12, 1.9, 0x023047, -1.9, 0.95, 0)) // rear wing
   g.add(...fourWheels(0.46, 0.45, 1.45, 1.0, 0.42))
   g.add(light(2.1, 0.5, 0.75), light(2.1, 0.5, -0.75))
-  g.add(rearLight(-2.1, 0.55, 0.72), rearLight(-2.1, 0.55, -0.72))
+  // sports: a single full-width slim light bar across the tail
+  g.add(tailLight(1.5, 0.12, 0.1, -2.12, 0.6, 0))
+  g.add(turn(TURN_RIGHT_MAT, -2.1, 0.5, 0.82), turn(TURN_LEFT_MAT, -2.1, 0.5, -0.82))
+  g.add(turn(TURN_RIGHT_MAT, 2.12, 0.45, 0.78), turn(TURN_LEFT_MAT, 2.12, 0.45, -0.78))
   return g
 }
 

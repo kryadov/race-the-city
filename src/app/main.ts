@@ -61,7 +61,14 @@ import { SpatialGrid } from '../physics/grid'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
 import { VEHICLES, type VehicleType } from '../vehicle/vehicles'
-import { buildVehicleMesh, REAR_LIGHT_MAT, REAR_LIGHT_IDLE, REAR_LIGHT_BRAKE } from '../vehicle/model'
+import {
+  buildVehicleMesh,
+  REAR_LIGHT_MAT,
+  REAR_LIGHT_IDLE,
+  REAR_LIGHT_BRAKE,
+  TURN_LEFT_MAT,
+  TURN_RIGHT_MAT,
+} from '../vehicle/model'
 
 const RADIUS = 1000
 const sunScratch = new THREE.Vector3()
@@ -94,6 +101,9 @@ window.addEventListener('pointerdown', resumeAudio, { once: true })
 window.addEventListener('keydown', resumeAudio, { once: true })
 let vehicle: VehicleType = 'car'
 let prevForward = 0
+let steerDir = 0 // sign of the currently-held steer
+let steerHold = 0 // seconds that direction has been held
+let blinkClock = 0 // free-running clock for the indicator blink
 const CYCLE_SECONDS = 240 // full day/night cycle
 let timeOfDay = 0.35 // start mid-morning
 setVehicleMesh(stage, buildVehicleMesh(vehicle))
@@ -201,6 +211,17 @@ async function loadCity(query: string): Promise<void> {
         // brake lights: handbrake, or throttling backwards while still rolling forward
         const braking = input.brake || (input.throttle < 0 && fwd > 1)
         REAR_LIGHT_MAT.emissiveIntensity = braking ? REAR_LIGHT_BRAKE : REAR_LIGHT_IDLE
+        // turn signals: blink once a steer has been held the same way for >1s
+        const sdir = input.steer > 0.3 ? 1 : input.steer < -0.3 ? -1 : 0
+        if (sdir !== 0 && sdir === steerDir) steerHold += dt
+        else {
+          steerDir = sdir
+          steerHold = sdir !== 0 ? dt : 0
+        }
+        blinkClock += dt
+        const blinkOn = steerHold > 1 && Math.floor(blinkClock / 0.4) % 2 === 0
+        TURN_RIGHT_MAT.emissiveIntensity = blinkOn && steerDir > 0 ? 2.4 : 0
+        TURN_LEFT_MAT.emissiveIntensity = blinkOn && steerDir < 0 ? 2.4 : 0
         prevForward = fwd
         driftFx.update(car, dt, provider)
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
