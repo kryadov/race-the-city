@@ -6,6 +6,20 @@ import { pointInPolygon } from '../physics/collide'
 const MAX_TREES = 600
 const TREE_AREA = 550 // one scattered tree per ~this many m² of green
 const MAX_PER_AREA = 60 // cap scatter per polygon
+const RNG_SEED = 0x1a2b3c4d // fixed seed → identical trees on every browser and reload
+
+/** Deterministic PRNG (mulberry32). Using this instead of Math.random keeps the
+ * scattered-tree count and layout identical across browsers — Math.random-based
+ * rejection sampling otherwise produced a different tree count on each load. */
+function makeRng(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
 
 /**
  * Low-poly instanced trees scattered in the green areas (the green ground tint
@@ -13,13 +27,14 @@ const MAX_PER_AREA = 60 // cap scatter per polygon
  */
 export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider): THREE.Object3D {
   const group = new THREE.Group()
-  const spots = collectTreeSpots(green, trees)
-  if (spots.length) group.add(buildTrees(spots, provider))
+  const rng = makeRng(RNG_SEED)
+  const spots = collectTreeSpots(green, trees, rng)
+  if (spots.length) group.add(buildTrees(spots, provider, rng))
   return group
 }
 
 /** Explicit tree points plus a capped scatter inside green polygons. */
-function collectTreeSpots(green: Vec2[][], trees: Vec2[]): Vec2[] {
+function collectTreeSpots(green: Vec2[][], trees: Vec2[], rng: () => number): Vec2[] {
   const spots: Vec2[] = trees.slice(0, MAX_TREES)
   for (const ring of green) {
     if (spots.length >= MAX_TREES || ring.length < 3) continue
@@ -33,8 +48,8 @@ function collectTreeSpots(green: Vec2[][], trees: Vec2[]): Vec2[] {
     const area = (maxX - minX) * (maxZ - minZ)
     const want = Math.min(MAX_PER_AREA, Math.floor(area / TREE_AREA))
     for (let i = 0; i < want * 2 && spots.length < MAX_TREES; i++) {
-      const x = minX + Math.random() * (maxX - minX)
-      const z = minZ + Math.random() * (maxZ - minZ)
+      const x = minX + rng() * (maxX - minX)
+      const z = minZ + rng() * (maxZ - minZ)
       if (pointInPolygon(x, z, ring)) spots.push({ x, z })
     }
   }
@@ -56,10 +71,10 @@ const VARIANTS: TreeVariant[] = [
 
 const UP = new THREE.Vector3(0, 1, 0)
 
-function buildTrees(spots: Vec2[], provider: ElevationProvider): THREE.Object3D {
+function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => number): THREE.Object3D {
   const g = new THREE.Group()
   const buckets: Vec2[][] = VARIANTS.map(() => [])
-  for (const s of spots) buckets[Math.floor(Math.random() * VARIANTS.length)].push(s)
+  for (const s of spots) buckets[Math.floor(rng() * VARIANTS.length)].push(s)
 
   const trunkGeo = new THREE.CylinderGeometry(0.22, 0.3, 2, 5)
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, flatShading: true })
@@ -81,15 +96,15 @@ function buildTrees(spots: Vec2[], provider: ElevationProvider): THREE.Object3D 
       n,
     )
     for (let i = 0; i < n; i++) {
-      const s = 0.7 + Math.random() * 0.7 // size variety
+      const s = 0.7 + rng() * 0.7 // size variety
       const y = provider.heightAt(pts[i].x, pts[i].z)
-      q.setFromAxisAngle(UP, Math.random() * Math.PI * 2) // rotation variety
+      q.setFromAxisAngle(UP, rng() * Math.PI * 2) // rotation variety
       scl.set(s, s, s)
       pos.set(pts[i].x, y + s, pts[i].z)
       trunk.setMatrixAt(i, m.compose(pos, q, scl))
       pos.set(pts[i].x, y + v.folY * s, pts[i].z)
       foliage.setMatrixAt(i, m.compose(pos, q, scl))
-      col.setHex(v.color).offsetHSL((Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.1)
+      col.setHex(v.color).offsetHSL((rng() - 0.5) * 0.03, (rng() - 0.5) * 0.12, (rng() - 0.5) * 0.1)
       foliage.setColorAt(i, col) // shade variety
     }
     trunk.instanceMatrix.needsUpdate = true
