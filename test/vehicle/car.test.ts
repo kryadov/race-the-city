@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createCar, stepCar, type CarState } from '../../src/vehicle/car'
-import { VEHICLES, type VehicleSpec } from '../../src/vehicle/vehicles'
+import { VEHICLES, HOVER_H, type VehicleSpec } from '../../src/vehicle/vehicles'
 import { SpatialGrid } from '../../src/physics/grid'
 import { FlatProvider } from '../../src/terrain/flat'
 import type { Vec2 } from '../../src/geo/types'
@@ -79,6 +79,16 @@ describe('stepCar (arcade drift)', () => {
     c = stepCar(c, { throttle: 1, steer: 0, brake: false }, 0.3, emptyGrid, ramp, car)
     expect(c.y).toBeGreaterThan(0)
     expect(c.y).toBeCloseTo(c.x, 5)
+  })
+
+  it('floats the hovercar above the terrain and plants a normal car on it', () => {
+    const ground = { heightAt: () => 12 }
+
+    const floated = stepCar(createCar(), NO_INPUT, 0.016, emptyGrid, ground, VEHICLES.hover)
+    expect(floated.y).toBeCloseTo(12 + HOVER_H)
+
+    const planted = stepCar(createCar(), NO_INPUT, 0.016, emptyGrid, ground, VEHICLES.car)
+    expect(planted.y).toBeCloseTo(12)
   })
 })
 

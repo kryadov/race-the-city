@@ -2,7 +2,7 @@ export type VehicleType =
   | 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
   | 'retro' | 'ev' | 'minivan' | 'tanker'
   | 'crane' | 'roller' | 'combine' | 'tiller'
-  | 'tracked'
+  | 'tracked' | 'hover'
 
 export const VEHICLE_TYPES: readonly VehicleType[] = [
   'car',
@@ -23,6 +23,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'combine',
   'tiller',
   'tracked',
+  'hover',
 ]
 
 /**
@@ -33,11 +34,17 @@ export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType
   { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan'] },
   { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus', 'tanker'] },
   { key: 'vehGroup.special', types: ['tractor', 'crane', 'roller', 'combine', 'tiller'] },
-  { key: 'vehGroup.exotic', types: ['motorbike', 'tracked'] },
+  { key: 'vehGroup.exotic', types: ['motorbike', 'tracked', 'hover'] },
 ]
 
 /** Vehicles that bank into corners (only the bike leans). */
 export const LEANS: Partial<Record<VehicleType, boolean>> = { motorbike: true }
+
+/** Vehicles with no wheels that float above the ground. */
+export const HOVERS: Partial<Record<VehicleType, boolean>> = { hover: true }
+
+/** How high a hovering vehicle floats above the terrain, in metres. */
+export const HOVER_H = 1.0
 
 export interface VehicleSpec {
   key: VehicleType
@@ -216,5 +223,10 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
   tracked: {
     key: 'tracked', accel: 40, brakeAccel: 55, dragForward: 1.6, gripLateral: 11,
     turnRate: 1.4, turnSpeedRef: 6, maxSpeed: 18, maxReverse: 8, radius: 1.7,
+  },
+  // No wheels, no grip: it floats, so it slides through bends and coasts on the brakes.
+  hover: {
+    key: 'hover', accel: 85, brakeAccel: 40, dragForward: 1.6, gripLateral: 1.2,
+    turnRate: 2.6, turnSpeedRef: 6, maxSpeed: 46, maxReverse: 14, radius: 1.3,
   },
 }

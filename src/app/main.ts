@@ -78,7 +78,7 @@ import { SpatialGrid } from '../physics/grid'
 import { pointInPolygon } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
-import { VEHICLES, LEANS, type VehicleType } from '../vehicle/vehicles'
+import { VEHICLES, LEANS, HOVERS, type VehicleType } from '../vehicle/vehicles'
 import {
   buildVehicleMesh,
   REAR_LIGHT_MAT,
@@ -367,7 +367,7 @@ async function loadCity(query: string): Promise<void> {
         // bikes bank into corners; everything else stays upright
         const leanTarget = LEANS[vehicle] ? input.steer * Math.min(1, Math.abs(fwd) / 12) * MAX_LEAN : 0
         lean += (leanTarget - lean) * (1 - Math.exp(-6 * dt))
-        syncCamera(stage, car, dt, provider, lean)
+        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle])
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)

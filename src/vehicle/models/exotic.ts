@@ -49,3 +49,33 @@ export function buildTracked(): THREE.Group {
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 1.4, 0.2, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 1.4, -0.2, -1))
   return g
 }
+
+/** A wheel-less aero car: a smooth hull over four glowing lift pods. */
+export function buildHover(): THREE.Group {
+  const g = new THREE.Group()
+  const body = 0x2bb3c9 // cyan
+  g.add(box(4.0, 0.42, 1.9, body, 0, 0.75, 0)) // hull pan
+  g.add(box(2.6, 0.44, 1.7, body, -0.2, 1.16, 0)) // waist
+  g.add(glass(0.1, 0.42, 1.5, 1.0, 1.5, 0)) // canopy front
+  g.add(box(1.6, 0.4, 1.4, 0x1c2733, -0.5, 1.52, 0)) // canopy
+  g.add(box(0.6, 0.24, 1.8, body, 2.05, 0.86, 0)) // nose
+  g.add(box(0.4, 0.5, 0.16, body, -2.05, 1.2, 0.7)) // tail fins
+  g.add(box(0.4, 0.5, 0.16, body, -2.05, 1.2, -0.7))
+  // lift pods: glowing discs under each corner, in place of wheels
+  const podMat = new THREE.MeshStandardMaterial({
+    color: 0x0a2a33, emissive: 0x39c6ff, emissiveIntensity: 0.9, flatShading: true,
+  })
+  for (const [x, z] of [[1.4, 0.82], [1.4, -0.82], [-1.4, 0.82], [-1.4, -0.82]] as const) {
+    const pod = new THREE.CylinderGeometry(0.42, 0.3, 0.28, 12)
+    const m = new THREE.Mesh(pod, podMat)
+    m.position.set(x, 0.42, z)
+    g.add(m) // deliberately NOT tagged wheelRadius: nothing to roll
+  }
+  g.add(light(2.32, 0.9, 0.6), light(2.32, 0.9, -0.6))
+  const rx = -2.05, fx = 2.32
+  g.add(housingBar(0.3, 1.7, rx, 1.0, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.3, 1.3, rx, 1.0, 0, -1)) // one bar
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 0.72, 0.8, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 0.72, -0.8, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.7, 0.82, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.7, -0.82, 1))
+  return g
+}

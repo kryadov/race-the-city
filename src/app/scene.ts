@@ -126,7 +126,7 @@ const basis = new THREE.Matrix4()
 const leanQuat = new THREE.Quaternion()
 const FWD_AXIS = new THREE.Vector3(1, 0, 0)
 
-export function syncCamera(stage: Stage, car: CarState, dt: number, provider: ElevationProvider, lean = 0): void {
+export function syncCamera(stage: Stage, car: CarState, dt: number, provider: ElevationProvider, lean = 0, level = false): void {
   stage.carMesh.position.set(car.x, car.y, car.z)
 
   // Orient to the terrain: build a basis from the surface normal + heading so
@@ -134,7 +134,9 @@ export function syncCamera(stage: Stage, car: CarState, dt: number, provider: El
   const e = 2
   const dHx = provider.heightAt(car.x + e, car.z) - provider.heightAt(car.x - e, car.z)
   const dHz = provider.heightAt(car.x, car.z + e) - provider.heightAt(car.x, car.z - e)
-  nUp.set(-dHx / (2 * e), 1, -dHz / (2 * e)).normalize()
+  // A hovering vehicle floats level; everything else pitches to the slope.
+  if (level) nUp.set(0, 1, 0)
+  else nUp.set(-dHx / (2 * e), 1, -dHz / (2 * e)).normalize()
   nFwd0.set(Math.cos(car.heading), 0, Math.sin(car.heading))
   nRight.crossVectors(nFwd0, nUp).normalize()
   nFwd.crossVectors(nUp, nRight).normalize()

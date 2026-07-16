@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { buildVehicleMesh } from '../../src/vehicle/model'
-import { VEHICLE_TYPES } from '../../src/vehicle/vehicles'
+import { VEHICLE_TYPES, HOVERS } from '../../src/vehicle/vehicles'
 
 describe('buildVehicleMesh', () => {
   it('builds a non-empty group for every vehicle type', () => {
@@ -27,11 +27,20 @@ describe('buildVehicleMesh', () => {
   it('gives every wheeled vehicle spinnable wheels', () => {
     // syncCamera spins anything tagged wheelRadius; without the tag a model looks frozen.
     for (const type of VEHICLE_TYPES) {
+      if (HOVERS[type]) continue // floats — no wheels by design
       let wheels = 0
       buildVehicleMesh(type).traverse((o) => {
         if ((o.userData as { wheelRadius?: number }).wheelRadius) wheels++
       })
       expect(wheels, type).toBeGreaterThan(0)
     }
+  })
+
+  it('builds the hovercar with no wheels', () => {
+    let wheels = 0
+    buildVehicleMesh('hover').traverse((o) => {
+      if ((o.userData as { wheelRadius?: number }).wheelRadius) wheels++
+    })
+    expect(wheels).toBe(0)
   })
 })

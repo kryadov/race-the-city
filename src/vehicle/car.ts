@@ -1,7 +1,7 @@
 import type { SpatialGrid } from '../physics/grid'
 import { resolveCircle } from '../physics/collide'
 import type { ElevationProvider } from '../terrain/provider'
-import type { VehicleSpec } from './vehicles'
+import { HOVERS, HOVER_H, type VehicleSpec } from './vehicles'
 
 /** Car state. Velocity is a world-space vector (vx, vz) so the car can drift. */
 export interface CarState {
@@ -83,7 +83,7 @@ export function stepCar(
   return {
     x: resolved.x,
     z: resolved.z,
-    y: provider.heightAt(resolved.x, resolved.z),
+    y: provider.heightAt(resolved.x, resolved.z) + (HOVERS[spec.key] ? HOVER_H : 0),
     heading,
     vx,
     vz,

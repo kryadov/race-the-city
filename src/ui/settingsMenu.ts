@@ -30,6 +30,7 @@ const VEHICLE_EMOJI: Record<VehicleType, string> = {
   combine: '🌾',
   tiller: '⚙',
   tracked: '⛰',
+  hover: '🛸',
 }
 const ACTIVE = '#e63946'
 const INACTIVE = '#26303f'
