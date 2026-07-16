@@ -4,9 +4,29 @@ import type { OverpassResponse } from './parse'
 const DB_NAME = 'race-the-city'
 const STORE = 'osm'
 
-export function bboxKey(b: BBox): string {
+/** FNV-1a, base36 — short, stable, and no dependency. */
+function hash(s: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return (h >>> 0).toString(36)
+}
+
+/**
+ * The key a city's OSM response is cached under: where it is, and what we asked
+ * for.
+ *
+ * The query has to be in there. It was the bbox alone at first, and the query
+ * has grown a great deal since — railways, water relations, fountains, parking,
+ * the coastline. A city cached before any of that went on serving the answer
+ * from before it, for good: no trams and no trains in a city full of them, and
+ * nothing to suggest why.
+ */
+export function bboxKey(b: BBox, query: string): string {
   const r = (n: number) => n.toFixed(4)
-  return `${r(b.south)},${r(b.west)},${r(b.north)},${r(b.east)}`
+  return `${r(b.south)},${r(b.west)},${r(b.north)},${r(b.east)}@${hash(query)}`
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -44,10 +64,30 @@ export async function cachePut(key: string, value: OverpassResponse): Promise<vo
         tx.onsuccess = () => resolve()
         tx.onerror = () => reject(tx.error)
       })
+      await evictOtherQueries(db, key)
     } finally {
       db.close()
     }
   } catch {
     /* best-effort */
   }
+}
+
+/**
+ * Drop what an older query cached. Each entry is a whole city's OSM — megabytes
+ * — and once the query changes, every one of them is unreachable and unusable.
+ */
+async function evictOtherQueries(db: IDBDatabase, key: string): Promise<void> {
+  const suffix = key.slice(key.indexOf('@'))
+  await new Promise<void>((resolve) => {
+    const store = db.transaction(STORE, 'readwrite').objectStore(STORE)
+    const req = store.getAllKeys()
+    req.onsuccess = () => {
+      for (const k of req.result) {
+        if (typeof k === 'string' && !k.endsWith(suffix)) store.delete(k)
+      }
+      resolve()
+    }
+    req.onerror = () => resolve()
+  })
 }

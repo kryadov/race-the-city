@@ -79,7 +79,7 @@ import {
 import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
-import { bboxAround, fetchOsm } from '../geo/overpass'
+import { bboxAround, fetchOsm, overpassQuery } from '../geo/overpass'
 import { bboxKey, cacheGet, cachePut } from '../geo/cache'
 import { parseOsm } from '../geo/parse'
 import { Projector } from '../geo/project'
@@ -275,7 +275,7 @@ async function loadCity(query: string): Promise<void> {
     const bbox = bboxAround(center, RADIUS)
 
     loading.show(t('loading.osm'), 0.2)
-    const key = bboxKey(bbox)
+    const key = bboxKey(bbox, overpassQuery(bbox))
     let osm = await cacheGet(key)
     if (!osm) {
       osm = await withRetry(
