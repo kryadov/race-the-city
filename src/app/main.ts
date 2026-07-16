@@ -144,15 +144,24 @@ const AUTO_WEATHER_PERIOD = 150 // seconds each weather holds before auto-cyclin
 let autoWeather = false
 let autoWeatherTimer = 0
 let autoWeatherIdx = 0
+/** How much cloud each sort of weather brings with it. */
+const CLOUD_COVER: Record<string, number> = { clear: 0, rain: 1, snow: 0.85, fog: 0.6 }
+
+/** Set the weather and the sky that goes with it. Never one without the other. */
+function showWeather(w: (typeof WEATHERS)[number]): void {
+  weather.setWeather(w)
+  clouds.setCover(CLOUD_COVER[w] ?? 0)
+}
+
 function applyWeatherSetting(s: WeatherSetting): void {
   if (s === 'auto') {
     autoWeather = true
     autoWeatherTimer = 0
     autoWeatherIdx = 0
-    weather.setWeather(WEATHERS[0])
+    showWeather(WEATHERS[0])
   } else {
     autoWeather = false
-    weather.setWeather(s)
+    showWeather(s) // not 'auto' here: that is the branch above
   }
 }
 applyWeatherSetting(getWeather())
@@ -587,12 +596,12 @@ async function loadCity(query: string): Promise<void> {
           if (autoWeatherTimer > AUTO_WEATHER_PERIOD) {
             autoWeatherTimer = 0
             autoWeatherIdx = (autoWeatherIdx + 1) % WEATHERS.length
-            weather.setWeather(WEATHERS[autoWeatherIdx])
+            showWeather(WEATHERS[autoWeatherIdx])
           }
         }
         weather.update(stage.camera.position, dt)
         clouds.update(stage.camera.position, dt)
-        minimap.update(car)
+        minimap.update(car, trial.nextGate())
         roadLabels.update(stage.camera, car.x, car.z)
         stage.renderer.render(stage.scene, stage.camera)
       })

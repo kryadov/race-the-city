@@ -6,7 +6,11 @@ const OS_SCALE = 0.5 // offscreen px per metre
 
 export interface Minimap {
   setWorld(roads: Road[], buildings: Vec2[][], water: Vec2[][], green: Vec2[][], radius: number): void
-  update(car: { x: number; z: number; heading: number }): void
+  /**
+   * @param goal somewhere to head for — the next time-trial gate. Drawn on the
+   *   rim when it's off the map, so it always says which way to go.
+   */
+  update(car: { x: number; z: number; heading: number }, goal?: Vec2 | null): void
 }
 
 /** World point → pixel in the pre-rendered north-up offscreen map. Pure/testable. */
@@ -89,7 +93,7 @@ export function createMinimap(root: HTMLElement): Minimap {
       offscreen = os
     },
 
-    update(car) {
+    update(car, goal) {
       ctx.clearRect(0, 0, SIZE, SIZE)
       const half = SIZE / 2
       if (offscreen) {
@@ -104,6 +108,49 @@ export function createMinimap(root: HTMLElement): Minimap {
         ctx.scale(disp, disp)
         ctx.translate(-carOff.x, -carOff.y)
         ctx.drawImage(offscreen, 0, 0)
+        ctx.restore()
+      }
+
+      // Where to go next. The map turns with the car, so the marker turns with
+      // it: bearing relative to the car's heading, with up being straight ahead.
+      if (goal) {
+        const dx = goal.x - car.x
+        const dz = goal.z - car.z
+        const dist = Math.hypot(dx, dz)
+        const rel = Math.atan2(dz, dx) - car.heading
+        // Screen coords: the map is rotated so the car's heading is up.
+        const px = Math.sin(rel) * dist
+        const py = -Math.cos(rel) * dist
+        const disp = half / VIEW_RADIUS
+        let sx = px * disp
+        let sy = py * disp
+        const r = Math.hypot(sx, sy)
+        const edge = half - 10
+        const onRim = r > edge
+        if (onRim) {
+          // Off the map: pin it to the rim, so it still points the way.
+          sx = (sx / r) * edge
+          sy = (sy / r) * edge
+        }
+        ctx.save()
+        ctx.translate(half + sx, half + sy)
+        ctx.fillStyle = '#39e07a'
+        ctx.strokeStyle = 'rgba(0,0,0,.6)'
+        ctx.lineWidth = 1.5
+        if (onRim) {
+          // An arrow, pointing at it.
+          ctx.rotate(Math.atan2(sy, sx) + Math.PI / 2)
+          ctx.beginPath()
+          ctx.moveTo(0, -7)
+          ctx.lineTo(5, 5)
+          ctx.lineTo(-5, 5)
+          ctx.closePath()
+        } else {
+          ctx.beginPath()
+          ctx.arc(0, 0, 4.5, 0, Math.PI * 2)
+        }
+        ctx.fill()
+        ctx.stroke()
         ctx.restore()
       }
 

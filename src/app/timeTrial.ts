@@ -22,6 +22,8 @@ export interface TrialState {
 export interface TimeTrial {
   setEnabled(on: boolean): void
   enabled(): boolean
+  /** Where the next gate is, for the minimap. Null when there's nothing to chase. */
+  nextGate(): Vec2 | null
   /** Lay out a fresh course. */
   reset(roads: Road[], provider: ElevationProvider, car: { x: number; z: number }): void
   update(dt: number, carX: number, carZ: number): TrialState
@@ -92,21 +94,23 @@ export function createTimeTrial(scene: THREE.Scene): TimeTrial {
   let best = loadBest()
   let justFinished = false
 
+  // The one you're going for, and the ones after it. A gate you've taken is gone.
   const live = new THREE.MeshStandardMaterial({
     color: 0x1d5e3a,
     emissive: 0x39e07a,
-    emissiveIntensity: 1.1,
+    emissiveIntensity: 1.4,
     flatShading: true,
   })
-  const done = new THREE.MeshStandardMaterial({
-    color: 0x333940,
-    emissive: 0x000000,
+  const later = new THREE.MeshStandardMaterial({
+    color: 0x1b3a4a,
+    emissive: 0x2f7fa8,
+    emissiveIntensity: 0.5,
     flatShading: true,
   })
 
   const paint = (): void => {
     rings.forEach((r, i) => {
-      r.material = i === taken ? live : done
+      r.material = i === taken ? live : later
       r.visible = i >= taken // a gate you've taken is out of the way
     })
   }
@@ -124,6 +128,7 @@ export function createTimeTrial(scene: THREE.Scene): TimeTrial {
 
   return {
     enabled: () => on,
+    nextGate: () => (on && course.length ? course[taken] ?? null : null),
     setEnabled(v) {
       on = v
       group.visible = v
@@ -135,14 +140,20 @@ export function createTimeTrial(scene: THREE.Scene): TimeTrial {
       taken = 0
       elapsed = course.length ? 0 : null
       justFinished = false
-      for (const c of course) {
-        const geo = new THREE.TorusGeometry(RING_R, 0.5, 6, 16)
-        geo.rotateX(Math.PI / 2)
+      course.forEach((c, i) => {
+        // A gate stands up — you drive THROUGH it. TorusGeometry is already
+        // upright in the XY plane; rotating it onto XZ laid it flat on the road
+        // like a hoop, which is what you saw.
+        const geo = new THREE.TorusGeometry(RING_R, 0.45, 6, 20)
         const ring = new THREE.Mesh(geo, live)
-        ring.position.set(c.x, provider.heightAt(c.x, c.z) + RING_R * 0.55, c.z)
+        ring.position.set(c.x, provider.heightAt(c.x, c.z) + RING_R * 0.9, c.z)
+        // Face it across the way in, so you can see the hole rather than the rim:
+        // toward the gate before it, or the start line for the first.
+        const prev = i === 0 ? car : course[i - 1]
+        ring.rotation.y = Math.atan2(c.x - prev.x, c.z - prev.z)
         group.add(ring)
         rings.push(ring)
-      }
+      })
       paint()
     },
     update(dt, carX, carZ) {
