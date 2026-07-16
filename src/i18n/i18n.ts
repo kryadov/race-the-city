@@ -28,6 +28,8 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.audio': 'Audio',
     'menu.sound': 'Sound',
     'menu.music': 'Music',
+    'menu.roadLabels': 'Street names',
+    'menu.map': 'Map',
   },
   ru: {
     'input.placeholder': 'Город или "lat,lon"',
@@ -53,6 +55,8 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.audio': 'Звук',
     'menu.sound': 'Звуки',
     'menu.music': 'Музыка',
+    'menu.roadLabels': 'Названия улиц',
+    'menu.map': 'Карта',
   },
 }
 

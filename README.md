@@ -57,7 +57,7 @@ sluggish, slides more), 🏎 sports (fast, eager). Hard cornering at speed break
 loose into a controllable drift.
 
 A rotating minimap in the bottom-left corner shows nearby roads and buildings; the car
-marker always points up.
+marker always points up. Turn on street-name labels in the ⚙ menu.
 
 ## Entering a city
 
@@ -133,7 +133,6 @@ When you publish, respect the source licences:
 - Parks, water, and trees from OSM
 - More vehicles and handling tuning
 - Day/night cycle
-- Street-name labels
 - A racing mode on top: checkpoints, timer, best lap
 
 Smaller technical follow-ups: brake tuning, smoothing road seams at sharp turns,
