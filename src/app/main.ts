@@ -54,7 +54,7 @@ import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
 import { buildRoads, buildRailways } from '../world/roads'
-import { buildRoadDetail, LAMP_MAT } from '../world/roadDetail'
+import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildWater } from '../world/water'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
@@ -238,6 +238,7 @@ async function loadCity(query: string): Promise<void> {
         const night = Math.max(0, Math.min(1, (0.12 - sunElevation(timeOfDay)) / 0.45))
         headlight.intensity = night * 4
         LAMP_MAT.emissiveIntensity = night * 1.6 // street lamps glow after dusk
+        POOL_MAT.opacity = night * 0.5 // and throw a soft pool of light on the road
         if (night > 0) {
           const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
           headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)
