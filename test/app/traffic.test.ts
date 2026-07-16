@@ -111,3 +111,54 @@ describe('pedestrians', () => {
     expect(scene.children.length).toBe(0)
   })
 })
+
+describe('recycling out of sight', () => {
+  /** The scene's fog: nothing is visible past this, so nothing may pop inside it. */
+  const FOG_FULL = 900
+
+  const bigGrid: Road[] = []
+  for (let i = -6; i <= 6; i++) {
+    bigGrid.push({ points: [v(-2000, i * 300), v(2000, i * 300)], kind: 'residential' })
+    bigGrid.push({ points: [v(i * 300, -2000), v(i * 300, 2000)], kind: 'residential' })
+  }
+
+  it('never spawns a car where you could watch it arrive', () => {
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, bigGrid, flat, Math.random)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    // drive a long way, forcing wholesale recycling, and watch for anything
+    // materialising within sight of the camera
+    let camX = 0
+    for (let step = 0; step < 40; step++) {
+      camX += 60
+      const before = positions(bodies).map((p) => p.clone())
+      t.update(0.5, camX, 0, 0)
+      const after = positions(bodies)
+      after.forEach((p, i) => {
+        const jumped = p.distanceTo(before[i]) > 40 // recycled, not driven
+        if (!jumped) return
+        const d = Math.hypot(p.x - camX, p.z)
+        expect(d, 'a car appeared inside the fog').toBeGreaterThan(FOG_FULL * 0.6)
+      })
+    }
+  })
+
+  it('keeps cars around long enough to disappear into the fog, not in plain view', () => {
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, bigGrid, flat, Math.random)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    let camX = 0
+    for (let step = 0; step < 30; step++) {
+      camX += 60
+      t.update(0.5, camX, 0, 0)
+      const before = positions(bodies).map((p) => p.clone())
+      t.update(0.5, camX, 0, 0)
+      positions(bodies).forEach((p, i) => {
+        if (p.distanceTo(before[i]) <= 40) return
+        const wasAt = Math.hypot(before[i].x - camX, before[i].z)
+        expect(wasAt, 'a car vanished in plain view').toBeGreaterThan(FOG_FULL * 0.6)
+      })
+    }
+  })
+})

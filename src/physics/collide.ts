@@ -53,3 +53,77 @@ export function resolveCircle(x: number, z: number, radius: number, grid: Spatia
   }
   return pos
 }
+
+/** A moving thing the car can hit: a traffic car, a person. */
+export interface Circle {
+  x: number
+  z: number
+  r: number
+}
+
+/**
+ * Push a circle out of any circles it overlaps, and report the way out.
+ *
+ * Used for the things that move — traffic and pedestrians — which can't live in
+ * the static grid. It resolves against each in turn rather than solving them
+ * together: with a handful of overlaps at a time the difference isn't visible,
+ * and the simple version can't wedge.
+ *
+ * @returns the freed position, whether anything was hit, and the unit normal
+ *   pointing away from the last thing hit — which is what a bounce needs
+ */
+export function resolveAgainstCircles(
+  x: number,
+  z: number,
+  r: number,
+  circles: Circle[],
+): { x: number; z: number; hit: boolean; nx: number; nz: number } {
+  let px = x
+  let pz = z
+  let hit = false
+  let nx = 0
+  let nz = 0
+  for (const c of circles) {
+    const dx = px - c.x
+    const dz = pz - c.z
+    const min = r + c.r
+    const d2 = dx * dx + dz * dz
+    if (d2 >= min * min) continue
+    const d = Math.sqrt(d2)
+    hit = true
+    if (d < 1e-6) {
+      // Dead centre: no direction to push, so pick one rather than divide by zero.
+      px = c.x + min
+      pz = c.z
+      nx = 1
+      nz = 0
+      continue
+    }
+    nx = dx / d
+    nz = dz / d
+    px = c.x + nx * min
+    pz = c.z + nz * min
+  }
+  return { x: px, z: pz, hit, nx, nz }
+}
+
+/**
+ * Bounce a velocity off a surface with the given outward normal.
+ *
+ * Only the part heading into the surface is reversed; the part sliding along it
+ * is kept, so a glancing blow slides rather than stopping dead.
+ *
+ * @param restitution 0 = no bounce, 1 = a perfect one
+ */
+export function bounce(
+  vx: number,
+  vz: number,
+  nx: number,
+  nz: number,
+  restitution: number,
+): { vx: number; vz: number } {
+  const into = vx * nx + vz * nz
+  if (into >= 0) return { vx, vz } // already heading away; don't fling it back in
+  const k = (1 + restitution) * into
+  return { vx: vx - k * nx, vz: vz - k * nz }
+}

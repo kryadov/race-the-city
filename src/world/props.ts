@@ -1,6 +1,26 @@
 import * as THREE from 'three'
-import type { Prop, PropKind } from '../geo/types'
+import type { Prop, PropKind, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
+
+/** How much room each ornament takes on the ground, in metres. */
+const PROP_R: Record<PropKind, number> = { fountain: 2.3, statue: 0.75, flowerbed: 1.7 }
+
+/**
+ * Footprints for the collision grid: you should not be able to drive through a
+ * fountain. Squares rather than circles, because the grid takes polygons — and
+ * at this size nobody can tell.
+ */
+export function propFootprints(props: Prop[]): Vec2[][] {
+  return props.map((p) => {
+    const r = PROP_R[p.kind]
+    return [
+      { x: p.at.x - r, z: p.at.z - r },
+      { x: p.at.x + r, z: p.at.z - r },
+      { x: p.at.x + r, z: p.at.z + r },
+      { x: p.at.x - r, z: p.at.z + r },
+    ]
+  })
+}
 
 /**
  * Street ornaments from OSM: fountains, statues and flowerbeds.

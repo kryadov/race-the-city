@@ -87,11 +87,11 @@ import { buildBridges } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildWater } from '../world/water'
 import { buildParking } from '../world/parking'
-import { buildProps } from '../world/props'
+import { buildProps, propFootprints } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
 import { SpatialGrid } from '../physics/grid'
-import { pointInPolygon } from '../physics/collide'
+import { pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
 import { VEHICLES, LEANS, HOVERS, HOVER_H, type VehicleType } from '../vehicle/vehicles'
@@ -169,6 +169,9 @@ function showVehicle(type: VehicleType): void {
   flame.attachTo(mesh) // before setVehicleMesh: the bbox is model-space only while untransformed
   setVehicleMesh(stage, mesh)
 }
+/** How lively a shunt is: enough to stop you, not enough to launch you. */
+const HIT_BOUNCE = 0.3
+const HIT_BLEED = 0.55
 const BOOST_TIME = 2.5 // seconds of nitro boost per pickup
 const BOOST_MULT = 10 // top-speed multiplier at full boost
 let boostTimer = 0
@@ -339,7 +342,8 @@ async function loadCity(query: string): Promise<void> {
     boostTimer = 0
     boost = 0 // don't carry a live boost into the new city
 
-    grid = new SpatialGrid(footprints, 25)
+    // Fountains and statues are as solid as walls; the grid takes polygons.
+    grid = new SpatialGrid(footprints.concat(propFootprints(world.props)), 25)
     car = createCar(0, 0)
     car.y = provider.heightAt(0, 0) + (HOVERS[vehicle] ? HOVER_H : 0)
     // resume the saved pose if we're re-loading the same city
@@ -430,6 +434,21 @@ async function loadCity(query: string): Promise<void> {
           heightAt: (x, z) => surfaceUnder(x, z, prevY, provider.heightAt(x, z), decks),
         }
         car = stepCar(car, input, dt, grid, surface, activeSpec)
+        // Traffic and people are solid. They move, so they can't live in the
+        // static grid: push the car out and bounce it off. You stop; they don't
+        // get run over.
+        const movers: Circle[] = traffic ? traffic.obstacles().concat(people ? people.obstacles() : []) : []
+        if (movers.length) {
+          const freed = resolveAgainstCircles(car.x, car.z, spec.radius, movers)
+          if (freed.hit) {
+            car.x = freed.x
+            car.z = freed.z
+            const b = bounce(car.vx, car.vz, freed.nx, freed.nz, HIT_BOUNCE)
+            car.vx = b.vx * HIT_BLEED
+            car.vz = b.vz * HIT_BLEED
+            if (Math.hypot(car.vx, car.vz) > 6) audio.thud() // a shunt you'd feel
+          }
+        }
         const onDeck = decks.heightAt(car.x, car.z) !== null && Math.abs(car.y - prevY) < 2.5
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
