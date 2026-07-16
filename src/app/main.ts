@@ -30,7 +30,7 @@ import { FlatProvider } from '../terrain/flat'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
-import { buildRoads } from '../world/roads'
+import { buildRoads, buildRailways } from '../world/roads'
 import { buildWater } from '../world/water'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
@@ -109,11 +109,15 @@ async function loadCity(query: string): Promise<void> {
 
     const ground = buildGround(provider, RADIUS, 160)
     const { mesh: buildingsMesh, footprints } = buildBuildings(world.buildings, provider)
-    const roadsMesh = buildRoads(world.roads, provider)
+    const normalRoads = world.roads.filter((r) => !r.bridge && !r.tunnel)
+    const roadsMesh = buildRoads(normalRoads, provider)
+    const bridgesMesh = buildRoads(world.roads.filter((r) => r.bridge), provider, { lift: 4, color: 0x55555f })
+    const tunnelsMesh = buildRoads(world.roads.filter((r) => r.tunnel && !r.bridge), provider, { color: 0x24242a })
+    const railsMesh = buildRailways(world.railways, provider)
     const waterMesh = buildWater(world.water, provider)
     const greenMesh = buildGreenery(world.green, world.trees, provider)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
-    for (const obj of [ground, seaMesh, greenMesh, waterMesh, buildingsMesh, roadsMesh]) {
+    for (const obj of [ground, seaMesh, greenMesh, waterMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, buildingsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }

@@ -7,7 +7,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Sea / coastline (approximate flat-plane sea for coastal areas) — done in v0.14.0
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0
 - [ ] Pedestrian zones, squares, parking (`highway=pedestrian`, `amenity=parking`)
-- [ ] Railways, bridges, tunnels (`railway`, `bridge`/`tunnel` — raise bridges)
+- [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)
 - [ ] Roof shapes / colour buildings by type; better height heuristics
 - [ ] Larger area / stream neighbouring tiles as you drive
 - [ ] POI markers (cafés, fuel) from OSM

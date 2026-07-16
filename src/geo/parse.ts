@@ -32,6 +32,11 @@ export function isWater(tags: Record<string, string>): boolean {
   return tags.natural === 'water' || tags.waterway === 'riverbank' || tags.landuse === 'reservoir'
 }
 
+const RAIL_KINDS = new Set(['rail', 'light_rail', 'tram', 'narrow_gauge'])
+export function isRailway(tags: Record<string, string>): boolean {
+  return RAIL_KINDS.has(tags.railway)
+}
+
 const GREEN_LANDUSE = new Set(['grass', 'forest', 'meadow', 'recreation_ground', 'village_green'])
 export function isGreen(tags: Record<string, string>): boolean {
   return (
@@ -67,6 +72,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const water: Vec2[][] = []
   const green: Vec2[][] = []
   const coast: Vec2[][] = []
+  const railways: Vec2[][] = []
 
   for (const el of json.elements) {
     if (el.type !== 'way' || !el.nodes || el.nodes.length < 2) continue
@@ -82,17 +88,21 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     } else if (isGreen(tags)) {
       const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
       if (ring.length >= 3) green.push(ring)
+    } else if (isRailway(tags)) {
+      railways.push(points)
     } else if (tags.building) {
       const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags) })
     } else if (tags.highway) {
       const road: Road = { points, kind: classifyRoad(tags.highway) }
       if (tags.name) road.name = tags.name
+      if (tags.bridge && tags.bridge !== 'no') road.bridge = true
+      if (tags.tunnel && tags.tunnel !== 'no') road.tunnel = true
       roads.push(road)
     }
   }
 
-  return { roads, buildings, water, green, trees, coast }
+  return { roads, buildings, water, green, trees, coast, railways }
 }
 
 /** OSM closed ways repeat the first node last; drop it for a clean polygon. */

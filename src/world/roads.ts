@@ -67,24 +67,44 @@ export function offsetsForPolyline(points: Vec2[], hw: number): RibbonSide[] {
   return out
 }
 
-/** Builds continuous mitered ribbons along each polyline, following terrain height. */
-export function buildRoads(roads: Road[], provider: ElevationProvider): THREE.Object3D {
+export interface RoadStyle {
+  lift?: number // raise the ribbon (bridges)
+  color?: number
+}
+
+/** Builds continuous mitered ribbons along each road, following terrain height. */
+export function buildRoads(roads: Road[], provider: ElevationProvider, style: RoadStyle = {}): THREE.Object3D {
+  const lift = style.lift ?? 0
+  const positions: number[] = []
+  const y = (v: Vec2): number => provider.heightAt(v.x, v.z) + ROAD_Y_OFFSET + lift
+  for (const road of roads) emitRibbon(positions, offsetsForPolyline(road.points, roadWidth(road.kind) / 2), y)
+  return ribbonMesh(positions, style.color ?? 0x3a3a3f)
+}
+
+const RAIL_WIDTH = 2.6
+
+/** Thin dark ribbons for railway lines. */
+export function buildRailways(railways: Vec2[][], provider: ElevationProvider): THREE.Object3D {
   const positions: number[] = []
   const y = (v: Vec2): number => provider.heightAt(v.x, v.z) + ROAD_Y_OFFSET
-  for (const road of roads) {
-    const sides = offsetsForPolyline(road.points, roadWidth(road.kind) / 2)
-    for (let j = 0; j < sides.length - 1; j++) {
-      const l0 = sides[j].left, r0 = sides[j].right
-      const l1 = sides[j + 1].left, r1 = sides[j + 1].right
-      push(positions, l0, y(l0)); push(positions, l1, y(l1)); push(positions, r1, y(r1))
-      push(positions, l0, y(l0)); push(positions, r1, y(r1)); push(positions, r0, y(r0))
-    }
+  for (const line of railways) emitRibbon(positions, offsetsForPolyline(line, RAIL_WIDTH / 2), y)
+  return ribbonMesh(positions, 0x4a4038)
+}
+
+function emitRibbon(out: number[], sides: RibbonSide[], y: (v: Vec2) => number): void {
+  for (let j = 0; j < sides.length - 1; j++) {
+    const l0 = sides[j].left, r0 = sides[j].right
+    const l1 = sides[j + 1].left, r1 = sides[j + 1].right
+    push(out, l0, y(l0)); push(out, l1, y(l1)); push(out, r1, y(r1))
+    push(out, l0, y(l0)); push(out, r1, y(r1)); push(out, r0, y(r0))
   }
+}
+
+function ribbonMesh(positions: number[], color: number): THREE.Mesh {
   const geo = new THREE.BufferGeometry()
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
   geo.computeVertexNormals()
-  const mat = new THREE.MeshStandardMaterial({ color: 0x3a3a3f, flatShading: true, side: THREE.DoubleSide })
-  return new THREE.Mesh(geo, mat)
+  return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, flatShading: true, side: THREE.DoubleSide }))
 }
 
 function push(out: number[], p: Vec2, y: number): void {

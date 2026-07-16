@@ -67,6 +67,12 @@ describe('parseOsm', () => {
     expect(world.coast[0].length).toBe(3)
   })
 
+  it('extracts railways and flags bridge/tunnel roads', () => {
+    expect(world.railways.length).toBe(1)
+    expect(world.roads.find((r) => r.kind === 'motorway')?.bridge).toBe(true)
+    expect(world.roads.find((r) => r.name === 'Main St')?.tunnel).toBe(true)
+  })
+
   it('keeps the street name when present, omits it otherwise', () => {
     const named = world.roads.find((r) => r.name === 'Main St')
     expect(named).toBeDefined()
