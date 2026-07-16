@@ -10,10 +10,11 @@ import {
 } from './scene'
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
-import { applyDayNight, sunElevation } from './daynight'
+import { applyDayNight, sampleDayNight, sunElevation } from './daynight'
 import { createDriftFx } from './driftfx'
 import { createWeather } from './weather'
 import { createClouds } from './clouds'
+import { createSky } from './sky'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createHud } from '../ui/hud'
@@ -95,6 +96,8 @@ const weather = createWeather(stage.scene, stage.scene.fog as THREE.Fog)
 weather.setWeather(getWeather())
 const clouds = createClouds(stage.scene)
 clouds.setEnabled(getClouds())
+const sky = createSky(stage.scene)
+const sunDir = new THREE.Vector3()
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
@@ -242,6 +245,15 @@ async function loadCity(query: string): Promise<void> {
           headlight.target.updateMatrixWorld()
         }
         syncCamera(stage, car, dt, provider)
+        // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
+        const skyOn = theme.current !== 'neon'
+        sky.setVisible(skyOn)
+        if (skyOn) {
+          const s = sampleDayNight(timeOfDay)
+          const sunVis = Math.max(0, Math.min(1, (sunElevation(timeOfDay) + 0.05) / 0.17))
+          sunDir.copy(sunScratch).normalize()
+          sky.update(stage.camera.position, s.sky, s.sun, sunDir, sunVis)
+        }
         weather.update(stage.camera.position, dt)
         clouds.update(stage.camera.position, dt)
         minimap.update(car)
