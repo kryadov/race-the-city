@@ -1,7 +1,7 @@
 import { t, getLang, setLang, onLangChange, LANGS } from '../i18n/i18n'
 import { VEHICLE_TYPES, type VehicleType } from '../vehicle/vehicles'
 import type { ViewMode } from '../app/theme'
-import type { AudioState } from '../audio/audio'
+import { type AudioState, TRACK_NAMES } from '../audio/audio'
 
 const VEHICLE_EMOJI: Record<VehicleType, string> = { car: '🚗', truck: '🚚', sports: '🏎' }
 const ACTIVE = '#e63946'
@@ -175,10 +175,21 @@ export function createSettingsMenu(
     paintAudio()
   })
   music.slider.addEventListener('input', () => cb.onAudioChange({ musicVol: Number(music.slider.value) }))
-  audioSec.append(sound.r, music.r)
+  const melodyBtn = button()
+  melodyBtn.style.cssText += ';width:100%;margin-top:2px'
+  melodyBtn.addEventListener('click', () => {
+    const next = (audio.track + 1) % TRACK_NAMES.length
+    audio = { ...audio, track: next }
+    cb.onAudioChange({ track: next })
+    paintMelody()
+  })
+  audioSec.append(sound.r, music.r, melodyBtn)
   function paintAudio(): void {
     sound.btn.textContent = audio.sound ? '🔊' : '🔇'
     music.btn.textContent = audio.music ? '🎵' : '🔕'
+  }
+  function paintMelody(): void {
+    melodyBtn.textContent = `🎶 ${TRACK_NAMES[audio.track]}`
   }
 
   // --- Map / labels ---
@@ -235,6 +246,7 @@ export function createSettingsMenu(
     paintLabels()
     paintStates()
     paintAudio()
+    paintMelody()
     paintLabelsToggle()
   }
   paint()

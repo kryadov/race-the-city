@@ -3,10 +3,26 @@ export interface AudioState {
   music: boolean
   soundVol: number // 0..1
   musicVol: number // 0..1
+  track: number // index into TRACKS
 }
 
+interface Track {
+  name: string
+  notes: number[]
+  stepDur: number
+  wave: OscillatorType
+}
+
+// Mellow, distinct procedural loops (kept to gentle waveforms).
+const TRACKS: Track[] = [
+  { name: 'Cruise', notes: [220, 277.2, 329.6, 277.2, 246.9, 329.6, 293.7, 246.9], stepDur: 0.28, wave: 'triangle' },
+  { name: 'Chill', notes: [196, 246.9, 293.7, 246.9, 220, 261.6, 329.6, 261.6], stepDur: 0.44, wave: 'sine' },
+  { name: 'Upbeat', notes: [261.6, 329.6, 392, 329.6, 293.7, 349.2, 440, 349.2], stepDur: 0.18, wave: 'triangle' },
+]
+export const TRACK_NAMES: readonly string[] = TRACKS.map((t) => t.name)
+
 const KEY = 'rtc.audio'
-const DEFAULTS: AudioState = { sound: true, music: true, soundVol: 0.6, musicVol: 0.35 }
+const DEFAULTS: AudioState = { sound: true, music: true, soundVol: 0.6, musicVol: 0.35, track: 0 }
 
 /** Engine oscillator frequency (Hz) from a 0..1 speed fraction. Pure/testable. */
 export function engineFrequency(speedFraction: number): number {
@@ -38,6 +54,7 @@ export class AudioEngine {
   private engineFilter: BiquadFilterNode | null = null
   private skidGain: GainNode | null = null
   private musicStep = 0
+  private musicTimer: number | null = null
   private state: AudioState = loadState()
 
   getState(): AudioState {
@@ -139,25 +156,30 @@ export class AudioEngine {
   }
 
   private startMusic(): void {
-    const notes = [220, 277.2, 329.6, 277.2, 246.9, 329.6, 293.7, 246.9]
-    const stepDur = 0.28
+    const track = TRACKS[this.state.track] ?? TRACKS[0]
     const tick = (): void => {
       if (!this.ctx || !this.musicGain) return
       const t = this.ctx.currentTime + 0.05
       const osc = this.ctx.createOscillator()
-      osc.type = 'triangle'
-      osc.frequency.value = notes[this.musicStep % notes.length]
+      osc.type = track.wave
+      osc.frequency.value = track.notes[this.musicStep % track.notes.length]
       const g = this.ctx.createGain()
       g.gain.setValueAtTime(0.0001, t)
       g.gain.exponentialRampToValueAtTime(0.3, t + 0.02)
-      g.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 0.9)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + track.stepDur * 0.9)
       osc.connect(g)
       g.connect(this.musicGain)
       osc.start(t)
-      osc.stop(t + stepDur)
+      osc.stop(t + track.stepDur)
       this.musicStep++
     }
-    window.setInterval(tick, stepDur * 1000)
+    this.musicTimer = window.setInterval(tick, track.stepDur * 1000)
+  }
+
+  private restartMusic(): void {
+    if (this.musicTimer !== null) window.clearInterval(this.musicTimer)
+    this.musicStep = 0
+    this.startMusic()
   }
 
   private applyVolumes(): void {
@@ -167,6 +189,7 @@ export class AudioEngine {
   }
 
   setState(patch: Partial<AudioState>): void {
+    const trackChanged = patch.track !== undefined && patch.track !== this.state.track
     this.state = { ...this.state, ...patch }
     try {
       localStorage.setItem(KEY, JSON.stringify(this.state))
@@ -174,5 +197,6 @@ export class AudioEngine {
       /* ignore */
     }
     this.applyVolumes()
+    if (trackChanged && this.ctx) this.restartMusic()
   }
 }
