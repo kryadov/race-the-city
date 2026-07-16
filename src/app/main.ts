@@ -10,10 +10,10 @@ import {
 } from './scene'
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
-import { createCityInput } from '../ui/cityInput'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
-import { createVehiclePicker } from '../ui/vehiclePicker'
+import { createSettingsMenu } from '../ui/settingsMenu'
+import { getDefaultCity, setDefaultCity } from './prefs'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm } from '../geo/overpass'
@@ -119,20 +119,24 @@ async function loadCity(query: string): Promise<void> {
   }
 }
 
-const cityUi = createCityInput(ui, (q) => void loadCity(q), () => theme.toggle())
-theme.onChange = (mode) => cityUi.setViewMode(mode)
-createVehiclePicker(
+const menu = createSettingsMenu(
   ui,
-  (type) => {
-    vehicle = type
-    setVehicleMesh(stage, buildVehicleMesh(type))
-    if (car) {
-      car.vx = 0 // reset momentum for the new handling
-      car.vz = 0
-    }
+  { city: getDefaultCity(), view: theme.current, vehicle },
+  {
+    onLoadCity: (q) => void loadCity(q),
+    onSetDefaultCity: (q) => setDefaultCity(q),
+    onSetView: (mode) => theme.set(mode),
+    onSelectVehicle: (type) => {
+      vehicle = type
+      setVehicleMesh(stage, buildVehicleMesh(type))
+      if (car) {
+        car.vx = 0 // reset momentum for the new handling
+        car.vz = 0
+      }
+    },
   },
-  vehicle,
 )
+theme.onChange = (mode) => menu.setViewMode(mode)
 
 const clampCamDist = (d: number): number => Math.min(CAM_DIST_MAX, Math.max(CAM_DIST_MIN, d))
 window.addEventListener('keydown', (e) => {
@@ -142,4 +146,4 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === '-' || e.key === '_') stage.camDist = clampCamDist(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
 })
-void loadCity('Monte Carlo')
+void loadCity(getDefaultCity())
