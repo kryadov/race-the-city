@@ -29,7 +29,7 @@ const polar = (deg: number, r: number): [number, number] => {
 export function createHud(root: HTMLElement): Hud {
   const box = document.createElement('div')
   box.style.cssText =
-    `position:absolute;top:66px;right:16px;width:${SIZE}px;pointer-events:none;text-align:center;` +
+    `position:absolute;bottom:16px;left:16px;width:${SIZE}px;pointer-events:none;text-align:center;` +
     'font-family:system-ui,sans-serif'
 
   const city = document.createElement('div')
