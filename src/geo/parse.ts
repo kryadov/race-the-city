@@ -83,15 +83,15 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     if (tags.natural === 'coastline') {
       coast.push(points) // linear boundary between land and sea
     } else if (isWater(tags)) {
-      const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
+      const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) water.push(ring)
     } else if (isGreen(tags)) {
-      const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
+      const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) green.push(ring)
     } else if (isRailway(tags)) {
       railways.push(points)
     } else if (tags.building) {
-      const ring = points.length > 2 ? points.slice(0, dropClosingPoint(points)) : points
+      const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags) })
     } else if (tags.highway) {
       const road: Road = { points, kind: classifyRoad(tags.highway) }
@@ -105,8 +105,8 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   return { roads, buildings, water, green, trees, coast, railways }
 }
 
-/** OSM closed ways repeat the first node last; drop it for a clean polygon. */
-function dropClosingPoint(points: Vec2[]): number {
+/** Ring length excluding the repeated closing node (OSM closed ways repeat the first node last). */
+function closedRingLength(points: Vec2[]): number {
   const first = points[0]
   const last = points[points.length - 1]
   return first.x === last.x && first.z === last.z ? points.length - 1 : points.length
