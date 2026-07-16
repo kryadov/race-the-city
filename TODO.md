@@ -21,6 +21,20 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 
 ## 🚗 Vehicles & physics
 - [x] More vehicles — six more incl. a leaning motorbike — done in v0.51.0 (custom colours still open)
+- [ ] **Ten more vehicles** (requested; shipped set is car, sports, racecar, truck, lorry, bus,
+      motorbike, tractor, cabrio):
+  - [ ] Mobile crane (авто-кран)
+  - [ ] Minivan (минивэн)
+  - [ ] Tracked all-terrain vehicle (гусеничный вездеход) — tracks, not wheels
+  - [ ] Hovercraft / wheel-less aero car (аэро-мобиль) — floats, no wheels
+  - [ ] Electric car (электромобиль)
+  - [ ] Retro car (ретро)
+  - [ ] Tanker truck (цистерна)
+  - [ ] Walk-behind tractor (мотоблок)
+  - [ ] Road roller (каток)
+  - [ ] Combine harvester (комбайн)
+- [ ] **Group the vehicle picker into collapsible categories** — 19 types is too many for one
+      flat list; reuse the collapsible groups from v0.57.0
 - [ ] Custom vehicle colours
 - [ ] Brake tuning — low-speed brake can overshoot into reverse (same class as the fixed friction bug)
 - [x] Drift effects — tyre skid marks + smoke — done in v0.16.0 (2x longer trail in v0.38.0)
