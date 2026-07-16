@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { CarState } from '../vehicle/car'
 import type { ElevationProvider } from '../terrain/provider'
 
-const MARKS = 500 // ring buffer of skid-mark quads
+const MARKS = 1000 // ring buffer of skid-mark quads (longer trail)
 const PUFFS = 100 // smoke particle pool
 const SKID_SLIP = 3.5 // lateral speed (m/s) to start marking
 const MIN_SPEED = 4 // need some forward speed too

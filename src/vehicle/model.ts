@@ -138,8 +138,8 @@ function buildCar(): THREE.Group {
   // rear cluster: a dark housing bar carrying red stops + amber indicators, all proud
   const rx = -2.0, fx = 2.0
   g.add(housingBar(0.5, 1.9, rx, 0.72, 0, -1))
-  g.add(lens(REAR_LIGHT_MAT, 0.5, 0.34, rx, 0.72, 0.5, -1), lens(REAR_LIGHT_MAT, 0.5, 0.34, rx, 0.72, -0.5, -1))
-  g.add(lens(TURN_RIGHT_MAT, 0.26, 0.24, rx, 0.72, 0.82, -1), lens(TURN_LEFT_MAT, 0.26, 0.24, rx, 0.72, -0.82, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.44, 0.34, rx, 0.72, 0.4, -1), lens(REAR_LIGHT_MAT, 0.44, 0.34, rx, 0.72, -0.4, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.24, 0.24, rx, 0.72, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.24, rx, 0.72, -0.82, -1))
   // front indicators beside the headlights + side mirrors on the cabin
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 0.62, 0.86, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 0.62, -0.86, 1))
   g.add(mirror(0.8, 1.2, 0.95, 1), mirror(0.8, 1.2, -0.95, -1))
@@ -157,9 +157,9 @@ function buildTruck(): THREE.Group {
   g.add(light(3.08, 1.1, 0.9), light(3.08, 1.1, -0.9)) // headlights, slightly proud
   // rear cluster low on the cargo
   const rx = -3.4, fx = 3.0
-  g.add(housingBar(0.52, 2.0, rx, 0.98, 0, -1))
-  g.add(lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 0.98, 0.7, -1), lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 0.98, -0.7, -1))
-  g.add(lens(TURN_RIGHT_MAT, 0.3, 0.26, rx, 0.98, 0.98, -1), lens(TURN_LEFT_MAT, 0.3, 0.26, rx, 0.98, -0.98, -1))
+  g.add(housingBar(0.52, 2.3, rx, 0.98, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 0.98, 0.55, -1), lens(REAR_LIGHT_MAT, 0.5, 0.36, rx, 0.98, -0.55, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.28, 0.26, rx, 0.98, 0.98, -1), lens(TURN_LEFT_MAT, 0.28, 0.26, rx, 0.98, -0.98, -1))
   // front indicators + mirrors on the cab
   g.add(lens(TURN_RIGHT_MAT, 0.22, 0.22, fx, 0.75, 0.98, 1), lens(TURN_LEFT_MAT, 0.22, 0.22, fx, 0.75, -0.98, 1))
   g.add(mirror(2.4, 1.5, 1.05, 1), mirror(2.4, 1.5, -1.05, -1))
