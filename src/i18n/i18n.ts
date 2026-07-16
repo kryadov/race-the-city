@@ -19,6 +19,12 @@ const MESSAGES: Record<Lang, Dict> = {
     'vehicle.car': 'Car',
     'vehicle.truck': 'Truck',
     'vehicle.sports': 'Sports',
+    'menu.title': 'Settings',
+    'menu.city': 'City',
+    'menu.setDefault': 'Set as default',
+    'menu.language': 'Language',
+    'menu.view': 'View',
+    'menu.vehicle': 'Vehicle',
   },
   ru: {
     'input.placeholder': 'Город или "lat,lon"',
@@ -35,6 +41,12 @@ const MESSAGES: Record<Lang, Dict> = {
     'vehicle.car': 'Легковая',
     'vehicle.truck': 'Грузовик',
     'vehicle.sports': 'Спорткар',
+    'menu.title': 'Настройки',
+    'menu.city': 'Город',
+    'menu.setDefault': 'Сделать стартовым',
+    'menu.language': 'Язык',
+    'menu.view': 'Вид',
+    'menu.vehicle': 'Машина',
   },
 }
 

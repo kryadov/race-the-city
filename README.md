@@ -23,8 +23,9 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
-Type a city into the box at the top, click **"Поехали"** (Go), and you can drive within a few seconds.
+Open the URL Vite prints (usually `http://localhost:5173`). The default city loads
+automatically; open the **⚙ settings menu** (top-right) to change the city, language,
+view mode, and vehicle. Click **Go** and you can drive within a few seconds.
 
 ### Commands
 
@@ -51,11 +52,13 @@ The camera follows the car from behind. You can't drive through buildings — th
 slides along walls. Press `V` (or the view button in the UI) to switch between the lit
 "day" look and a glowing neon-wireframe look.
 
-Pick a vehicle with the buttons — 🚗 car (nimble, grippy), 🚚 truck (heavy, sluggish,
-slides more), 🏎 sports (fast, eager). Hard cornering at speed breaks the tail loose into
-a controllable drift.
+Pick a vehicle in the **⚙ settings menu** — 🚗 car (nimble, grippy), 🚚 truck (heavy,
+sluggish, slides more), 🏎 sports (fast, eager). Hard cornering at speed breaks the tail
+loose into a controllable drift.
 
 ## Entering a city
+
+Open the ⚙ menu and type into the city field. "Set as default" remembers it for next launch.
 
 - A plain name: `Amsterdam`, `Тбилиси`, `Porto`.
 - If the name is ambiguous, add the country: `Poti, Georgia` (otherwise the Nominatim
