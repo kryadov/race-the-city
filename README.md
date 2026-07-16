@@ -56,6 +56,9 @@ Pick a vehicle in the **⚙ settings menu** — 🚗 car (nimble, grippy), 🚚 
 sluggish, slides more), 🏎 sports (fast, eager). Hard cornering at speed breaks the tail
 loose into a controllable drift.
 
+A rotating minimap in the bottom-left corner shows nearby roads and buildings; the car
+marker always points up.
+
 ## Entering a city
 
 Open the ⚙ menu and type into the city field. "Set as default" remembers it for next launch.
@@ -129,7 +132,8 @@ When you publish, respect the source licences:
 
 - Parks, water, and trees from OSM
 - More vehicles and handling tuning
-- Minimap, day/night cycle
+- Day/night cycle
+- Street-name labels
 - A racing mode on top: checkpoints, timer, best lap
 
 Smaller technical follow-ups: brake tuning, smoothing road seams at sharp turns,

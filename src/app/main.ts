@@ -13,6 +13,7 @@ import { ThemeController } from './theme'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createSettingsMenu } from '../ui/settingsMenu'
+import { createMinimap } from '../ui/minimap'
 import { getDefaultCity, setDefaultCity } from './prefs'
 import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
@@ -39,6 +40,7 @@ const app = document.getElementById('app')!
 const ui = document.getElementById('ui')!
 const stage: Stage = createStage(app)
 const loading = createLoading(ui)
+const minimap = createMinimap(ui)
 createVersionBadge(ui)
 const keyboard = new Keyboard()
 const theme = new ThemeController(stage)
@@ -102,6 +104,7 @@ async function loadCity(query: string): Promise<void> {
       worldGroup.push(obj)
     }
     theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh })
+    minimap.setWorld(world.roads, footprints, RADIUS)
 
     grid = new SpatialGrid(footprints, 25)
     car = createCar(0, 0)
@@ -121,6 +124,7 @@ async function loadCity(query: string): Promise<void> {
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
         prevForward = fwd
         syncCamera(stage, car, dt)
+        minimap.update(car)
         stage.renderer.render(stage.scene, stage.camera)
       })
     }
