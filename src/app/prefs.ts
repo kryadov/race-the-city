@@ -240,6 +240,25 @@ export function setTrial(on: boolean): void {
   }
 }
 
+const RACE_KEY = 'rtc.race'
+
+/** Whether AI rivals race the player round the trial gates (off by default). */
+export function getRace(): boolean {
+  try {
+    return localStorage.getItem(RACE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setRace(on: boolean): void {
+  try {
+    localStorage.setItem(RACE_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const DEMO_KEY = 'rtc.demo'
 
 /** Whether the car drives itself (off by default — it's a demo, not the game). */

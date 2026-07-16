@@ -55,6 +55,7 @@ export interface SettingsCallbacks {
   onNitro: (on: boolean) => void
   onDemo: (on: boolean) => void
   onTrial: (on: boolean) => void
+  onRace: (on: boolean) => void
   onQuality: (q: Quality) => void
   onDensity: (d: Density) => void
   onUnits: (u: Units) => void
@@ -96,6 +97,7 @@ export function createSettingsMenu(
     nitro: boolean
     demo: boolean
     trial: boolean
+    race: boolean
     quality: Quality
     density: Density
     units: Units
@@ -116,6 +118,7 @@ export function createSettingsMenu(
   let nitro = initial.nitro
   let demo = initial.demo
   let trial = initial.trial
+  let race = initial.race
   let quality = initial.quality
   let density = initial.density
   let units = initial.units
@@ -431,6 +434,14 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(trialBtn)
+  const raceBtn = button()
+  raceBtn.style.cssText += ';width:100%;margin-top:4px'
+  raceBtn.addEventListener('click', () => {
+    race = !race
+    cb.onRace(race)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(raceBtn)
   // How busy the world is: cars, people, trains, boats and aircraft together.
   const densityLbl = document.createElement('div')
   densityLbl.style.cssText = 'font-size:12px;opacity:.7;margin:8px 0 4px'
@@ -460,6 +471,7 @@ export function createSettingsMenu(
     nitroBtn.textContent = `${nitro ? '☑' : '☐'} ${t('menu.nitro')}`
     demoBtn.textContent = `${demo ? '☑' : '☐'} ${t('menu.demo')}`
     trialBtn.textContent = `${trial ? '☑' : '☐'} ${t('menu.trial')}`
+    raceBtn.textContent = `${race ? '☑' : '☐'} ${t('menu.race')}`
   }
 
   const weatherBtn = button()

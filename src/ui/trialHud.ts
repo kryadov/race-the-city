@@ -1,9 +1,17 @@
 import { t, onLangChange } from '../i18n/i18n'
 import { formatLap, type TrialState } from '../app/timeTrial'
+import type { RaceState } from '../app/rivals'
+
+/** `place / of`, e.g. "2 / 4" — a field position, not a fraction. */
+export function formatPlace(state: RaceState): string {
+  return `${state.place} / ${state.of}`
+}
 
 export interface TrialHud {
   set(state: TrialState): void
   setVisible(on: boolean): void
+  /** null hides the line — racing is off, or the trial itself is off. */
+  setRace(state: RaceState | null): void
 }
 
 /** Lap clock, gate count and personal best, under the minimap. */
@@ -20,15 +28,20 @@ export function createTrialHud(root: HTMLElement): TrialHud {
   gates.style.cssText = 'font-size:12px;opacity:.8;margin-top:2px'
   const best = document.createElement('div')
   best.style.cssText = 'font-size:12px;opacity:.8;font-variant-numeric:tabular-nums'
-  box.append(lap, gates, best)
+  const place = document.createElement('div')
+  place.style.cssText = 'font-size:12px;opacity:.8'
+  box.append(place, lap, gates, best)
   root.appendChild(box)
 
   let last: TrialState | null = null
+  let race: RaceState | null = null
   const paint = (): void => {
     if (!last) return
     lap.textContent = last.elapsed === null ? '—' : formatLap(last.elapsed)
     gates.textContent = `${t('trial.gates')}: ${last.taken}/${last.total}`
     best.textContent = `${t('trial.best')}: ${last.best === null ? '—' : formatLap(last.best)}`
+    place.style.display = race ? 'block' : 'none'
+    if (race) place.textContent = `${t('trial.place')}: ${formatPlace(race)}`
   }
   onLangChange(paint)
 
@@ -39,6 +52,10 @@ export function createTrialHud(root: HTMLElement): TrialHud {
     },
     setVisible(on) {
       box.style.display = on ? 'block' : 'none'
+    },
+    setRace(state) {
+      race = state
+      paint()
     },
   }
 }

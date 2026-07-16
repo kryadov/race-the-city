@@ -63,6 +63,8 @@ import {
   setDemo,
   getTrial,
   setTrial,
+  getRace,
+  setRace,
   getDensity,
   setDensity,
   getQuality,
@@ -635,6 +637,7 @@ const menu = createSettingsMenu(
     nitro: getNitro(),
     demo: getDemo(),
     trial: getTrial(),
+    race: getRace(),
     quality: getQuality(),
     density,
     units: getUnits(),
@@ -709,6 +712,9 @@ const menu = createSettingsMenu(
       trialHud.setVisible(on)
       if (on && car) trial.reset(lastRoads, provider, car)
     },
+    // Rivals themselves are Task 4's wiring; this just persists the checkbox
+    // so the setting survives a reload until then.
+    onRace: (on) => setRace(on),
     onDemo: (on) => {
       setDemo(on)
       autopilot.setEnabled(on)
