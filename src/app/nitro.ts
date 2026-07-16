@@ -7,9 +7,16 @@ const PICK_R = 4 // pickup radius (m)
 const RESPAWN = 10 // seconds before a collected bottle reappears elsewhere
 const FLOAT_Y = 1.4 // hover height above the road
 
+// Bottles are placed in a ring around the car. Scattering them over the whole
+// 1000m-radius city (~3 km²) put them outside the ~150m the player can see, so
+// most cities looked like they had no nitro at all.
+export const NEAR_MIN = 40 // don't drop one in the player's lap
+export const NEAR_MAX = 250 // ...but keep it findable
+export const FAR = 400 // past this the car has driven off; recycle the bottle
+
 export interface Nitro {
-  /** Scatter the pickups over a set of candidate points (road vertices). */
-  setSpots(spots: Vec2[], provider: ElevationProvider): void
+  /** Scatter the pickups over a set of candidate points (road vertices) around the car. */
+  setSpots(spots: Vec2[], provider: ElevationProvider, carX?: number, carZ?: number): void
   /** Spin/bob the bottles and test pickup; returns true if one was collected. */
   update(carX: number, carZ: number, dt: number): boolean
   setEnabled(on: boolean): void
@@ -56,14 +63,34 @@ export function createNitro(scene: THREE.Scene): Nitro {
   let provider: ElevationProvider | null = null
   let spin = 0
   let enabled = true
+  let carX = 0
+  let carZ = 0
+
+  /**
+   * Pick a road vertex in the ring around the car, sampling uniformly in one pass
+   * (reservoir sampling — no candidate array). Falls back to any spot when the ring
+   * is empty, e.g. the car is off the far edge of the road network.
+   */
+  const pickSpot = (): Vec2 | null => {
+    let chosen: Vec2 | null = null
+    let seen = 0
+    for (const s of spots) {
+      const d = Math.hypot(s.x - carX, s.z - carZ)
+      if (d < NEAR_MIN || d > NEAR_MAX) continue
+      seen++
+      if (Math.random() * seen < 1) chosen = s
+    }
+    if (chosen) return chosen
+    return spots.length ? spots[Math.floor(Math.random() * spots.length)] : null
+  }
 
   const place = (b: Bottle): void => {
-    if (!spots.length || !provider) {
+    const s = provider ? pickSpot() : null
+    if (!s || !provider) {
       b.active = false
       b.mesh.visible = false
       return
     }
-    const s = spots[Math.floor(Math.random() * spots.length)]
     b.x = s.x
     b.z = s.z
     b.mesh.position.set(s.x, provider.heightAt(s.x, s.z) + FLOAT_Y, s.z)
@@ -72,20 +99,29 @@ export function createNitro(scene: THREE.Scene): Nitro {
   }
 
   return {
-    setSpots(s, p) {
+    setSpots(s, p, x = 0, z = 0) {
       spots = s
       provider = p
+      carX = x
+      carZ = z
       for (const b of bottles) {
         b.respawn = 0
         place(b)
       }
     },
-    update(carX, carZ, dt) {
+    update(cx, cz, dt) {
       if (!enabled) return false
+      carX = cx
+      carZ = cz
       spin += dt
       let picked = false
       for (const b of bottles) {
         if (b.active) {
+          // the car has driven away from this one — bring it back into the ring
+          if (Math.hypot(b.x - carX, b.z - carZ) > FAR) {
+            place(b)
+            continue
+          }
           b.mesh.rotation.y = spin * 2
           b.mesh.position.y += Math.sin(spin * 3 + b.x) * 0.004 // gentle bob
           const dx = b.x - carX

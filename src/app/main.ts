@@ -263,11 +263,6 @@ async function loadCity(query: string): Promise<void> {
         tunnelSegs.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z, r2: r * r })
       }
     }
-    // scatter nitro pickups over the road vertices (skip the very centre spawn)
-    nitro.setSpots(
-      world.roads.flatMap((r) => r.points).filter((p) => Math.hypot(p.x, p.z) > 20),
-      provider,
-    )
     boostTimer = 0
 
     grid = new SpatialGrid(footprints, 25)
@@ -283,6 +278,14 @@ async function loadCity(query: string): Promise<void> {
       car.y = provider.heightAt(sess.x, sess.z)
       odometer = sess.dist ?? 0
     }
+    // scatter nitro pickups on road vertices around the car — must run after the
+    // pose above is settled, so a resumed session gets bottles where it left off
+    nitro.setSpots(
+      world.roads.flatMap((r) => r.points),
+      provider,
+      car.x,
+      car.z,
+    )
     hud.setDistance(odometer)
     currentCity = query
     driftFx.reset()
