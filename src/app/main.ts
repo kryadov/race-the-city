@@ -59,7 +59,7 @@ import { SpatialGrid } from '../physics/grid'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
 import { VEHICLES, type VehicleType } from '../vehicle/vehicles'
-import { buildVehicleMesh } from '../vehicle/model'
+import { buildVehicleMesh, REAR_LIGHT_MAT, REAR_LIGHT_IDLE, REAR_LIGHT_BRAKE } from '../vehicle/model'
 
 const RADIUS = 1000
 const sunScratch = new THREE.Vector3()
@@ -194,6 +194,9 @@ async function loadCity(query: string): Promise<void> {
         audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed))
         audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
+        // brake lights: handbrake, or throttling backwards while still rolling forward
+        const braking = input.brake || (input.throttle < 0 && fwd > 1)
+        REAR_LIGHT_MAT.emissiveIntensity = braking ? REAR_LIGHT_BRAKE : REAR_LIGHT_IDLE
         prevForward = fwd
         driftFx.update(car, dt, provider)
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1

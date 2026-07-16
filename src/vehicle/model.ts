@@ -3,6 +3,10 @@ import type { VehicleType } from './vehicles'
 
 // Models point +x (heading 0 faces +x). Units are metres.
 
+/** Rear-light glow: dim while cruising, bright while braking. */
+export const REAR_LIGHT_IDLE = 0.45
+export const REAR_LIGHT_BRAKE = 2.0
+
 function box(w: number, h: number, d: number, color: number, x: number, y: number, z: number): THREE.Mesh {
   const m = new THREE.Mesh(
     new THREE.BoxGeometry(w, h, d),
@@ -60,12 +64,32 @@ function light(x: number, y: number, z: number): THREE.Mesh {
   return m
 }
 
+/**
+ * Shared rear-light material: dim red tail lights that the render loop
+ * brightens on braking. One material for every vehicle → the loop sets its
+ * emissiveIntensity once per frame with zero per-mesh work.
+ */
+export const REAR_LIGHT_MAT = new THREE.MeshStandardMaterial({
+  color: 0x5a0000,
+  emissive: 0xff1400,
+  emissiveIntensity: REAR_LIGHT_IDLE,
+  flatShading: true,
+})
+
+/** A rear/brake light at the vehicle's back. */
+function rearLight(x: number, y: number, z: number): THREE.Mesh {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), REAR_LIGHT_MAT)
+  m.position.set(x, y, z)
+  return m
+}
+
 function buildCar(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(4, 0.8, 1.9, 0xe63946, 0, 0.65, 0)) // body
   g.add(box(2.1, 0.7, 1.7, 0xb5303b, -0.15, 1.25, 0)) // cabin
   g.add(...fourWheels(0.5, 0.4, 1.3, 0.95, 0.45))
   g.add(light(2, 0.65, 0.7), light(2, 0.65, -0.7))
+  g.add(rearLight(-2, 0.7, 0.7), rearLight(-2, 0.7, -0.7))
   return g
 }
 
@@ -78,6 +102,7 @@ function buildTruck(): THREE.Group {
   g.add(wheel(0.72, 0.5, -0.4, 0.7, 1.05)) // extra rear axle
   g.add(wheel(0.72, 0.5, -0.4, 0.7, -1.05))
   g.add(light(3, 1.1, 0.9), light(3, 1.1, -0.9))
+  g.add(rearLight(-3.4, 1.0, 0.9), rearLight(-3.4, 1.0, -0.9))
   return g
 }
 
@@ -88,6 +113,7 @@ function buildSports(): THREE.Group {
   g.add(box(1.0, 0.12, 1.9, 0x023047, -1.9, 0.95, 0)) // rear wing
   g.add(...fourWheels(0.46, 0.45, 1.45, 1.0, 0.42))
   g.add(light(2.1, 0.5, 0.75), light(2.1, 0.5, -0.75))
+  g.add(rearLight(-2.1, 0.55, 0.72), rearLight(-2.1, 0.55, -0.72))
   return g
 }
 
