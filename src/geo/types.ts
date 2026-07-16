@@ -14,4 +14,5 @@ export interface WorldData {
   water: Vec2[][]
   green: Vec2[][]
   trees: Vec2[]
+  coast: Vec2[][]
 }

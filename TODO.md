@@ -4,7 +4,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 (v0.1.0 … current); this file tracks what's next.
 
 ## 🗺 World & map
-- [ ] Sea / coastline rendering (`natural=coastline`, water relations — not simple ways yet)
+- [x] Sea / coastline (approximate flat-plane sea for coastal areas) — done in v0.14.0
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0
 - [ ] Pedestrian zones, squares, parking (`highway=pedestrian`, `amenity=parking`)
 - [ ] Railways, bridges, tunnels (`railway`, `bridge`/`tunnel` — raise bridges)

@@ -11,6 +11,7 @@
     { "type": "way", "id": 201, "nodes": [1, 3, 4], "tags": { "building": "house", "height": "8" } },
     { "type": "way", "id": 300, "nodes": [1, 2], "tags": { "amenity": "cafe" } },
     { "type": "way", "id": 400, "nodes": [1, 2, 3, 4, 1], "tags": { "natural": "water" } },
-    { "type": "way", "id": 500, "nodes": [1, 2, 3, 4, 1], "tags": { "leisure": "park" } }
+    { "type": "way", "id": 500, "nodes": [1, 2, 3, 4, 1], "tags": { "leisure": "park" } },
+    { "type": "way", "id": 600, "nodes": [1, 2, 3], "tags": { "natural": "coastline" } }
   ]
 }

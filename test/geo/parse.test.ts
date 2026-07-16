@@ -62,6 +62,11 @@ describe('parseOsm', () => {
     expect(world.trees.length).toBe(1)
   })
 
+  it('extracts coastline as an open polyline', () => {
+    expect(world.coast.length).toBe(1)
+    expect(world.coast[0].length).toBe(3)
+  })
+
   it('keeps the street name when present, omits it otherwise', () => {
     const named = world.roads.find((r) => r.name === 'Main St')
     expect(named).toBeDefined()
