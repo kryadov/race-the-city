@@ -8,6 +8,14 @@ const ARRIVE_R = 6
 const STEER_GAIN = 1.6
 /** Ease off the throttle above this share of top speed. */
 const CRUISE = 0.55
+/**
+ * Caps on how fast it will drive itself, m/s. Nitro multiplies top speed
+ * tenfold; without these the demo would try to take a city street at 230m/s and
+ * simply fold itself round the first building. With them, a boost reads as a
+ * proper turn of speed and stays driveable.
+ */
+const CRUISE_CAP = 50
+const TURN_CAP = 12
 /** Slow for a turn sharper than this, radians. */
 const SLOW_ANGLE = 0.5
 
@@ -86,8 +94,10 @@ export function createAutopilot(): Autopilot {
       const speed = Math.hypot(car.vx, car.vz)
       // Lift off for a sharp turn, and don't try to take the whole city at top speed.
       const sharp = Math.abs(err) > SLOW_ANGLE
-      const cruising = speed > maxSpeed * (sharp ? 0.25 : CRUISE)
-      return { throttle: cruising ? 0 : 1, steer, brake: sharp && speed > maxSpeed * 0.5 }
+      const wantSpeed = sharp
+        ? Math.min(maxSpeed * 0.25, TURN_CAP)
+        : Math.min(maxSpeed * CRUISE, CRUISE_CAP)
+      return { throttle: speed > wantSpeed ? 0 : 1, steer, brake: sharp && speed > wantSpeed * 1.6 }
     },
   }
 }

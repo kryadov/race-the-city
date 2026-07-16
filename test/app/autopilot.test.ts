@@ -75,3 +75,32 @@ describe('autopilot', () => {
     expect(top).toBeLessThan(spec.maxSpeed) // but it isn't a lunatic
   })
 })
+
+describe('autopilot on nitro', () => {
+  const straight: Road[] = [{ points: [v(0, 0), v(3000, 0)], kind: 'primary' }]
+
+  /** Drive down a straight for a while and report the top speed reached. */
+  const topSpeed = (maxSpeed: number): number => {
+    const a = createAutopilot()
+    let car: CarState = createCar(0, 0)
+    a.reset(straight, car)
+    let top = 0
+    for (let i = 0; i < 3000; i++) {
+      car = stepCar(car, a.drive(car, maxSpeed), 1 / 60, grid, flat, { ...spec, maxSpeed })
+      top = Math.max(top, Math.hypot(car.vx, car.vz))
+    }
+    return top
+  }
+
+  it('uses the boost instead of cruising straight past it', () => {
+    // the bug: it was handed the base spec, so a tenfold top speed changed nothing
+    const normal = topSpeed(spec.maxSpeed)
+    const boosted = topSpeed(spec.maxSpeed * 10)
+    expect(boosted).toBeGreaterThan(normal * 1.5)
+  })
+
+  it('still keeps the speed driveable, boost or no', () => {
+    // 10x top speed is 420m/s; taking a city street at that is just a crash
+    expect(topSpeed(spec.maxSpeed * 10)).toBeLessThan(60)
+  })
+})

@@ -404,11 +404,7 @@ async function loadCity(query: string): Promise<void> {
           steer: Math.max(-1, Math.min(1, kb.steer + tc.steer)),
           brake: kb.brake || tc.brake,
         }
-        // The demo drives with the same three inputs a player has, through the
-        // same physics — so it drifts, it hits things, and it sounds right. Any
-        // touch of the controls hands the wheel straight back.
         const handsOn = input.throttle !== 0 || input.steer !== 0 || input.brake
-        if (autopilot.enabled() && !pause.paused() && !handsOn) input = autopilot.drive(car, spec.maxSpeed)
         // nitro: collecting a bottle boosts the top speed for a short window
         if (nitro.update(car.x, car.z, dt)) boostTimer = BOOST_TIME
         if (boostTimer > 0) boostTimer -= dt
@@ -425,6 +421,11 @@ async function loadCity(query: string): Promise<void> {
               }
             : spec
         flame.update(boost > 0.05, dt)
+        // The demo drives with the same three inputs a player has, through the
+        // same physics — so it drifts, it hits things, and it sounds right. Any
+        // touch of the controls hands the wheel straight back. It reads the
+        // BOOSTED spec, or it would cruise past a nitro bottle without using it.
+        if (autopilot.enabled() && !pause.paused() && !handsOn) input = autopilot.drive(car, activeSpec.maxSpeed)
         // What counts as "the ground" for the car: a deck when it is already
         // riding one, terrain otherwise. Judged from last frame's height, so
         // driving *under* a bridge doesn't teleport the car up onto it. stepCar
