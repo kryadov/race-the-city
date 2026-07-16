@@ -34,7 +34,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Ten more vehicles** — crane, minivan, tracked ATV, hovercar, EV, retro, tanker, tiller,
       roller, combine — done in v0.58.0 (19 types total)
 - [x] **Grouped, collapsible vehicle picker** (4 groups by purpose) — done in v0.58.0
-- [ ] **Nitro: flame from the exhaust** while the boost is active
+- [x] **Nitro: flame from the exhaust** — pinned to the mesh's rear bbox face, so every
+      vehicle gets one in the right place — done in v0.64.0
 - [ ] **`lens(mat, w, h, …)` and `housingBar(h, w, …)` take their args in opposite orders** —
       that trap produced two 1.5m-tall "light bars" in v0.58.0 that the whole suite passed.
       Give them a shared arg order (or named args) before the next vehicle is added.

@@ -18,6 +18,7 @@ import { createWeather, WEATHERS, type WeatherSetting } from './weather'
 import { createClouds } from './clouds'
 import { createSky } from './sky'
 import { createNitro } from './nitro'
+import { createNitroFlame } from './nitroFlame'
 import { withRetry, LOAD_ATTEMPTS } from './retry'
 import { createLoading } from '../ui/loading'
 import { createUpdateNotice } from '../ui/updateNotice'
@@ -135,6 +136,13 @@ const sky = createSky(stage.scene)
 const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
 nitro.setEnabled(getNitro())
+const flame = createNitroFlame()
+/** Build a vehicle, fit its nitro plume, and put it on stage. */
+function showVehicle(type: VehicleType): void {
+  const mesh = buildVehicleMesh(type)
+  flame.attachTo(mesh) // before setVehicleMesh: the bbox is model-space only while untransformed
+  setVehicleMesh(stage, mesh)
+}
 const BOOST_TIME = 2.5 // seconds of nitro boost per pickup
 const BOOST_MULT = 10 // top-speed multiplier while boosting
 let boostTimer = 0
@@ -151,7 +159,7 @@ let steerHold = 0 // seconds that direction has been held
 let blinkClock = 0 // free-running clock for the indicator blink
 const CYCLE_SECONDS = 240 // full day/night cycle
 let timeOfDay = 0.35 // start mid-morning
-setVehicleMesh(stage, buildVehicleMesh(vehicle))
+showVehicle(vehicle)
 audio.setVehicle(vehicle)
 // Pausing resets the engine's idle timer, so resuming doesn't start mid-fade.
 const pause = createPauseButton(ui, () => audio.setVehicle(vehicle))
@@ -325,6 +333,7 @@ async function loadCity(query: string): Promise<void> {
             ? { ...spec, maxSpeed: spec.maxSpeed * BOOST_MULT, accel: spec.accel * 3 }
             : spec
         if (boostTimer > 0) boostTimer -= dt
+        flame.update(boostTimer > 0, dt)
         car = stepCar(car, input, dt, grid, provider, activeSpec)
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
@@ -440,7 +449,7 @@ const menu = createSettingsMenu(
     onSelectVehicle: (type) => {
       vehicle = type
       audio.setVehicle(type)
-      setVehicleMesh(stage, buildVehicleMesh(type))
+      showVehicle(type)
       if (car) {
         car.vx = 0 // reset momentum for the new handling
         car.vz = 0
