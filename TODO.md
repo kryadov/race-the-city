@@ -65,6 +65,11 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 
 ## 🔊 Audio
 - [x] Custom music file upload — use your own audio file as looping music — done in v0.49.0
+- [ ] **Real music tracks instead of the procedural loops** — ship mp3s in `public/audio/`,
+      pick one at random on startup (today `TRACKS` in `src/audio/audio.ts` is three
+      oscillator loops: Cruise / Chill / Upbeat)
+- [ ] **Fade the engine out after ~10s stationary** — idle engine drone is tiring when parked;
+      bring it back on throttle
 - [ ] Horn / indicator sounds, checkpoint chime
 - [ ] Positional audio (engine quieter as camera pulls back)
 
