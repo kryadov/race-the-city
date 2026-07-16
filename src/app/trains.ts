@@ -20,7 +20,12 @@ const KINDS: Record<TrainKind, Kind> = {
   commuter: { cars: 4, len: 18, speed: 20, body: 0x2f6f9a, roof: 0x24566f, windows: true },
 }
 
-const RAIL_Y = 0.9 // rides above the sleepers
+/**
+ * The rail ribbon is drawn at terrain + ROAD_Y_OFFSET (0.15); the wheels sit on
+ * top of it. Anything else and the train floats over its own track.
+ */
+const RAIL_TOP = 0.15
+const RAIL_Y = RAIL_TOP + 0.45 // axle height above the railhead
 const MIN_LINE = 260 // metres of track needed before a train is worth running
 
 export interface Trains {
@@ -56,10 +61,65 @@ function at(line: Vec2[], cum: number[], s: number): { x: number; z: number; ang
   }
 }
 
+const mat = (c: number): THREE.MeshStandardMaterial =>
+  new THREE.MeshStandardMaterial({ color: c, flatShading: true })
+
+/**
+ * The locomotive: a long hood, a cab set back, a headlight and a horn. It leads
+ * every train — a rake of identical wagons has nothing pulling it.
+ */
+function locomotive(k: Kind): THREE.Group {
+  const g = new THREE.Group()
+  const len = Math.max(16, k.len)
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(len, 0.5, 3.1), mat(0x2a2c30))
+  frame.position.y = RAIL_Y + 0.5
+  g.add(frame)
+  // Long hood forward, cab behind it — a diesel, read from the side.
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(len * 0.55, 2.2, 2.7), mat(0x8f2f2f))
+  hood.position.set(len * 0.16, RAIL_Y + 1.9, 0)
+  g.add(hood)
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(len * 0.24, 3, 3), mat(0x8f2f2f))
+  cab.position.set(-len * 0.24, RAIL_Y + 2.3, 0)
+  g.add(cab)
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(len * 0.26, 0.25, 3.1), mat(0x5f2020))
+  roof.position.set(-len * 0.24, RAIL_Y + 3.9, 0)
+  g.add(roof)
+  const glass = new THREE.MeshStandardMaterial({ color: 0x1b2b36, flatShading: true })
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1, 2.6), glass)
+  screen.position.set(-len * 0.12, RAIL_Y + 2.9, 0)
+  g.add(screen)
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(len * 0.1, 1.4, 2.5), mat(0x6f2424))
+  nose.position.set(len * 0.46, RAIL_Y + 1.4, 0)
+  g.add(nose)
+  const lampMat = new THREE.MeshStandardMaterial({ color: 0x5a5a48, emissive: 0xfff2c0, emissiveIntensity: 0 })
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), lampMat)
+  lamp.position.set(len * 0.51, RAIL_Y + 2.1, 0)
+  lamp.userData.trainLamp = true
+  g.add(lamp)
+  const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.5, 6), mat(0x2a2c30))
+  stack.position.set(len * 0.16, RAIL_Y + 3.2, 0)
+  g.add(stack)
+  addBogies(g, len)
+  return g
+}
+
+function addBogies(g: THREE.Group, len: number): void {
+  for (const x of [len * 0.35, -len * 0.35]) {
+    const bogie = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.5, 2.4), mat(0x2a2c30))
+    bogie.position.set(x, RAIL_TOP + 0.45, 0)
+    g.add(bogie)
+    // Wheels, sitting on the railhead rather than hovering over it.
+    for (const z of [1.1, -1.1]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.12, 10), mat(0x15161a))
+      w.rotation.x = Math.PI / 2
+      w.position.set(x, RAIL_TOP + 0.45, z)
+      g.add(w)
+    }
+  }
+}
+
 function carriage(k: Kind): THREE.Group {
   const g = new THREE.Group()
-  const mat = (c: number): THREE.MeshStandardMaterial =>
-    new THREE.MeshStandardMaterial({ color: c, flatShading: true })
   const body = new THREE.Mesh(new THREE.BoxGeometry(k.len, 3.2, 3), mat(k.body))
   body.position.y = RAIL_Y + 1.9
   g.add(body)
@@ -80,11 +140,7 @@ function carriage(k: Kind): THREE.Group {
       g.add(strip)
     }
   }
-  for (const x of [k.len * 0.35, -k.len * 0.35]) {
-    const bogie = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 2.4), mat(0x2a2c30))
-    bogie.position.set(x, RAIL_Y + 0.3, 0)
-    g.add(bogie)
-  }
+  addBogies(g, k.len)
   return g
 }
 
@@ -114,7 +170,7 @@ export function createTrains(
     const k = KINDS[kinds[Math.floor(rand() * kinds.length)]]
     const cars: THREE.Group[] = []
     for (let i = 0; i < k.cars; i++) {
-      const c = carriage(k)
+      const c = i === 0 ? locomotive(k) : carriage(k)
       group.add(c)
       cars.push(c)
     }
@@ -144,13 +200,13 @@ export function createTrains(
           const p = at(tr.line, tr.cum, tr.s - i * (tr.k.len + 1.2))
           car.position.set(p.x, provider.heightAt(p.x, p.z), p.z)
           car.rotation.y = -p.angle
-          if (tr.k.windows) {
-            car.traverse((o) => {
-              if (!o.userData.trainGlass) return
-              const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial
-              m.emissiveIntensity = night * 1.1
-            })
-          }
+          car.traverse((o) => {
+            if (o.userData.trainGlass) {
+              ;((o as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = night * 1.1
+            } else if (o.userData.trainLamp) {
+              ;((o as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = night * 2.5
+            }
+          })
         })
       }
     },

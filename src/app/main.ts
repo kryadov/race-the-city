@@ -309,8 +309,11 @@ async function loadCity(query: string): Promise<void> {
     const railsMesh = buildRailways(world.railways, provider)
     // A bridge's markings, lamps and signs belong on its deck. Everything else
     // reads the terrain, so the road running *under* an overpass keeps its own.
+    // Generous margin: lamps stand beside the carriageway and markings run to
+    // its very edge, so a deck query at exactly the road's width misses them.
+    const decksWide = createDeckIndex(deckList, 5)
     const deckProvider: ElevationProvider = {
-      heightAt: (x, z) => decks.heightAt(x, z) ?? provider.heightAt(x, z),
+      heightAt: (x, z) => decksWide.heightAt(x, z) ?? provider.heightAt(x, z),
     }
     const detail = new THREE.Group()
     detail.add(buildRoadDetail(normalRoads.concat(world.roads.filter((r) => r.tunnel && !r.bridge)), provider))

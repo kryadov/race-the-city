@@ -97,11 +97,16 @@ function closest(px: number, pz: number, s: Seg): { d2: number; t: number } {
  * Where the decks are, so the car and everything else can ask what is overhead.
  * Segments are tested directly: a city has a handful of bridges, and building a
  * grid for them would cost more than it saves.
+ *
+ * @param margin widen every deck by this much. Nought for driving — you should
+ *   fall off the edge — but street furniture stands *beside* the carriageway and
+ *   markings run right to its edge, and without a margin they miss the deck and
+ *   drop to the ground under the bridge.
  */
-export function createDeckIndex(decks: Deck[]): DeckIndex {
+export function createDeckIndex(decks: Deck[], margin = 0): DeckIndex {
   const segs: Seg[] = []
   for (const d of decks) {
-    const half = roadWidth(d.road.kind) / 2
+    const half = roadWidth(d.road.kind) / 2 + margin
     for (let i = 0; i < d.road.points.length - 1; i++) {
       const a = d.road.points[i]
       const b = d.road.points[i + 1]

@@ -27,19 +27,17 @@ export function buildBridges(decks: Deck[], provider: ElevationProvider): THREE.
   for (const d of decks) {
     const pts = d.road.points
     const half = roadWidth(d.road.kind) / 2
-    // Height by index — the ribbon walks the same points the profile was built on.
-    const idx = new Map<number, number>()
-    pts.forEach((p, i) => idx.set(p.x * 73856093 + p.z * 19349663, d.y[i]))
-    const yOf = (v: { x: number; z: number }): number => idx.get(v.x * 73856093 + v.z * 19349663) ?? d.y[0]
-
+    // By index, not by coordinate: the ribbon's vertices are offset out to the
+    // road's edges, so looking the height up by position never matches and the
+    // whole deck comes out flat at its first point.
     const sides = offsetsForPolyline(pts, half)
-    emitRibbon(deckPos, sides, (v) => yOf(v))
+    emitRibbon(deckPos, sides, (_v, i) => d.y[i])
 
     // Railings: a thin ribbon standing on each edge of the deck.
     for (const edge of ['left', 'right'] as const) {
       const line = sides.map((s) => s[edge])
       const rail = offsetsForPolyline(line, 0.09)
-      emitRibbon(railPos, rail, (v) => yOf(v) + RAIL_H)
+      emitRibbon(railPos, rail, (_v, i) => d.y[i] + RAIL_H)
     }
 
     for (let i = 0; i < pts.length; i++) {

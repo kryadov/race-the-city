@@ -135,6 +135,11 @@ export function createTraffic(
   ]
 
   group.add(bodyMesh, cabinMesh, glassMesh, tailMesh, headMesh, wheelMesh)
+  // three computes an InstancedMesh's bounding sphere on first use and never
+  // again, so once these drive away from it the whole batch gets frustum-culled
+  // as one — they blink in and out depending on where you look. They are always
+  // near the player anyway, so simply never cull them.
+  group.children.forEach((c) => (c.frustumCulled = false))
 
   const col = new THREE.Color()
   agents.forEach((_, i) => {

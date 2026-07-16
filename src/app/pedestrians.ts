@@ -127,6 +127,11 @@ export function createPedestrians(
   const legs = new THREE.InstancedMesh(legGeo, new THREE.MeshStandardMaterial({ color: 0x33363d, flatShading: true }), n * 2)
   const arms = new THREE.InstancedMesh(armGeo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }), n * 2)
   group.add(bodies, heads, legs, arms)
+  // three computes an InstancedMesh's bounding sphere on first use and never
+  // again, so once these drive away from it the whole batch gets frustum-culled
+  // as one — they blink in and out depending on where you look. They are always
+  // near the player anyway, so simply never cull them.
+  group.children.forEach((c) => (c.frustumCulled = false))
 
   const col = new THREE.Color()
   walkers.forEach((_, i) => {

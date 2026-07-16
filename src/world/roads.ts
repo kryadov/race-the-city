@@ -91,12 +91,18 @@ export function buildRailways(railways: Vec2[][], provider: ElevationProvider): 
   return ribbonMesh(positions, 0x4a4038)
 }
 
-export function emitRibbon(out: number[], sides: RibbonSide[], y: (v: Vec2) => number): void {
+/**
+ * @param y height for an edge vertex. `i` is the index of the polyline point it
+ *   came from — the vertex itself is offset out to the road's edge, so its
+ *   coordinates are NOT the polyline point's, and anything keyed on position
+ *   will not find it.
+ */
+export function emitRibbon(out: number[], sides: RibbonSide[], y: (v: Vec2, i: number) => number): void {
   for (let j = 0; j < sides.length - 1; j++) {
     const l0 = sides[j].left, r0 = sides[j].right
     const l1 = sides[j + 1].left, r1 = sides[j + 1].right
-    push(out, l0, y(l0)); push(out, l1, y(l1)); push(out, r1, y(r1))
-    push(out, l0, y(l0)); push(out, r1, y(r1)); push(out, r0, y(r0))
+    push(out, l0, y(l0, j)); push(out, l1, y(l1, j + 1)); push(out, r1, y(r1, j + 1))
+    push(out, l0, y(l0, j)); push(out, r1, y(r1, j + 1)); push(out, r0, y(r0, j))
   }
 }
 
