@@ -140,7 +140,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const parking: Vec2[][] = []
   const fields: Vec2[][] = []
   const coast: Vec2[][] = []
-  const railWays: { nodes: number[]; tram: boolean }[] = []
+  const railWays: { nodes: number[]; tram: boolean; tunnel: boolean }[] = []
 
   for (const el of json.elements) {
     if (el.type !== 'way' || !el.nodes || el.nodes.length < 2) continue
@@ -174,7 +174,11 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
         if (isField(tags)) fields.push(ring) // still greenery; also grazing
       }
     } else if (isRailway(tags)) {
-      railWays.push({ nodes: el.nodes, tram: tags.railway === 'tram' })
+      railWays.push({
+        nodes: el.nodes,
+        tram: tags.railway === 'tram',
+        tunnel: !!tags.tunnel && tags.tunnel !== 'no',
+      })
     } else if (tags.building) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags), kind: classifyBuilding(tags) })
@@ -191,12 +195,16 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
 
   // Join the railway fragments into continuous lines, keeping trams apart from
   // the mainline: they are different networks that happen to share a tag.
+  // Joined within each kind, never across: a surface line and the tunnel it dives
+  // into are not one line, and neither are a tram track and a mainline.
   const railways: Railway[] = []
   for (const tram of [false, true]) {
-    const ways = railWays.filter((w) => w.tram === tram).map((w) => w.nodes)
-    for (const chain of joinChains(ways)) {
-      const points = chain.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
-      if (points.length >= 2) railways.push({ points, tram })
+    for (const tunnel of [false, true]) {
+      const ways = railWays.filter((w) => w.tram === tram && w.tunnel === tunnel).map((w) => w.nodes)
+      for (const chain of joinChains(ways)) {
+        const points = chain.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
+        if (points.length >= 2) railways.push({ points, tram, tunnel })
+      }
     }
   }
 

@@ -83,11 +83,20 @@ export function buildRoads(roads: Road[], provider: ElevationProvider, style: Ro
 
 const RAIL_WIDTH = 2.6
 
-/** Thin dark ribbons for railway lines. */
+/**
+ * Thin dark ribbons for railway lines.
+ *
+ * Tunnels are skipped: they run under the city, and drawing them on the surface
+ * lays track through people's front rooms. Monaco's railway is tunnelled end to
+ * end — all eleven ways of it.
+ */
 export function buildRailways(railways: Railway[], provider: ElevationProvider): THREE.Object3D {
   const positions: number[] = []
   const y = (v: Vec2): number => provider.heightAt(v.x, v.z) + ROAD_Y_OFFSET
-  for (const line of railways) emitRibbon(positions, offsetsForPolyline(line.points, RAIL_WIDTH / 2), y)
+  for (const line of railways) {
+    if (line.tunnel) continue
+    emitRibbon(positions, offsetsForPolyline(line.points, RAIL_WIDTH / 2), y)
+  }
   return ribbonMesh(positions, 0x4a4038)
 }
 

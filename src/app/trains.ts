@@ -176,6 +176,9 @@ export function createTrains(
   const running: { line: Vec2[]; cum: number[]; k: Kind; cars: THREE.Group[]; s: number; dir: number }[] = []
 
   for (const rail of railways) {
+    // A tunnelled line is underground. A train on it would be driving through
+    // the buildings above it — which is exactly what Monaco did.
+    if (rail.tunnel) continue
     const line = rail.points
     if (line.length < 2) continue
     const cum = measure(line)

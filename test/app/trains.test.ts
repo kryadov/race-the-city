@@ -7,14 +7,21 @@ import type { Railway, Vec2 } from '../../src/geo/types'
 const flat = { heightAt: () => 0 }
 const v = (x: number, z: number): Vec2 => ({ x, z })
 /** A 1km straight line — long enough to be worth a train. */
-const mainLine: Railway = { points: [v(0, 0), v(500, 0), v(1000, 0)], tram: false }
-const siding: Railway = { points: [v(0, 50), v(40, 50)], tram: false } // 40m: not worth one
-const tramLine: Railway = { points: [v(0, 90), v(600, 90)], tram: true }
+const mainLine: Railway = { points: [v(0, 0), v(500, 0), v(1000, 0)], tram: false, tunnel: false }
+const siding: Railway = { points: [v(0, 50), v(40, 50)], tram: false, tunnel: false } // 40m: not worth one
+const tramLine: Railway = { points: [v(0, 90), v(600, 90)], tram: true, tunnel: false }
 
 const countCars = (scene: THREE.Scene): number =>
   (scene.children[0] as THREE.Group).children.length
 
 describe('trains', () => {
+  it('runs no train down a tunnel — it would drive through the city above it', () => {
+    // Monaco's railway is tunnelled end to end: all eleven ways of it.
+    const scene = new THREE.Scene()
+    createTrains(scene, [{ points: [v(0, 0), v(1000, 0)], tram: false, tunnel: true }], flat, () => 0.5)
+    expect(countCars(scene)).toBe(0)
+  })
+
   it('runs a train on a real line', () => {
     const scene = new THREE.Scene()
     createTrains(scene, [mainLine], flat, () => 0.5)
@@ -57,7 +64,7 @@ describe('trains', () => {
 
   it('works a tram line too short for an intercity', () => {
     const scene = new THREE.Scene()
-    createTrains(scene, [{ points: [v(0, 0), v(150, 0)], tram: true }], flat, () => 0.5)
+    createTrains(scene, [{ points: [v(0, 0), v(150, 0)], tram: true, tunnel: false }], flat, () => 0.5)
     expect(countCars(scene)).toBeGreaterThan(0)
   })
 
@@ -152,7 +159,7 @@ describe('aircraft', () => {
 
 describe('trains on a grade', () => {
   /** A 600m line climbing 1-in-10. */
-  const hillLine: Railway = { points: [v(0, 0), v(300, 0), v(600, 0)], tram: false }
+  const hillLine: Railway = { points: [v(0, 0), v(300, 0), v(600, 0)], tram: false, tunnel: false }
   const hill = { heightAt: (x: number) => x * 0.1 }
 
   it('sits the carriage on the track, not level with the map', () => {

@@ -117,3 +117,16 @@ describe('joinChains at junctions', () => {
     }
   })
 })
+
+describe('railway kinds are never joined across', () => {
+  it('does not weld a surface line to the tunnel it dives into', () => {
+    // The join is done per (tram, tunnel) group in parseOsm; joinChains itself
+    // must therefore never be handed two kinds at once. This pins the contract:
+    // given only one kind's ways, it joins them; the caller keeps them apart.
+    const surface = joinChains([[1, 2, 3]])
+    const tunnel = joinChains([[3, 4, 5]])
+    expect(surface).toHaveLength(1)
+    expect(tunnel).toHaveLength(1)
+    expect(surface[0]).not.toEqual(tunnel[0])
+  })
+})

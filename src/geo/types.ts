@@ -16,8 +16,11 @@ export interface Road {
   layer?: number
 }
 /** What a building is for — decides its facade: windows, doors and signage. */
-/** A railway line. Trams share the street, so they carry trams and nothing else. */
-export interface Railway { points: Vec2[]; tram: boolean }
+/**
+ * A railway line. Trams share the street, so they carry trams and nothing else;
+ * a tunnel is underground, so it carries nothing you can see.
+ */
+export interface Railway { points: Vec2[]; tram: boolean; tunnel: boolean }
 
 export type PropKind = 'fountain' | 'statue' | 'flowerbed'
 export interface Prop { at: Vec2; kind: PropKind }
