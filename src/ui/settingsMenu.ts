@@ -5,6 +5,7 @@ import { type AudioState, TRACK_NAMES } from '../audio/audio'
 import { WEATHER_SETTINGS, type WeatherSetting } from '../app/weather'
 import { pickRandomCity } from '../app/cities'
 import { QUALITIES, type Quality } from '../app/scene'
+import { UNITS, type Units } from './hud'
 
 const QUALITY_EMOJI: Record<Quality, string> = { low: '🐢', normal: '⚖', high: '✨' }
 
@@ -42,6 +43,7 @@ export interface SettingsCallbacks {
   onRoadDetail: (on: boolean) => void
   onNitro: (on: boolean) => void
   onQuality: (q: Quality) => void
+  onUnits: (u: Units) => void
   onWeather: (w: WeatherSetting) => void
   onZoom: (v: number) => void
   onReset: () => void
@@ -77,6 +79,7 @@ export function createSettingsMenu(
     roadDetail: boolean
     nitro: boolean
     quality: Quality
+    units: Units
     weather: WeatherSetting
     zoom: number
   },
@@ -93,6 +96,7 @@ export function createSettingsMenu(
   let roadDetail = initial.roadDetail
   let nitro = initial.nitro
   let quality = initial.quality
+  let units = initial.units
   let weather = initial.weather
 
   const gear = document.createElement('button')
@@ -377,6 +381,19 @@ export function createSettingsMenu(
     qualityBtn.textContent = `${QUALITY_EMOJI[quality]} ${t('menu.quality')}: ${t('quality.' + quality)}`
   }
 
+  // Display units: km/h + km, or mph + miles
+  const unitsBtn = button()
+  unitsBtn.style.cssText += ';width:100%;margin-top:4px'
+  unitsBtn.addEventListener('click', () => {
+    units = UNITS[(UNITS.indexOf(units) + 1) % UNITS.length]
+    cb.onUnits(units)
+    paintUnits()
+  })
+  mapSec.appendChild(unitsBtn)
+  function paintUnits(): void {
+    unitsBtn.textContent = `📏 ${t('menu.units')}: ${t('units.' + units)}`
+  }
+
   // --- Time of day ---
   const timeSec = section('menu.time')
   const timeSlider = document.createElement('input')
@@ -443,6 +460,7 @@ export function createSettingsMenu(
     paintLabelsToggle()
     paintWeather()
     paintQuality()
+    paintUnits()
   }
   paint()
   onLangChange(paint)

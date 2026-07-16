@@ -1,5 +1,27 @@
 import type { WeatherSetting } from './weather'
 import type { Quality } from './scene'
+import type { Units } from '../ui/hud'
+
+const UNITS_KEY = 'rtc.units'
+
+/** Persisted display units ('km' by default). */
+export function getUnits(): Units {
+  try {
+    const u = localStorage.getItem(UNITS_KEY)
+    if (u === 'km' || u === 'mi') return u
+  } catch {
+    /* ignore */
+  }
+  return 'km'
+}
+
+export function setUnits(u: Units): void {
+  try {
+    localStorage.setItem(UNITS_KEY, u)
+  } catch {
+    /* ignore */
+  }
+}
 
 const QUALITY_KEY = 'rtc.quality'
 
@@ -144,6 +166,8 @@ export interface Session {
   x: number
   z: number
   heading: number
+  /** Total distance driven, in metres. */
+  dist?: number
 }
 
 /** The last city + car pose, so a reload resumes where the player left off. */

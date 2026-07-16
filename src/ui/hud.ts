@@ -1,7 +1,15 @@
 import { t, onLangChange } from '../i18n/i18n'
 
+/** Display units: metric (km/h, km) or imperial (mph, mi). */
+export type Units = 'km' | 'mi'
+export const UNITS: readonly Units[] = ['km', 'mi']
+const MI_PER_KM = 0.621371
+
 export interface Hud {
   setSpeed(kmh: number): void
+  /** Total distance driven, in metres. */
+  setDistance(metres: number): void
+  setUnits(u: Units): void
   setCity(name: string): void
   setVisible(on: boolean): void
 }
@@ -26,7 +34,10 @@ const polar = (deg: number, r: number): [number, number] => {
 }
 
 /** Compact speedometer gauge (fixed size) under the ⚙ button, with the city name. */
-export function createHud(root: HTMLElement): Hud {
+export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
+  let units = initialUnits
+  let kmh = 0
+  let metres = 0
   const box = document.createElement('div')
   box.style.cssText =
     `position:absolute;bottom:16px;left:16px;width:${SIZE}px;pointer-events:none;text-align:center;` +
@@ -79,23 +90,44 @@ export function createHud(root: HTMLElement): Hud {
   num.textContent = '0'
   svg.appendChild(num)
   const unit = svgEl('text', { x: CX, y: CY + 38, 'text-anchor': 'middle', fill: 'rgba(255,255,255,.6)', 'font-size': 9 })
-  const paintUnit = (): void => {
-    unit.textContent = t('hud.kmh')
-  }
-  paintUnit()
-  onLangChange(paintUnit)
   svg.appendChild(unit)
 
-  box.append(city, svg)
+  // Odometer: total distance driven, under the gauge.
+  const odo = document.createElement('div')
+  odo.style.cssText =
+    'font-size:12px;color:rgba(255,255,255,.85);margin-top:-6px;font-variant-numeric:tabular-nums;' +
+    'text-shadow:0 1px 3px rgba(0,0,0,.7)'
+
+  const paint = (): void => {
+    // The needle tracks true speed; only the readout changes with units.
+    const frac = Math.max(0, Math.min(1, kmh / MAX_KMH))
+    const [nx, ny] = polar(START + SWEEP * frac, R - 12)
+    needle.setAttribute('x2', String(nx))
+    needle.setAttribute('y2', String(ny))
+    const imperial = units === 'mi'
+    num.textContent = String(Math.round(imperial ? kmh * MI_PER_KM : kmh))
+    unit.textContent = t(imperial ? 'hud.mph' : 'hud.kmh')
+    const dist = (metres / 1000) * (imperial ? MI_PER_KM : 1)
+    odo.textContent = `${dist.toFixed(dist < 100 ? 1 : 0)} ${t(imperial ? 'hud.mi' : 'hud.km')}`
+  }
+  paint()
+  onLangChange(paint)
+
+  box.append(city, svg, odo)
   root.appendChild(box)
 
   return {
-    setSpeed(kmh) {
-      const frac = Math.max(0, Math.min(1, kmh / MAX_KMH))
-      const [nx, ny] = polar(START + SWEEP * frac, R - 12)
-      needle.setAttribute('x2', String(nx))
-      needle.setAttribute('y2', String(ny))
-      num.textContent = String(Math.round(kmh))
+    setSpeed(v) {
+      kmh = v
+      paint()
+    },
+    setDistance(v) {
+      metres = v
+      paint()
+    },
+    setUnits(u) {
+      units = u
+      paint()
     },
     setCity(name) {
       city.textContent = name

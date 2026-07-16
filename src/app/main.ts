@@ -47,6 +47,8 @@ import {
   setNitro,
   getQuality,
   setQuality,
+  getUnits,
+  setUnits,
   getZoom,
   setZoom,
   getSession,
@@ -96,7 +98,8 @@ const loading = createLoading(ui)
 const minimap = createMinimap(ui)
 const roadLabels = createRoadLabels(ui)
 roadLabels.setEnabled(getRoadLabels())
-const hud = createHud(ui)
+const hud = createHud(ui, getUnits())
+let odometer = 0 // metres driven, carried in the session
 hud.setVisible(getHud())
 createVersionBadge(ui)
 const keyboard = new Keyboard()
@@ -261,12 +264,15 @@ async function loadCity(query: string): Promise<void> {
     car.y = provider.heightAt(0, 0)
     // resume the saved pose if we're re-loading the same city
     const sess = getSession()
+    odometer = 0
     if (sess && sess.city === query) {
       car.x = sess.x
       car.z = sess.z
       car.heading = sess.heading
       car.y = provider.heightAt(sess.x, sess.z)
+      odometer = sess.dist ?? 0
     }
+    hud.setDistance(odometer)
     currentCity = query
     driftFx.reset()
 
@@ -300,6 +306,8 @@ async function loadCity(query: string): Promise<void> {
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
         hud.setSpeed(Math.abs(fwd) * 3.6)
+        odometer += Math.hypot(car.vx, car.vz) * dt // ground distance travelled
+        hud.setDistance(odometer)
         audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed))
         audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
@@ -394,6 +402,7 @@ const menu = createSettingsMenu(
     roadDetail: getRoadDetail(),
     nitro: getNitro(),
     quality: getQuality(),
+    units: getUnits(),
     weather: getWeather(),
     zoom: getZoom(),
   },
@@ -446,6 +455,10 @@ const menu = createSettingsMenu(
       setNitro(on)
       nitro.setEnabled(on)
       if (!on) boostTimer = 0
+    },
+    onUnits: (u) => {
+      setUnits(u)
+      hud.setUnits(u)
     },
     onQuality: (q) => {
       setQuality(q)
@@ -522,7 +535,7 @@ void loadCity(new URL(location.href).searchParams.get('city') || getSession()?.c
 
 // persist the session (city + car pose) so a reload resumes in place
 const saveSession = (): void => {
-  if (car && currentCity) setSession({ city: currentCity, x: car.x, z: car.z, heading: car.heading })
+  if (car && currentCity) setSession({ city: currentCity, x: car.x, z: car.z, heading: car.heading, dist: odometer })
 }
 setInterval(saveSession, 3000)
 window.addEventListener('beforeunload', saveSession)
