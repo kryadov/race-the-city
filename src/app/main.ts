@@ -14,6 +14,7 @@ import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createSettingsMenu } from '../ui/settingsMenu'
 import { getDefaultCity, setDefaultCity } from './prefs'
+import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm } from '../geo/overpass'
@@ -41,7 +42,12 @@ const loading = createLoading(ui)
 createVersionBadge(ui)
 const keyboard = new Keyboard()
 const theme = new ThemeController(stage)
+const audio = new AudioEngine()
+const resumeAudio = (): void => audio.resume()
+window.addEventListener('pointerdown', resumeAudio, { once: true })
+window.addEventListener('keydown', resumeAudio, { once: true })
 let vehicle: VehicleType = 'car'
+let prevForward = 0
 setVehicleMesh(stage, buildVehicleMesh(vehicle))
 
 let worldGroup: import('three').Object3D[] = []
@@ -106,7 +112,14 @@ async function loadCity(query: string): Promise<void> {
     if (!stopLoop) {
       stopLoop = startLoop((dt) => {
         if (!car) return
-        car = stepCar(car, keyboard.read(), dt, grid, provider, VEHICLES[vehicle])
+        const spec = VEHICLES[vehicle]
+        car = stepCar(car, keyboard.read(), dt, grid, provider, spec)
+        const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
+        const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
+        audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed))
+        audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
+        if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
+        prevForward = fwd
         syncCamera(stage, car, dt)
         stage.renderer.render(stage.scene, stage.camera)
       })
@@ -121,7 +134,7 @@ async function loadCity(query: string): Promise<void> {
 
 const menu = createSettingsMenu(
   ui,
-  { city: getDefaultCity(), view: theme.current, vehicle },
+  { city: getDefaultCity(), view: theme.current, vehicle, audio: audio.getState() },
   {
     onLoadCity: (q) => void loadCity(q),
     onSetDefaultCity: (q) => setDefaultCity(q),
@@ -134,6 +147,7 @@ const menu = createSettingsMenu(
         car.vz = 0
       }
     },
+    onAudioChange: (patch) => audio.setState(patch),
   },
 )
 theme.onChange = (mode) => menu.setViewMode(mode)
