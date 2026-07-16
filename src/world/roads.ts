@@ -78,7 +78,7 @@ export function buildRoads(roads: Road[], provider: ElevationProvider, style: Ro
   const positions: number[] = []
   const y = (v: Vec2): number => provider.heightAt(v.x, v.z) + ROAD_Y_OFFSET + lift
   for (const road of roads) emitRibbon(positions, offsetsForPolyline(road.points, roadWidth(road.kind) / 2), y)
-  return ribbonMesh(positions, style.color ?? 0x3a3a3f)
+  return ribbonMesh(positions, style.color ?? 0x5b5c62) // tarmac grey, not a hole in the ground
 }
 
 const RAIL_WIDTH = 2.6

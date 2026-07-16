@@ -17,12 +17,12 @@ export interface Entrance {
  * shopfront.
  */
 const DOOR_COLOR: Record<BuildingKind, number> = {
-  house: 0x6d4326, // varnished timber
-  apartments: 0x4a5a6b, // painted communal door
-  retail: 0x4a6f86, // glass
-  office: 0x53788f, // glass
-  civic: 0x7a5a34, // heavy timber
-  industrial: 0x6a7079, // steel shutter
+  house: 0x9a6a42, // varnished timber
+  apartments: 0x7d8b9c, // painted communal door
+  retail: 0x7ea6bd, // glass
+  office: 0x86aabf, // glass
+  civic: 0xa8814f, // heavy timber
+  industrial: 0x9aa0a8, // steel shutter
 }
 
 /** Signage colour per class. Houses don't get a sign; industry gets a plain plate. */

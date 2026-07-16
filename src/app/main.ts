@@ -258,8 +258,8 @@ async function loadCity(query: string): Promise<void> {
     facades = newFacades
     const normalRoads = world.roads.filter((r) => !r.bridge && !r.tunnel)
     const roadsMesh = buildRoads(normalRoads, provider)
-    const bridgesMesh = buildRoads(world.roads.filter((r) => r.bridge), provider, { lift: 4, color: 0x55555f })
-    const tunnelsMesh = buildRoads(world.roads.filter((r) => r.tunnel && !r.bridge), provider, { color: 0x24242a })
+    const bridgesMesh = buildRoads(world.roads.filter((r) => r.bridge), provider, { lift: 4, color: 0x6e6f77 })
+    const tunnelsMesh = buildRoads(world.roads.filter((r) => r.tunnel && !r.bridge), provider, { color: 0x3d3e45 })
     const railsMesh = buildRailways(world.railways, provider)
     roadDetailMesh = buildRoadDetail(world.roads, provider)
     roadDetailMesh.visible = getRoadDetail()
