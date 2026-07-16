@@ -33,12 +33,18 @@ export function buildProps(props: Prop[], provider: ElevationProvider): THREE.Ob
   if (!props.length) return group
 
   const parts: Record<PropKind, () => { geo: THREE.BufferGeometry; mat: THREE.Material }[]> = {
-    // A round basin with a plinth and a spout of water above it.
+    // A tiered fountain: a basin, a stem, an upper bowl and a plume of water
+    // falling back into it. The silhouette is the point — a plinth with a stick
+    // on it could be anything, and at street distance that is all you see.
     fountain: () => [
-      { geo: ring(2.2, 0.45), mat: stone(0xa9a294) },
-      { geo: disc(2.0, 0.12, 0.32), mat: water() },
-      { geo: cyl(0.28, 0.28, 1.1, 0.45), mat: stone(0xb5aea0) },
-      { geo: cyl(0.06, 0.02, 1.5, 1.5), mat: water() },
+      { geo: ring(2.7, 0.6), mat: stone(0xa9a294) }, // basin wall
+      { geo: disc(2.6, 0.16, 0.5), mat: water() }, // the pool in it
+      { geo: disc(2.75, 0.12, 0.62), mat: stone(0xb9b2a4) }, // coping to sit on
+      { geo: cyl(0.24, 0.4, 1.3, 0.5), mat: stone(0xb5aea0) }, // stem
+      { geo: bowl(1.15, 0.34, 1.75), mat: stone(0xb9b2a4) }, // upper bowl
+      { geo: disc(1.0, 0.1, 1.92), mat: water() }, // and the water in it
+      { geo: cyl(0.16, 0.1, 1.5, 2.0), mat: jet() }, // the jet going up
+      { geo: spray(1.05, 1.5, 2.05), mat: jet() }, // and falling back down
     ],
     // A plinth with a figure on it — read at a distance, not up close.
     statue: () => [
@@ -77,7 +83,28 @@ export function buildProps(props: Prop[], provider: ElevationProvider): THREE.Ob
 const stone = (color: number): THREE.Material =>
   new THREE.MeshStandardMaterial({ color, flatShading: true })
 const water = (): THREE.Material =>
-  new THREE.MeshStandardMaterial({ color: 0x4f9ad0, transparent: true, opacity: 0.8, flatShading: true })
+  new THREE.MeshStandardMaterial({
+    color: 0x4f9ad0,
+    transparent: true,
+    opacity: 0.85,
+    flatShading: true,
+    // A little glow, so the water reads as water from across the square rather
+    // than as a blue-grey disc.
+    emissive: new THREE.Color(0x1d5f92),
+    emissiveIntensity: 0.35,
+  })
+/** Moving water: brighter and more translucent than the pool it falls into. */
+const jet = (): THREE.Material =>
+  new THREE.MeshStandardMaterial({
+    color: 0xd6ecff,
+    transparent: true,
+    opacity: 0.5,
+    flatShading: true,
+    emissive: new THREE.Color(0x9fd0f0),
+    emissiveIntensity: 0.5,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  })
 const soil = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x4a3728, flatShading: true })
 const bloom = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xc8477e, flatShading: true })
 
@@ -101,6 +128,21 @@ const sphere = (r: number, y: number): THREE.BufferGeometry => {
   g.translate(0, y, 0)
   return g
 }
+/** A shallow open bowl, mouth up — the fountain's upper tier. */
+const bowl = (r: number, h: number, y: number): THREE.BufferGeometry => {
+  const g = new THREE.CylinderGeometry(r, r * 0.35, h, 12, 1, true)
+  g.translate(0, y + h / 2, 0)
+  return g
+}
+
+/** A cone of falling water, mouth down, around the jet. */
+const spray = (r: number, h: number, y: number): THREE.BufferGeometry => {
+  const g = new THREE.ConeGeometry(r, h, 12, 1, true)
+  g.rotateX(Math.PI) // apex up: water spreading as it falls
+  g.translate(0, y + h / 2, 0)
+  return g
+}
+
 /** An open rim: the wall of a basin or a flowerbed's kerb. */
 const ring = (r: number, h: number): THREE.BufferGeometry => {
   const g = new THREE.CylinderGeometry(r, r, h, 14, 1, true)

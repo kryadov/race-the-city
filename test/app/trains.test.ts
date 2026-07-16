@@ -134,14 +134,18 @@ describe('aircraft', () => {
   })
 
   it('spins the helicopter rotors — still blades read as a crash', () => {
+    // 0.8 picks the last of the four kinds, the helicopter. With Math.random this
+    // test asserted luck: the rotors only turn while the helicopter is the one
+    // flying, and in ~10% of runs it never came up at all.
     const scene = new THREE.Scene()
-    const p = createAircraft(scene, Math.random)
+    const p = createAircraft(scene, () => 0.8)
     const heli = (scene.children[0] as THREE.Group).children.find((c) =>
       c.children.some((x) => x.userData.rotor === 'main'),
     )!
     const rotor = heli.children.find((x) => x.userData.rotor === 'main')!
     const before = rotor.rotation.y
-    for (let i = 0; i < 4000; i++) p.update(0.1, 0, 0, 0)
+    for (let i = 0; i < 900; i++) p.update(0.1, 0, 0, 0)
+    expect(heli.visible, 'the helicopter should be the one up').toBe(true)
     expect(rotor.rotation.y).not.toBe(before)
   })
 })
