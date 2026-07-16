@@ -16,6 +16,9 @@ const MESSAGES: Record<Lang, Dict> = {
     'loading.terrain': 'Loading terrain…',
     'error.cityNotFound': 'City not found — try another.',
     'error.loadFailed': 'Failed to load the city.',
+    'vehicle.car': 'Car',
+    'vehicle.truck': 'Truck',
+    'vehicle.sports': 'Sports',
   },
   ru: {
     'input.placeholder': 'Город или "lat,lon"',
@@ -29,6 +32,9 @@ const MESSAGES: Record<Lang, Dict> = {
     'loading.terrain': 'Загружаю рельеф…',
     'error.cityNotFound': 'Город не найден — попробуй другой.',
     'error.loadFailed': 'Не удалось загрузить город.',
+    'vehicle.car': 'Легковая',
+    'vehicle.truck': 'Грузовик',
+    'vehicle.sports': 'Спорткар',
   },
 }
 

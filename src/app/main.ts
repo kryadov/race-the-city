@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import {
   createStage,
   syncCamera,
+  setVehicleMesh,
   CAM_DIST_MIN,
   CAM_DIST_MAX,
   CAM_DIST_STEP,
@@ -12,6 +13,7 @@ import { ThemeController } from './theme'
 import { createCityInput } from '../ui/cityInput'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
+import { createVehiclePicker } from '../ui/vehiclePicker'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm } from '../geo/overpass'
@@ -27,6 +29,8 @@ import { buildRoads } from '../world/roads'
 import { SpatialGrid } from '../physics/grid'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
+import { VEHICLES, type VehicleType } from '../vehicle/vehicles'
+import { buildVehicleMesh } from '../vehicle/model'
 
 const RADIUS = 1000
 
@@ -37,6 +41,8 @@ const loading = createLoading(ui)
 createVersionBadge(ui)
 const keyboard = new Keyboard()
 const theme = new ThemeController(stage)
+let vehicle: VehicleType = 'car'
+setVehicleMesh(stage, buildVehicleMesh(vehicle))
 
 let worldGroup: import('three').Object3D[] = []
 let car: CarState | null = null
@@ -100,7 +106,7 @@ async function loadCity(query: string): Promise<void> {
     if (!stopLoop) {
       stopLoop = startLoop((dt) => {
         if (!car) return
-        car = stepCar(car, keyboard.read(), dt, grid, provider)
+        car = stepCar(car, keyboard.read(), dt, grid, provider, VEHICLES[vehicle])
         syncCamera(stage, car, dt)
         stage.renderer.render(stage.scene, stage.camera)
       })
@@ -115,10 +121,23 @@ async function loadCity(query: string): Promise<void> {
 
 const cityUi = createCityInput(ui, (q) => void loadCity(q), () => theme.toggle())
 theme.onChange = (mode) => cityUi.setViewMode(mode)
+createVehiclePicker(
+  ui,
+  (type) => {
+    vehicle = type
+    setVehicleMesh(stage, buildVehicleMesh(type))
+    if (car) {
+      car.vx = 0 // reset momentum for the new handling
+      car.vz = 0
+    }
+  },
+  vehicle,
+)
+
 const clampCamDist = (d: number): number => Math.min(CAM_DIST_MAX, Math.max(CAM_DIST_MIN, d))
 window.addEventListener('keydown', (e) => {
-  const t = e.target as HTMLElement | null
-  if (t && (t.tagName === 'INPUT' || t.isContentEditable)) return // ignore while typing a city
+  const tgt = e.target as HTMLElement | null
+  if (tgt && (tgt.tagName === 'INPUT' || tgt.isContentEditable)) return // ignore while typing a city
   if (e.key === '+' || e.key === '=') stage.camDist = clampCamDist(stage.camDist - CAM_DIST_STEP) // zoom in
   else if (e.key === '-' || e.key === '_') stage.camDist = clampCamDist(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()

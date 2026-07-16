@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createCar, stepCar } from '../../src/vehicle/car'
+import { createCar, stepCar, type CarState } from '../../src/vehicle/car'
+import { VEHICLES, type VehicleSpec } from '../../src/vehicle/vehicles'
 import { SpatialGrid } from '../../src/physics/grid'
 import { FlatProvider } from '../../src/terrain/flat'
 import type { Vec2 } from '../../src/geo/types'
@@ -7,53 +8,91 @@ import type { Vec2 } from '../../src/geo/types'
 const emptyGrid = new SpatialGrid([], 25)
 const flat = new FlatProvider()
 const NO_INPUT = { throttle: 0, steer: 0, brake: false }
+const car = VEHICLES.car
 
-describe('stepCar', () => {
+/** Forward/lateral speed relative to the car's heading. */
+function components(c: CarState): { forward: number; lateral: number } {
+  const forward = c.vx * Math.cos(c.heading) + c.vz * Math.sin(c.heading)
+  const lateral = c.vx * -Math.sin(c.heading) + c.vz * Math.cos(c.heading)
+  return { forward, lateral }
+}
+
+describe('stepCar (arcade drift)', () => {
   it('accelerates forward under throttle', () => {
-    let car = createCar()
-    car = stepCar(car, { throttle: 1, steer: 0, brake: false }, 0.5, emptyGrid, flat)
-    expect(car.speed).toBeGreaterThan(0)
+    let c = createCar()
+    c = stepCar(c, { throttle: 1, steer: 0, brake: false }, 0.3, emptyGrid, flat, car)
+    expect(components(c).forward).toBeGreaterThan(0)
+    expect(c.x).toBeGreaterThan(0) // heading 0 → +x
   })
 
-  it('coasts to a stop from friction', () => {
-    let car = createCar()
-    car.speed = 10
-    for (let i = 0; i < 200; i++) car = stepCar(car, NO_INPUT, 0.1, emptyGrid, flat)
-    expect(Math.abs(car.speed)).toBeLessThan(0.5)
+  it('coasts to a stop from drag', () => {
+    let c = createCar()
+    c.vx = 15
+    for (let i = 0; i < 200; i++) c = stepCar(c, NO_INPUT, 0.1, emptyGrid, flat, car)
+    expect(Math.hypot(c.vx, c.vz)).toBeLessThan(0.5)
   })
 
-  it('turns heading while moving', () => {
-    let car = createCar()
-    car.speed = 5
-    const before = car.heading
-    car = stepCar(car, { throttle: 0, steer: 1, brake: false }, 0.5, emptyGrid, flat)
-    expect(car.heading).not.toBeCloseTo(before)
+  it('turns heading while moving but not while parked', () => {
+    let moving = createCar()
+    moving.vx = 10
+    const h0 = moving.heading
+    moving = stepCar(moving, { throttle: 0, steer: 1, brake: false }, 0.3, emptyGrid, flat, car)
+    expect(moving.heading).not.toBeCloseTo(h0)
+
+    let parked = createCar()
+    const p0 = parked.heading
+    parked = stepCar(parked, { throttle: 0, steer: 1, brake: false }, 0.3, emptyGrid, flat, car)
+    expect(parked.heading).toBeCloseTo(p0)
   })
 
-  it('does not turn while stopped', () => {
-    let car = createCar()
-    const before = car.heading
-    car = stepCar(car, { throttle: 0, steer: 1, brake: false }, 0.5, emptyGrid, flat)
-    expect(car.heading).toBeCloseTo(before)
+  it('drifts more with lower lateral grip (all else equal)', () => {
+    const slippery: VehicleSpec = { ...car, gripLateral: 2 }
+    const grippy: VehicleSpec = { ...car, gripLateral: 12 }
+    const start = (): CarState => ({ x: 0, z: 0, y: 0, heading: 0, vx: 20, vz: 0 })
+    const hardTurn = { throttle: 0, steer: 1, brake: false }
+    const a = stepCar(start(), hardTurn, 0.2, emptyGrid, flat, slippery)
+    const b = stepCar(start(), hardTurn, 0.2, emptyGrid, flat, grippy)
+    expect(Math.abs(components(a).lateral)).toBeGreaterThan(Math.abs(components(b).lateral))
   })
 
-  it('is blocked from driving into a building', () => {
-    const box: Vec2[] = [{ x: 5, z: -5 }, { x: 15, z: -5 }, { x: 15, z: 5 }, { x: 5, z: 5 }]
+  it('brake does not overshoot a slow car into reverse', () => {
+    let c = createCar()
+    c.vx = 1
+    c = stepCar(c, { throttle: 0, steer: 0, brake: true }, 1.0, emptyGrid, flat, car)
+    expect(components(c).forward).toBeGreaterThanOrEqual(0)
+  })
+
+  it('cannot drive through a building', () => {
+    const box: Vec2[] = [{ x: 6, z: -6 }, { x: 16, z: -6 }, { x: 16, z: 6 }, { x: 6, z: 6 }]
     const grid = new SpatialGrid([box], 25)
-    let car = createCar(0, 0)
-    car.heading = 0 // faces +x (see convention in impl)
-    car.speed = 30
-    for (let i = 0; i < 30; i++) car = stepCar(car, { throttle: 1, steer: 0, brake: false }, 0.1, grid, flat)
-    expect(car.x).toBeLessThan(5) // never penetrates the near wall
+    let c = createCar(0, 0)
+    for (let i = 0; i < 40; i++) {
+      c = stepCar(c, { throttle: 1, steer: 0, brake: false }, 0.1, grid, flat, VEHICLES.sports)
+    }
+    expect(c.x).toBeLessThan(6)
   })
 
   it('follows terrain height in Y', () => {
-    const ramp = { heightAt: (x: number) => x } // y = x
-    let car = createCar(0, 0)
-    car.speed = 10
-    car.heading = 0
-    car = stepCar(car, { throttle: 1, steer: 0, brake: false }, 0.5, emptyGrid, ramp)
-    expect(car.y).toBeGreaterThan(0)
-    expect(car.y).toBeCloseTo(car.x, 5)
+    const ramp = { heightAt: (x: number) => x }
+    let c = createCar(0, 0)
+    c.vx = 8
+    c = stepCar(c, { throttle: 1, steer: 0, brake: false }, 0.3, emptyGrid, ramp, car)
+    expect(c.y).toBeGreaterThan(0)
+    expect(c.y).toBeCloseTo(c.x, 5)
+  })
+})
+
+describe('VEHICLES presets', () => {
+  it('orders top speed sports > car > truck', () => {
+    expect(VEHICLES.sports.maxSpeed).toBeGreaterThan(VEHICLES.car.maxSpeed)
+    expect(VEHICLES.car.maxSpeed).toBeGreaterThan(VEHICLES.truck.maxSpeed)
+  })
+  it('makes the truck heavier: slower accel, less grip, bigger radius', () => {
+    expect(VEHICLES.truck.accel).toBeLessThan(VEHICLES.car.accel)
+    expect(VEHICLES.truck.gripLateral).toBeLessThan(VEHICLES.car.gripLateral)
+    expect(VEHICLES.truck.radius).toBeGreaterThan(VEHICLES.car.radius)
+  })
+  it('makes the sports car the quickest to accelerate', () => {
+    expect(VEHICLES.sports.accel).toBeGreaterThan(VEHICLES.car.accel)
   })
 })

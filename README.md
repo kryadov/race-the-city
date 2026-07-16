@@ -51,6 +51,10 @@ The camera follows the car from behind. You can't drive through buildings — th
 slides along walls. Press `V` (or the view button in the UI) to switch between the lit
 "day" look and a glowing neon-wireframe look.
 
+Pick a vehicle with the buttons — 🚗 car (nimble, grippy), 🚚 truck (heavy, sluggish,
+slides more), 🏎 sports (fast, eager). Hard cornering at speed breaks the tail loose into
+a controllable drift.
+
 ## Entering a city
 
 - A plain name: `Amsterdam`, `Тбилиси`, `Porto`.
@@ -121,7 +125,7 @@ When you publish, respect the source licences:
 ## Roadmap ideas
 
 - Parks, water, and trees from OSM
-- More realistic physics (drift, grip)
+- More vehicles and handling tuning
 - Minimap, day/night cycle, engine sound
 - A racing mode on top: checkpoints, timer, best lap
 
