@@ -100,6 +100,12 @@ Vite · TypeScript (strict) · Three.js · Vitest. It's a static site — deploy
 host (e.g. GitHub Pages; this repo ships a workflow that publishes to
 <https://kryadov.github.io/race-the-city/> on every push to `main`).
 
+### Versioning & releases
+
+The app version (from `package.json`) is injected at build time and shown as a small badge
+in the corner. Each feature bumps the version and ships as a GitHub Release: push a `vX.Y.Z`
+tag and the release workflow cuts it with auto-generated notes.
+
 ## Data attribution
 
 When you publish, respect the source licences:

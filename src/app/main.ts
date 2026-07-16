@@ -11,6 +11,7 @@ import { startLoop } from './loop'
 import { ThemeController } from './theme'
 import { createCityInput } from '../ui/cityInput'
 import { createLoading } from '../ui/loading'
+import { createVersionBadge } from '../ui/version'
 import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm } from '../geo/overpass'
 import { bboxKey, cacheGet, cachePut } from '../geo/cache'
@@ -32,6 +33,7 @@ const app = document.getElementById('app')!
 const ui = document.getElementById('ui')!
 const stage: Stage = createStage(app)
 const loading = createLoading(ui)
+createVersionBadge(ui)
 const keyboard = new Keyboard()
 const theme = new ThemeController(stage)
 

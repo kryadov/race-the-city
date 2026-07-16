@@ -85,6 +85,11 @@ verify `tsc` + `build` + existing tests and defer the visual check to a human.
 `.github/workflows/deploy.yml` builds and publishes `dist/` to GitHub Pages on push to
 `main`. Vite `base: './'` keeps asset paths relative so it works on a Pages project subpath.
 
+**Versioning / releases.** `package.json` version is injected as `__APP_VERSION__` (Vite
+`define`) and shown as a UI badge. Per feature: bump the version (semver — minor for features,
+patch for fixes), merge to `main`, then tag `vX.Y.Z` and push the tag —
+`.github/workflows/release.yml` cuts the GitHub Release.
+
 ## Docs
 
 Design spec and the full implementation plan are in `docs/superpowers/`.
