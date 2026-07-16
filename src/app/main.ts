@@ -32,6 +32,7 @@ import { createPauseButton } from '../ui/pauseButton'
 import { createHelpOverlay } from '../ui/helpOverlay'
 import { createAutopilot } from './autopilot'
 import { createTimeTrial } from './timeTrial'
+import { createRivals } from './rivals'
 import { createTrialHud } from '../ui/trialHud'
 import { createAircraft } from './aircraft'
 import { countFor, crowdFor, gapFor, type Density } from './density'
@@ -252,6 +253,13 @@ const occHeight = new Map<import('../geo/types').Vec2[], number>()
 let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
+// After grid and provider, not up with the trial it belongs to: both are read
+// here and now, and a const declared further down is still in its temporal dead
+// zone at module scope — the same trap that took the whole app down in v0.82.0.
+const rivals = createRivals(stage.scene, grid, provider)
+// Rivals race the trial's gates. Racing with the trial off would put three cars
+// on a course that does not exist, so the switch only bites once both are on.
+rivals.setEnabled(getRace() && getTrial())
 let stopLoop: (() => void) | null = null
 let loading_ = false
 let currentCity = '' // the loaded city query, for session save/restore
@@ -426,6 +434,7 @@ async function loadCity(query: string): Promise<void> {
     lastWater = world.water
     autopilot.reset(world.roads, car)
     trial.reset(world.roads, provider, car)
+    rivals.reset(world.roads, provider, car, trial.course())
     currentCity = query
     driftFx.reset()
 
@@ -473,6 +482,7 @@ async function loadCity(query: string): Promise<void> {
         if (trial.enabled()) {
           const st = trial.update(dt, car.x, car.z)
           trialHud.set(st)
+          trialHud.setRace(rivals.enabled() ? rivals.update(dt, car, st.taken, trial.course()) : null)
           if (st.justFinished) audio.chime(true) // a lap done rings higher than a gate
           else if (st.taken !== lastGate) audio.chime(false)
           lastGate = st.taken
@@ -620,6 +630,21 @@ async function loadCity(query: string): Promise<void> {
   }
 }
 
+/**
+ * Turn the time trial on or off, gates, HUD, rivals and all.
+ *
+ * Shared because the race switch pulls the trial on with it: racing round gates
+ * needs gates, and there is exactly one way to lay them out.
+ */
+function applyTrial(on: boolean): void {
+  setTrial(on)
+  trial.setEnabled(on)
+  trialHud.setVisible(on)
+  if (on && car) trial.reset(lastRoads, provider, car)
+  rivals.setEnabled(on && getRace())
+  if (on && car && getRace()) rivals.reset(lastRoads, provider, car, trial.course())
+}
+
 const menu = createSettingsMenu(
   ui,
   {
@@ -706,15 +731,18 @@ const menu = createSettingsMenu(
       boats?.dispose()
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
     },
-    onTrial: (on) => {
-      setTrial(on)
-      trial.setEnabled(on)
-      trialHud.setVisible(on)
-      if (on && car) trial.reset(lastRoads, provider, car)
+    onTrial: (on) => applyTrial(on),
+    onRace: (on) => {
+      setRace(on)
+      // There is nothing to race without gates, so switching the race on brings
+      // the trial with it — course, HUD and all — rather than leaving you
+      // wondering why three cars appeared and nothing else did.
+      if (on && !trial.enabled()) applyTrial(true)
+      else {
+        rivals.setEnabled(on && trial.enabled())
+        if (on && car && trial.enabled()) rivals.reset(lastRoads, provider, car, trial.course())
+      }
     },
-    // Rivals themselves are Task 4's wiring; this just persists the checkbox
-    // so the setting survives a reload until then.
-    onRace: (on) => setRace(on),
     onDemo: (on) => {
       setDemo(on)
       autopilot.setEnabled(on)
@@ -769,7 +797,10 @@ const menu = createSettingsMenu(
         car.z,
       )
       autopilot.reset(lastRoads, car)
-      if (trial.enabled()) trial.reset(lastRoads, provider, car)
+      if (trial.enabled()) {
+        trial.reset(lastRoads, provider, car)
+        rivals.reset(lastRoads, provider, car, trial.course()) // back on the start line with you
+      }
     },
     onReset: () => {
       resetSettings()

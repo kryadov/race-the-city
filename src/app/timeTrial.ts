@@ -24,6 +24,8 @@ export interface TimeTrial {
   enabled(): boolean
   /** Where the next gate is, for the minimap. Null when there's nothing to chase. */
   nextGate(): Vec2 | null
+  /** Every gate, in order — what the rivals race round. Empty until `reset`. */
+  course(): Vec2[]
   /** Lay out a fresh course. */
   reset(roads: Road[], provider: ElevationProvider, car: { x: number; z: number }): void
   update(dt: number, carX: number, carZ: number): TrialState
@@ -129,6 +131,7 @@ export function createTimeTrial(scene: THREE.Scene): TimeTrial {
   return {
     enabled: () => on,
     nextGate: () => (on && course.length ? course[taken] ?? null : null),
+    course: () => course,
     setEnabled(v) {
       on = v
       group.visible = v
