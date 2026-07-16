@@ -3,7 +3,7 @@ import type { Prop, PropKind, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 
 /** How much room each ornament takes on the ground, in metres. */
-const PROP_R: Record<PropKind, number> = { fountain: 2.3, statue: 0.75, flowerbed: 1.7 }
+const PROP_R: Record<PropKind, number> = { fountain: 3.3, statue: 0.75, flowerbed: 1.7 }
 
 /**
  * Footprints for the collision grid: you should not be able to drive through a
@@ -33,18 +33,23 @@ export function buildProps(props: Prop[], provider: ElevationProvider): THREE.Ob
   if (!props.length) return group
 
   const parts: Record<PropKind, () => { geo: THREE.BufferGeometry; mat: THREE.Material }[]> = {
-    // A tiered fountain: a basin, a stem, an upper bowl and a plume of water
-    // falling back into it. The silhouette is the point — a plinth with a stick
-    // on it could be anything, and at street distance that is all you see.
+    // A city fountain, at the size one actually is: a wide basin you could sit
+    // on, two tiers, a central jet, and arcs of water thrown in from the rim.
+    // The arcs are the whole point — they are what says "fountain" from across
+    // the square, and without them this is a plinth with a stick on it.
     fountain: () => [
-      { geo: ring(2.7, 0.6), mat: stone(0xa9a294) }, // basin wall
-      { geo: disc(2.6, 0.16, 0.5), mat: water() }, // the pool in it
-      { geo: disc(2.75, 0.12, 0.62), mat: stone(0xb9b2a4) }, // coping to sit on
-      { geo: cyl(0.24, 0.4, 1.3, 0.5), mat: stone(0xb5aea0) }, // stem
-      { geo: bowl(1.15, 0.34, 1.75), mat: stone(0xb9b2a4) }, // upper bowl
-      { geo: disc(1.0, 0.1, 1.92), mat: water() }, // and the water in it
-      { geo: cyl(0.16, 0.1, 1.5, 2.0), mat: jet() }, // the jet going up
-      { geo: spray(1.05, 1.5, 2.05), mat: jet() }, // and falling back down
+      { geo: ring(3.2, 0.55), mat: stone(0xa9a294) }, // basin wall
+      { geo: disc(3.35, 0.14, 0.55), mat: stone(0xb9b2a4) }, // coping, wide enough to sit on
+      { geo: disc(3.1, 0.16, 0.45), mat: water() }, // the pool
+      { geo: cyl(0.3, 0.5, 1.4, 0.5), mat: stone(0xb5aea0) }, // stem
+      { geo: bowl(1.5, 0.4, 1.85), mat: stone(0xb9b2a4) }, // lower tier
+      { geo: disc(1.35, 0.1, 2.06), mat: water() },
+      { geo: cyl(0.18, 0.24, 0.95, 2.15), mat: stone(0xb5aea0) }, // upper stem
+      { geo: bowl(0.8, 0.28, 2.95), mat: stone(0xb9b2a4) }, // upper tier
+      { geo: disc(0.7, 0.08, 3.1), mat: water() },
+      { geo: cyl(0.12, 0.07, 1.4, 3.2), mat: jet() }, // the central jet
+      { geo: spray(0.75, 1.2, 3.3), mat: jet() }, // falling off the top tier
+      ...rimArcs(6, 2.55, 1.5, 0.9).map((geo) => ({ geo, mat: jet() })),
     ],
     // A plinth with a figure on it — read at a distance, not up close.
     statue: () => [
@@ -128,6 +133,33 @@ const sphere = (r: number, y: number): THREE.BufferGeometry => {
   g.translate(0, y, 0)
   return g
 }
+/**
+ * Arcs of water thrown from the rim toward the middle.
+ *
+ * One geometry per arc, each with its rotation baked in, so every fountain in
+ * the city still costs one instanced draw per arc — a handful for the lot,
+ * rather than a mesh per fountain.
+ *
+ * @param n how many arcs around the rim
+ * @param r how far out they start
+ * @param rise how high they go
+ * @param reach how far in they land
+ */
+const rimArcs = (n: number, r: number, rise: number, reach: number): THREE.BufferGeometry[] => {
+  const out: THREE.BufferGeometry[] = []
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2
+    // A half-torus standing on its edge reads as a jet arcing over and down.
+    const g = new THREE.TorusGeometry((r - reach) / 2 + 0.35, 0.055, 4, 10, Math.PI)
+    g.scale(1, rise / ((r - reach) / 2 + 0.35), 1)
+    g.rotateY(Math.PI / 2) // stand the ring up
+    g.translate((r + reach) / 2, 0.75, 0) // out on the rim, above the water
+    g.rotateY(-a) // and around to its place
+    out.push(g)
+  }
+  return out
+}
+
 /** A shallow open bowl, mouth up — the fountain's upper tier. */
 const bowl = (r: number, h: number, y: number): THREE.BufferGeometry => {
   const g = new THREE.CylinderGeometry(r, r * 0.35, h, 12, 1, true)

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export type AircraftKind = 'airliner' | 'turboprop' | 'jet' | 'helicopter'
+export type AircraftKind = 'airliner' | 'turboprop' | 'jet' | 'helicopter' | 'balloon'
 
 interface Profile {
   /** Cruising height, metres. */
@@ -24,7 +24,12 @@ const PROFILES: Record<AircraftKind, Profile> = {
   jet: { alt: 240, speed: 130, scale: 5, trail: true },
   turboprop: { alt: 120, speed: 50, scale: 4.5, trail: false },
   helicopter: { alt: 70, speed: 26, scale: 2.6, trail: false },
+  // A balloon goes where the wind goes, which is barely anywhere.
+  balloon: { alt: 95, speed: 5, scale: 2.2, trail: false },
 }
+
+/** Envelope colours: a balloon that isn't gaudy isn't a balloon. */
+const BALLOON_SILKS = [0xd0453f, 0xe8b13a, 0x3a6ea5, 0x3f8f5e, 0xdedad2]
 
 const SPAN = 3000 // how far out they enter and leave
 const GAP_MIN = 18 // seconds between arrivals
@@ -51,7 +56,50 @@ function build(kind: AircraftKind): THREE.Group {
   const g = new THREE.Group()
   const body = mat(kind === 'jet' ? 0x9aa4ae : kind === 'helicopter' ? 0x2f4f6f : 0xe8ecf2)
 
-  if (kind === 'helicopter') {
+  if (kind === 'balloon') {
+    // Envelope: a sphere squashed at the top and drawn to a point at the burner.
+    const silk = BALLOON_SILKS[0]
+    const env = new THREE.Mesh(new THREE.SphereGeometry(4.4, 12, 10), mat(silk))
+    env.scale.set(1, 1.15, 1)
+    env.position.y = 6.4
+    g.add(env)
+    // Gores, so it reads as fabric panels rather than a beach ball.
+    for (let i = 0; i < 4; i++) {
+      const gore = new THREE.Mesh(new THREE.SphereGeometry(4.45, 12, 10, 0, 0.28), mat(0xf2f2ee))
+      gore.rotation.y = (i * Math.PI) / 2
+      gore.scale.set(1, 1.15, 1)
+      gore.position.y = 6.4
+      g.add(gore)
+    }
+    const throat = new THREE.Mesh(new THREE.ConeGeometry(1.5, 2.2, 10), mat(silk))
+    throat.rotation.x = Math.PI
+    throat.position.y = 2.6
+    g.add(throat)
+    // Basket, with two people looking over the side.
+    const basket = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.2, 1.7), mat(0x8a6a4a))
+    basket.position.y = 0.6
+    g.add(basket)
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.14, 1.85), mat(0x6b5138))
+    rim.position.y = 1.24
+    g.add(rim)
+    for (const [bx, bz] of [[0.4, 0.3], [-0.35, -0.35]] as const) {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.62, 0.26), mat(0x3a6ea5))
+      body.position.set(bx, 1.5, bz)
+      g.add(body)
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 5), mat(0xe0ac69))
+      head.position.set(bx, 1.94, bz)
+      g.add(head)
+    }
+    // Rigging from the basket up to the throat.
+    for (const [rx, rz] of [[0.8, 0.8], [-0.8, 0.8], [0.8, -0.8], [-0.8, -0.8]] as const) {
+      const rope = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.6, 0.06), mat(0x33363d))
+      rope.position.set(rx, 1.9, rz)
+      g.add(rope)
+    }
+    const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.4, 6), mat(0xb5aea0))
+    burner.position.y = 2.5
+    g.add(burner)
+  } else if (kind === 'helicopter') {
     const cabin = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 6), body)
     cabin.scale.set(1.5, 1, 1)
     g.add(cabin)
@@ -192,8 +240,9 @@ export function createAircraft(
         kind = kinds[Math.floor(rand() * kinds.length)]
         heading = rand() * Math.PI * 2
         const offset = (rand() - 0.5) * 1100 // how wide of us it passes
-        originX = camX - Math.cos(heading) * SPAN * 0.5 - Math.sin(heading) * offset
-        originZ = camZ - Math.sin(heading) * SPAN * 0.5 + Math.cos(heading) * offset
+        const reach = kind === 'balloon' ? SPAN * 0.12 : SPAN * 0.5
+        originX = camX - Math.cos(heading) * reach - Math.sin(heading) * offset
+        originZ = camZ - Math.sin(heading) * reach + Math.cos(heading) * offset
         t = 0
         hide()
         frames.get(kind)!.visible = true
@@ -202,7 +251,10 @@ export function createAircraft(
       const p = PROFILES[kind]
       t += dt
       const d = t * p.speed
-      if (d > SPAN) {
+      // A balloon at 5m/s would take ten minutes to cross 3km, so it drifts
+      // across a short stretch of sky and then it's gone.
+      const run = kind === 'balloon' ? SPAN * 0.25 : SPAN
+      if (d > run) {
         kind = null
         hide()
         wait = (GAP_MIN + rand() * (GAP_MAX - GAP_MIN)) * gapScale
@@ -212,6 +264,14 @@ export function createAircraft(
       const f = frames.get(kind)!
       f.position.set(originX + Math.cos(heading) * d, p.alt, originZ + Math.sin(heading) * d)
       f.rotation.y = -heading
+      if (kind === 'balloon') {
+        // It drifts and swings under the envelope; it does not fly. Pointing it
+        // along its track like an aeroplane would be the giveaway.
+        f.rotation.y = spin * 0.15
+        f.position.y = p.alt + Math.sin(spin * 0.4) * 6 // riding the thermals
+        f.rotation.z = Math.sin(spin * 0.7) * 0.04
+        f.rotation.x = Math.cos(spin * 0.55) * 0.03
+      }
       spin += dt
       f.traverse((o) => {
         const r = (o.userData as { rotor?: string }).rotor

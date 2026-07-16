@@ -143,11 +143,11 @@ describe('aircraft', () => {
   })
 
   it('spins the helicopter rotors — still blades read as a crash', () => {
-    // 0.8 picks the last of the four kinds, the helicopter. With Math.random this
+    // 0.7 lands on the helicopter, the fourth of five kinds. With Math.random this
     // test asserted luck: the rotors only turn while the helicopter is the one
     // flying, and in ~10% of runs it never came up at all.
     const scene = new THREE.Scene()
-    const p = createAircraft(scene, () => 0.8)
+    const p = createAircraft(scene, () => 0.7)
     const heli = (scene.children[0] as THREE.Group).children.find((c) =>
       c.children.some((x) => x.userData.rotor === 'main'),
     )!
@@ -191,5 +191,40 @@ describe('trains on a grade', () => {
     const car = (scene.children[0] as THREE.Group).children[0]
     const dir = new THREE.Vector3(1, 0, 0).applyEuler(car.rotation)
     expect(Math.abs(dir.y)).toBeLessThan(0.01)
+  })
+})
+
+describe('balloons', () => {
+  /** 0.95 lands on the last kind, the balloon. */
+  const balloonRand = (): number => 0.95
+
+  it('flies one, with a basket and people in it', () => {
+    const scene = new THREE.Scene()
+    createAircraft(scene, balloonRand)
+    const frames = (scene.children[0] as THREE.Group).children
+    // the balloon is the most-parted airframe: envelope, gores, basket, crew, rigging
+    const parts = Math.max(...frames.map((f) => f.children.length))
+    expect(parts).toBeGreaterThan(10)
+  })
+
+  it('drifts rather than flying a heading', () => {
+    // an aeroplane points along its track; a balloon goes where the wind goes
+    const scene = new THREE.Scene()
+    const p = createAircraft(scene, balloonRand)
+    for (let i = 0; i < 700; i++) p.update(0.1, 0, 0, 0)
+    const up = (scene.children[0] as THREE.Group).children.find((f) => f.visible)
+    expect(up, 'nothing came over').toBeDefined()
+    const y1 = up!.position.y
+    for (let i = 0; i < 60; i++) p.update(0.1, 0, 0, 0)
+    expect(up!.position.y, 'it should ride up and down, not hold an altitude').not.toBeCloseTo(y1, 2)
+  })
+
+  it('keeps it low enough to see and high enough to clear the roofs', () => {
+    const scene = new THREE.Scene()
+    const p = createAircraft(scene, balloonRand)
+    for (let i = 0; i < 700; i++) p.update(0.1, 0, 0, 0)
+    const up = (scene.children[0] as THREE.Group).children.find((f) => f.visible)!
+    expect(up.position.y).toBeGreaterThan(60)
+    expect(up.position.y).toBeLessThan(140)
   })
 })
