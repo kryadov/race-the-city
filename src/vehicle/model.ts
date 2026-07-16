@@ -46,11 +46,26 @@ function fourWheels(radius: number, width: number, axleX: number, halfTrack: num
   ]
 }
 
+const HEADLIGHT_MAT = new THREE.MeshStandardMaterial({
+  color: 0xfff2c0,
+  emissive: 0xfff2c0,
+  emissiveIntensity: 1.2,
+  flatShading: true,
+})
+
+/** A glowing headlight at the vehicle's front. */
+function light(x: number, y: number, z: number): THREE.Mesh {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), HEADLIGHT_MAT)
+  m.position.set(x, y, z)
+  return m
+}
+
 function buildCar(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(4, 0.8, 1.9, 0xe63946, 0, 0.65, 0)) // body
   g.add(box(2.1, 0.7, 1.7, 0xb5303b, -0.15, 1.25, 0)) // cabin
   g.add(...fourWheels(0.5, 0.4, 1.3, 0.95, 0.45))
+  g.add(light(2, 0.65, 0.7), light(2, 0.65, -0.7))
   return g
 }
 
@@ -62,6 +77,7 @@ function buildTruck(): THREE.Group {
   g.add(...fourWheels(0.72, 0.5, 2.1, 1.05, 0.7))
   g.add(wheel(0.72, 0.5, -0.4, 0.7, 1.05)) // extra rear axle
   g.add(wheel(0.72, 0.5, -0.4, 0.7, -1.05))
+  g.add(light(3, 1.1, 0.9), light(3, 1.1, -0.9))
   return g
 }
 
@@ -71,6 +87,7 @@ function buildSports(): THREE.Group {
   g.add(box(1.7, 0.45, 1.6, 0x0077b6, 0.1, 0.95, 0)) // low cabin
   g.add(box(1.0, 0.12, 1.9, 0x023047, -1.9, 0.95, 0)) // rear wing
   g.add(...fourWheels(0.46, 0.45, 1.45, 1.0, 0.42))
+  g.add(light(2.1, 0.5, 0.75), light(2.1, 0.5, -0.75))
   return g
 }
 
