@@ -24,7 +24,7 @@ export function createMinimap(root: HTMLElement): Minimap {
   canvas.width = SIZE
   canvas.height = SIZE
   canvas.style.cssText =
-    `position:absolute;bottom:16px;left:16px;width:${SIZE}px;height:${SIZE}px;` +
+    `position:absolute;top:16px;left:16px;width:${SIZE}px;height:${SIZE}px;` +
     'border-radius:50%;pointer-events:none;background:rgba(11,14,19,.6);box-shadow:0 4px 16px rgba(0,0,0,.4)'
   root.appendChild(canvas)
   const ctx = canvas.getContext('2d')!

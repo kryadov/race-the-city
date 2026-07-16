@@ -16,6 +16,7 @@ import { createVersionBadge } from '../ui/version'
 import { createSettingsMenu } from '../ui/settingsMenu'
 import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
+import { createTouchControls } from '../ui/touchControls'
 import { getDefaultCity, setDefaultCity, getRoadLabels, setRoadLabels } from './prefs'
 import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
@@ -47,6 +48,7 @@ const roadLabels = createRoadLabels(ui)
 roadLabels.setEnabled(getRoadLabels())
 createVersionBadge(ui)
 const keyboard = new Keyboard()
+const touch = createTouchControls(ui)
 const theme = new ThemeController(stage)
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
@@ -123,7 +125,14 @@ async function loadCity(query: string): Promise<void> {
       stopLoop = startLoop((dt) => {
         if (!car) return
         const spec = VEHICLES[vehicle]
-        car = stepCar(car, keyboard.read(), dt, grid, provider, spec)
+        const kb = keyboard.read()
+        const tc = touch.read()
+        const input = {
+          throttle: Math.max(-1, Math.min(1, kb.throttle + tc.throttle)),
+          steer: Math.max(-1, Math.min(1, kb.steer + tc.steer)),
+          brake: kb.brake || tc.brake,
+        }
+        car = stepCar(car, input, dt, grid, provider, spec)
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
         audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed))
