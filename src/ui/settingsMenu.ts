@@ -46,6 +46,8 @@ export interface SettingsCallbacks {
   onUnits: (u: Units) => void
   onWeather: (w: WeatherSetting) => void
   onZoom: (v: number) => void
+  /** Forget the saved position/city and go back to the default start. */
+  onResetLocation: () => void
   onReset: () => void
 }
 
@@ -116,14 +118,58 @@ export function createSettingsMenu(
   })
 
   const labels: Array<{ el: HTMLElement; key: string }> = []
+
+  // Which groups are expanded, remembered across sessions. Only the city group
+  // opens by default so the panel stays short instead of a long scroll.
+  const OPEN_KEY = 'rtc.menuOpen'
+  const openState: Record<string, boolean> = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(OPEN_KEY) || '{}') as Record<string, boolean>
+    } catch {
+      return {}
+    }
+  })()
+  const saveOpen = (): void => {
+    try {
+      localStorage.setItem(OPEN_KEY, JSON.stringify(openState))
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /**
+   * A collapsible group. Appends itself to the panel in creation order and
+   * returns the body, which callers fill as before.
+   */
   function section(key: string): HTMLDivElement {
     const wrap = document.createElement('div')
-    wrap.style.cssText = 'margin-bottom:14px'
-    const lbl = document.createElement('div')
-    lbl.style.cssText = 'opacity:.65;font-size:12px;margin-bottom:6px'
+    wrap.style.cssText = 'margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07)'
+    const header = document.createElement('button')
+    header.style.cssText =
+      'width:100%;display:flex;justify-content:space-between;align-items:center;background:none;' +
+      'border:0;color:#fff;opacity:.75;font-size:12px;cursor:pointer;padding:8px 0;text-align:left'
+    const lbl = document.createElement('span')
+    const chev = document.createElement('span')
+    header.append(lbl, chev)
+    const body = document.createElement('div')
+    body.style.cssText = 'padding:2px 0 10px'
     labels.push({ el: lbl, key })
-    wrap.appendChild(lbl)
-    return wrap
+
+    let open = openState[key] ?? key === 'menu.city'
+    const apply = (): void => {
+      body.style.display = open ? 'block' : 'none'
+      chev.textContent = open ? '▾' : '▸'
+    }
+    header.addEventListener('click', () => {
+      open = !open
+      openState[key] = open
+      saveOpen()
+      apply()
+    })
+    apply()
+    wrap.append(header, body)
+    panel.appendChild(wrap)
+    return body
   }
   const row = (): HTMLDivElement => {
     const r = document.createElement('div')
@@ -424,11 +470,15 @@ export function createSettingsMenu(
   zoomSlider.addEventListener('input', () => cb.onZoom(Number(zoomSlider.value)))
   zoomSec.appendChild(zoomSlider)
 
+  const resetLocBtn = button()
+  resetLocBtn.style.cssText += ';width:100%;margin-top:10px;background:#2f3d4f'
+  resetLocBtn.addEventListener('click', () => cb.onResetLocation())
   const resetBtn = button()
   resetBtn.style.cssText += ';width:100%;margin-top:6px;background:#5a2a30'
   resetBtn.addEventListener('click', () => cb.onReset())
 
-  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec, timeSec, zoomSec, resetBtn)
+  // Sections append themselves as they're created; only the actions go last.
+  panel.append(resetLocBtn, resetBtn)
   root.append(gear, panel)
 
   function paintLabels(): void {
@@ -438,6 +488,7 @@ export function createSettingsMenu(
     randomBtn.textContent = '🎲 ' + t('menu.random')
     defBtn.textContent = '★ ' + t('menu.setDefault')
     shareBtn.textContent = '🔗 ' + t('menu.share')
+    resetLocBtn.textContent = '📍 ' + t('menu.resetLocation')
     resetBtn.textContent = t('menu.reset')
     for (const { el, key } of labels) el.textContent = t(key)
   }

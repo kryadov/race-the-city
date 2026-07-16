@@ -191,6 +191,15 @@ export function setSession(s: Session): void {
   }
 }
 
+/** Forget the resume point (leaves every other setting alone). */
+export function clearSession(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 const NITRO_KEY = 'rtc.nitro'
 
 /** Whether nitro speed-boost pickups appear (on by default). */

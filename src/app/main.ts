@@ -54,6 +54,7 @@ import {
   setZoom,
   getSession,
   setSession,
+  clearSession,
   resetSettings,
 } from './prefs'
 import { AudioEngine } from '../audio/audio'
@@ -483,6 +484,13 @@ const menu = createSettingsMenu(
     onZoom: (v) => {
       stage.camDist = clampCamDist(v)
       setZoom(stage.camDist)
+    },
+    onResetLocation: () => {
+      // Forget the resume point and drop ?city= so we start fresh at the default.
+      clearSession()
+      const u = new URL(location.href)
+      u.searchParams.delete('city')
+      location.href = u.toString()
     },
     onReset: () => {
       resetSettings()
