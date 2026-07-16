@@ -1,57 +1,89 @@
-import * as THREE from 'three'
+import { createStage, syncCamera, type Stage } from './scene'
+import { startLoop } from './loop'
+import { createCityInput } from '../ui/cityInput'
+import { createLoading } from '../ui/loading'
+import { geocode } from '../geo/geocode'
+import { bboxAround, fetchOsm } from '../geo/overpass'
+import { bboxKey, cacheGet, cachePut } from '../geo/cache'
+import { parseOsm } from '../geo/parse'
+import { Projector } from '../geo/project'
+import { loadTerrarium } from '../terrain/terrarium'
+import { FlatProvider } from '../terrain/flat'
+import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
 import { buildRoads } from '../world/roads'
-import type { Building, Road } from '../geo/types'
+import { SpatialGrid } from '../physics/grid'
+import { createCar, stepCar, type CarState } from '../vehicle/car'
+import { Keyboard } from '../vehicle/input'
 
-const mount = document.getElementById('app')!
-const renderer = new THREE.WebGLRenderer({ antialias: true })
-renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-mount.appendChild(renderer.domElement)
+const RADIUS = 1000
 
-const scene = new THREE.Scene()
-scene.background = new THREE.Color(0x87ceeb)
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000)
-camera.position.set(0, 6, 12)
-camera.lookAt(0, 0, 0)
+const app = document.getElementById('app')!
+const ui = document.getElementById('ui')!
+const stage: Stage = createStage(app)
+const loading = createLoading(ui)
+const keyboard = new Keyboard()
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6))
-const sun = new THREE.DirectionalLight(0xffffff, 1)
-sun.position.set(50, 100, 50)
-scene.add(sun)
+let worldGroup: import('three').Object3D[] = []
+let car: CarState | null = null
+let grid = new SpatialGrid([], 25)
+let provider: ElevationProvider = new FlatProvider()
+let stopLoop: (() => void) | null = null
 
-// TEMPORARY visual harness (Task 8): fake sine-wave elevation provider so ground
-// displacement is visible without network access. Replaced/expanded in later tasks.
-const fake = { heightAt: (x: number, z: number) => Math.sin(x * 0.05) * 4 + Math.cos(z * 0.05) * 4 }
-const ground = buildGround(fake, 200, 128)
-scene.add(ground)
-camera.position.set(0, 80, 160)
-camera.lookAt(0, 0, 0)
+async function loadCity(query: string): Promise<void> {
+  try {
+    loading.show('Ищу город…')
+    const center = await geocode(query)
+    const projector = new Projector(center)
+    const bbox = bboxAround(center, RADIUS)
 
-// TEMPORARY visual harness (Task 9): demo building footprints extruded on top
-// of the fake ground provider. Replaced/expanded in later tasks.
-const demoBuildings: Building[] = [
-  { footprint: [{ x: -20, z: -20 }, { x: 0, z: -20 }, { x: 0, z: 0 }, { x: -20, z: 0 }], height: 30 },
-  { footprint: [{ x: 10, z: 10 }, { x: 30, z: 10 }, { x: 30, z: 40 }, { x: 10, z: 40 }], height: 15 },
-]
-const { mesh: buildingsMesh } = buildBuildings(demoBuildings, fake)
-scene.add(buildingsMesh)
+    loading.show('Загружаю карту OSM…')
+    const key = bboxKey(bbox)
+    let osm = await cacheGet(key)
+    if (!osm) {
+      osm = await fetchOsm(bbox)
+      await cachePut(key, osm)
+    }
+    const world = parseOsm(osm, projector)
 
-// TEMPORARY visual harness (Task 10): demo road ribbons draped on the fake
-// ground provider. Replaced/expanded in later tasks.
-const demoRoads: Road[] = [
-  { kind: 'motorway', points: [{ x: -150, z: 0 }, { x: 150, z: 0 }] },
-  { kind: 'residential', points: [{ x: 0, z: -150 }, { x: 0, z: 150 }] },
-]
-scene.add(buildRoads(demoRoads, fake))
+    loading.show('Загружаю рельеф…')
+    try {
+      provider = await loadTerrarium(center, bbox, projector)
+    } catch {
+      provider = new FlatProvider() // graceful fallback
+    }
 
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
-})
+    // clear previous world
+    for (const obj of worldGroup) stage.scene.remove(obj)
+    worldGroup = []
 
-renderer.setAnimationLoop(() => {
-  renderer.render(scene, camera)
-})
+    const ground = buildGround(provider, RADIUS, 160)
+    const { mesh: buildingsMesh, footprints } = buildBuildings(world.buildings, provider)
+    const roadsMesh = buildRoads(world.roads, provider)
+    for (const obj of [ground, buildingsMesh, roadsMesh]) {
+      stage.scene.add(obj)
+      worldGroup.push(obj)
+    }
+
+    grid = new SpatialGrid(footprints, 25)
+    car = createCar(0, 0)
+    car.y = provider.heightAt(0, 0)
+
+    loading.hide()
+
+    if (!stopLoop) {
+      stopLoop = startLoop((dt) => {
+        if (!car) return
+        car = stepCar(car, keyboard.read(), dt, grid, provider)
+        syncCamera(stage, car)
+        stage.renderer.render(stage.scene, stage.camera)
+      })
+    }
+  } catch (e) {
+    loading.error(e instanceof Error ? e.message : 'Не удалось загрузить город')
+  }
+}
+
+createCityInput(ui, (q) => void loadCity(q))
+void loadCity('Тбилиси')
