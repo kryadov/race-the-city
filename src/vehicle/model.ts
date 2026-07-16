@@ -18,6 +18,7 @@ function wheel(radius: number, width: number, x: number, y: number, z: number): 
   geo.rotateX(Math.PI / 2) // axle Y → Z
   const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x1a1a1e, flatShading: true }))
   m.position.set(x, y, z)
+  m.userData.wheelRadius = radius // tag so the render loop can spin it by rolling distance
   return m
 }
 
