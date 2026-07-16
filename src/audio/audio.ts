@@ -88,8 +88,8 @@ export class AudioEngine {
     noise.loop = true
     const bp = ctx.createBiquadFilter()
     bp.type = 'bandpass'
-    bp.frequency.value = 1800
-    bp.Q.value = 0.7
+    bp.frequency.value = 950
+    bp.Q.value = 0.9
     noise.connect(bp)
     bp.connect(this.skidGain)
     noise.start()
@@ -115,8 +115,10 @@ export class AudioEngine {
 
   updateSkid(slipFraction: number): void {
     if (!this.ctx || !this.skidGain) return
-    const g = Math.min(0.25, Math.max(0, slipFraction))
-    this.skidGain.gain.setTargetAtTime(g, this.ctx.currentTime, 0.05)
+    // Silent through gentle cornering; only real slides screech, and softly.
+    const over = Math.max(0, slipFraction - 0.4)
+    const g = Math.min(0.09, over * 0.18)
+    this.skidGain.gain.setTargetAtTime(g, this.ctx.currentTime, 0.06)
   }
 
   thud(): void {
