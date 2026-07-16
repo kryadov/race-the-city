@@ -80,10 +80,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       factor as the street lamps — done in v0.66.0
 - [x] Shadows (sun shadow map, car-following frustum, menu toggle) — done in v0.23.0
 - [x] Sky dome with gradient + sun disc — done in v0.33.0
-- [x] **Stars at night** — hashed from the view direction in the sky shader, no new
-      objects or draw calls — done in v0.60.0
+- [x] **Stars at night** — hashed from the view direction in the sky shader, no new objects or
+      draw calls — v0.60.0; sized up to actually be visible, plus a moon — v0.68.2
 - [x] Clouds + menu toggle — done in v0.27.0
-- [ ] **A moon at night** — a disc opposite the sun, like the sun disc in the sky shader
 - [ ] Bloom / post-processing for neon mode
 - [ ] Water reflections, ripple animation
 - [ ] Rounder low-poly buildings, more colour variety
