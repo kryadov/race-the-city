@@ -25,7 +25,7 @@ npm run dev
 
 Open the URL Vite prints (usually `http://localhost:5173`). The default city loads
 automatically; open the **⚙ settings menu** (top-right) to change the city, language,
-view mode, and vehicle. Click **Go** and you can drive within a few seconds.
+view mode, vehicle, and audio. Click **Go** and you can drive within a few seconds.
 
 ### Commands
 
@@ -129,7 +129,7 @@ When you publish, respect the source licences:
 
 - Parks, water, and trees from OSM
 - More vehicles and handling tuning
-- Minimap, day/night cycle, engine sound
+- Minimap, day/night cycle
 - A racing mode on top: checkpoints, timer, best lap
 
 Smaller technical follow-ups: brake tuning, smoothing road seams at sharp turns,

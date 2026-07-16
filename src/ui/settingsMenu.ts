@@ -1,6 +1,7 @@
 import { t, getLang, setLang, onLangChange, LANGS } from '../i18n/i18n'
 import { VEHICLE_TYPES, type VehicleType } from '../vehicle/vehicles'
 import type { ViewMode } from '../app/theme'
+import type { AudioState } from '../audio/audio'
 
 const VEHICLE_EMOJI: Record<VehicleType, string> = { car: '🚗', truck: '🚚', sports: '🏎' }
 const ACTIVE = '#e63946'
@@ -11,6 +12,7 @@ export interface SettingsCallbacks {
   onSetDefaultCity: (query: string) => void
   onSetView: (mode: ViewMode) => void
   onSelectVehicle: (type: VehicleType) => void
+  onAudioChange: (patch: Partial<AudioState>) => void
 }
 
 export interface SettingsHandle {
@@ -27,11 +29,12 @@ function button(): HTMLButtonElement {
 /** ⚙ button that opens a panel holding every setting ("all in the menu"). */
 export function createSettingsMenu(
   root: HTMLElement,
-  initial: { city: string; view: ViewMode; vehicle: VehicleType },
+  initial: { city: string; view: ViewMode; vehicle: VehicleType; audio: AudioState },
   cb: SettingsCallbacks,
 ): SettingsHandle {
   let view = initial.view
   let vehicle = initial.vehicle
+  let audio = initial.audio
 
   const gear = document.createElement('button')
   gear.textContent = '⚙'
@@ -130,7 +133,44 @@ export function createSettingsMenu(
   }
   vehSec.appendChild(vehRow)
 
-  panel.append(citySec, langSec, viewSec, vehSec)
+  // --- Audio ---
+  const audioSec = section('menu.audio')
+  const audioRow = (vol: number, title: string): { r: HTMLDivElement; btn: HTMLButtonElement; slider: HTMLInputElement } => {
+    const r = row()
+    r.style.alignItems = 'center'
+    const btn = button()
+    const slider = document.createElement('input')
+    slider.type = 'range'
+    slider.min = '0'
+    slider.max = '1'
+    slider.step = '0.05'
+    slider.value = String(vol)
+    slider.style.cssText = 'flex:1'
+    slider.title = title
+    r.append(btn, slider)
+    return { r, btn, slider }
+  }
+  const sound = audioRow(audio.soundVol, t('menu.sound'))
+  const music = audioRow(audio.musicVol, t('menu.music'))
+  sound.btn.addEventListener('click', () => {
+    audio = { ...audio, sound: !audio.sound }
+    cb.onAudioChange({ sound: audio.sound })
+    paintAudio()
+  })
+  sound.slider.addEventListener('input', () => cb.onAudioChange({ soundVol: Number(sound.slider.value) }))
+  music.btn.addEventListener('click', () => {
+    audio = { ...audio, music: !audio.music }
+    cb.onAudioChange({ music: audio.music })
+    paintAudio()
+  })
+  music.slider.addEventListener('input', () => cb.onAudioChange({ musicVol: Number(music.slider.value) }))
+  audioSec.append(sound.r, music.r)
+  function paintAudio(): void {
+    sound.btn.textContent = audio.sound ? '🔊' : '🔇'
+    music.btn.textContent = audio.music ? '🎵' : '🔕'
+  }
+
+  panel.append(citySec, langSec, viewSec, vehSec, audioSec)
   root.append(gear, panel)
 
   function paintLabels(): void {
@@ -154,6 +194,7 @@ export function createSettingsMenu(
   const paint = (): void => {
     paintLabels()
     paintStates()
+    paintAudio()
   }
   paint()
   onLangChange(paint)
