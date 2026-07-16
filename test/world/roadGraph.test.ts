@@ -90,3 +90,21 @@ describe('angleDelta', () => {
     }
   })
 })
+
+describe('tunnels are not part of the network', () => {
+  it('leaves a tunnel out of the driving graph', () => {
+    // A tunnel runs under the buildings, which are solid: routing a car down one
+    // drives it into a wall. Monaco is largely tunnels.
+    const g = buildRoadGraph([{ points: [v(0, 0), v(100, 0)], kind: 'primary', tunnel: true }])
+    expect(g.nodes).toHaveLength(0)
+  })
+
+  it('still takes the surface road beside it', () => {
+    const g = buildRoadGraph([
+      { points: [v(0, 0), v(100, 0)], kind: 'primary', tunnel: true },
+      { points: [v(0, 50), v(100, 50)], kind: 'primary' },
+    ])
+    expect(g.nodes.length).toBeGreaterThan(0)
+    for (const n of g.nodes) expect(n.z).toBe(50) // only the surface one
+  })
+})

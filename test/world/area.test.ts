@@ -48,3 +48,27 @@ describe('inradius', () => {
     expect(inradius([v(0, 0), v(50, 0), v(50, 1), v(0, 1)]).r).toBeLessThan(1)
   })
 })
+
+describe('circleFits', () => {
+  it('accepts a boat that stays in the water', async () => {
+    const { circleFits } = await import('../../src/app/boats')
+    const lake = square(200)
+    // a small boat circling the middle of a big lake
+    expect(circleFits(lake, 100, 100, 40, 3)).toBe(true)
+  })
+
+  it('rejects one whose hull would swing onto the bank', () => {
+    // this is the check that matters: the centre is in the water and the ends
+    // are not, which is a ship in a field
+    return import('../../src/app/boats').then(({ circleFits }) => {
+      const pond = square(60)
+      expect(circleFits(pond, 30, 30, 25, 19)).toBe(false)
+    })
+  })
+
+  it('rejects a circle whose centre is outside the shape entirely', () => {
+    return import('../../src/app/boats').then(({ circleFits }) => {
+      expect(circleFits(square(50), 500, 500, 5, 2)).toBe(false)
+    })
+  })
+})

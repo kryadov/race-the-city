@@ -48,6 +48,9 @@ export function buildRoadGraph(roads: Road[], cell = 0.5): RoadGraph {
 
   for (const road of roads) {
     if (UNDRIVABLE.has(road.kind)) continue
+    // Tunnels aren't modelled — they're under the buildings, which are solid.
+    // Routing traffic through one drives it into a wall.
+    if (road.tunnel) continue
     let prev = -1
     for (const p of road.points) {
       const id = idOf(p)

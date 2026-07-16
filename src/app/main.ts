@@ -313,7 +313,11 @@ async function loadCity(query: string): Promise<void> {
     const deckList = buildDecks(bridgeRoads, provider)
     decks = createDeckIndex(deckList)
     const bridgesMesh = buildBridges(deckList, provider)
-    const tunnelsMesh = buildRoads(world.roads.filter((r) => r.tunnel && !r.bridge), provider, { color: 0x3d3e45 })
+    // Tunnels are not drawn. They run under the city, and painting one on the
+    // surface lays a road into the side of whatever is built above it — Monaco
+    // is full of them. Nothing else uses them either: no markings, no lamps, and
+    // the traffic graph leaves them out, so nobody drives into a building.
+    const tunnelsMesh = new THREE.Group()
     const railsMesh = buildRailways(world.railways, provider)
     // A bridge's markings, lamps and signs belong on its deck. Everything else
     // reads the terrain, so the road running *under* an overpass keeps its own.
@@ -324,7 +328,7 @@ async function loadCity(query: string): Promise<void> {
       heightAt: (x, z) => decksWide.heightAt(x, z) ?? provider.heightAt(x, z),
     }
     const detail = new THREE.Group()
-    detail.add(buildRoadDetail(normalRoads.concat(world.roads.filter((r) => r.tunnel && !r.bridge)), provider))
+    detail.add(buildRoadDetail(normalRoads, provider))
     if (bridgeRoads.length) detail.add(buildRoadDetail(bridgeRoads, deckProvider))
     roadDetailMesh = detail
     roadDetailMesh.visible = getRoadDetail()

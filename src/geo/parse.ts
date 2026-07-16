@@ -222,8 +222,20 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       if (ns && ns.length >= 2) outers.push(ns)
     }
     for (const ringIds of stitchRings(outers)) {
-      const pts = ringIds.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
-      if (pts.length >= 3) water.push(pts)
+      // Every node or none. Dropping the ones we haven't got leaves a ring with a
+      // hole in it, which is not a ring — it is a polygon that cuts the corner
+      // across dry land, and anything we float on it sails over a field.
+      const pts: Vec2[] = []
+      let whole = true
+      for (const id of ringIds) {
+        const p = nodes.get(id)
+        if (!p) {
+          whole = false
+          break
+        }
+        pts.push(p)
+      }
+      if (whole && pts.length >= 3) water.push(pts)
     }
   }
 

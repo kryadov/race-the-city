@@ -3,11 +3,15 @@ import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { inradius } from '../world/area'
 import { waterLevel } from '../world/water'
+import { pointInPolygon } from '../physics/collide'
 
 /** A ship needs this much clear water around it, in metres. */
 const SHIP_ROOM = 55
 /** A rowing boat is happy on anything from a pond up. */
 const ROWBOAT_ROOM = 14
+/** Half the length of each hull — what has to stay wet, not just its centre. */
+const SHIP_HALF = 19
+const ROWBOAT_HALF = 2.4
 const SHIP_SPEED = 4.5
 const ROW_SPEED = 1.2
 
@@ -39,6 +43,34 @@ function makeRng(seed: number): () => number {
 
 const mat = (c: number): THREE.MeshStandardMaterial =>
   new THREE.MeshStandardMaterial({ color: c, flatShading: true })
+
+/**
+ * Is a boat of half-length `half`, going round a circle of `radius` about
+ * (cx, cz), in the water the whole way round?
+ *
+ * Checked at the hull's ends rather than its centre, which is the difference
+ * between a ship afloat and a ship in a car park.
+ */
+export function circleFits(
+  ring: Vec2[],
+  cx: number,
+  cz: number,
+  radius: number,
+  half: number,
+): boolean {
+  const STEPS = 16
+  for (let i = 0; i < STEPS; i++) {
+    const a = (i / STEPS) * Math.PI * 2
+    const x = cx + Math.cos(a) * radius
+    const z = cz + Math.sin(a) * radius
+    // The hull lies along the circle, so its ends are a tangent step either way.
+    const tx = -Math.sin(a) * half
+    const tz = Math.cos(a) * half
+    if (!pointInPolygon(x + tx, z + tz, ring)) return false
+    if (!pointInPolygon(x - tx, z - tz, ring)) return false
+  }
+  return true
+}
 
 /** A small cargo ship, pointing +x. */
 function ship(): THREE.Group {
@@ -111,14 +143,25 @@ export function createBoats(
     const big = fit.r >= SHIP_ROOM
     if (rand() > (big ? 0.75 : 0.4)) continue // not every stretch has one
 
+    // The hull has to stay wet, not just the point it turns about: a 38m ship
+    // spinning about its middle reaches 19m out before it has gone anywhere.
+    const half = big ? SHIP_HALF : ROWBOAT_HALF
+    const radius = (fit.r - half) * 0.5
+    if (radius <= 1) continue
+
+    // And prove it: walk the circle and check the hull's ends are still in the
+    // water. inradius fits the biggest circle it can find, but a ring that came
+    // out of the data misshapen can put that circle somewhere silly — and a ship
+    // on a field is worse than no ship.
+    if (!circleFits(ring, fit.x, fit.z, radius, half)) continue
+
     const mesh = big ? ship() : rowboat()
     group.add(mesh)
     afloat.push({
       mesh,
       cx: fit.x,
       cz: fit.z,
-      // Circle well inside the widest point, so it never touches the bank.
-      radius: fit.r * 0.45,
+      radius,
       angle: rng() * Math.PI * 2,
       speed: big ? SHIP_SPEED : ROW_SPEED,
       turn: rng() < 0.5 ? 1 : -1,
