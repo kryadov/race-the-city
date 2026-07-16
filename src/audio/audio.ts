@@ -22,7 +22,7 @@ const TRACKS: Track[] = [
 export const TRACK_NAMES: readonly string[] = TRACKS.map((t) => t.name)
 
 const KEY = 'rtc.audio'
-const DEFAULTS: AudioState = { sound: true, music: true, soundVol: 0.6, musicVol: 0.35, track: 0 }
+const DEFAULTS: AudioState = { sound: true, music: false, soundVol: 0.6, musicVol: 0.35, track: 0 }
 
 /** Engine oscillator frequency (Hz) from a 0..1 speed fraction. Pure/testable. */
 export function engineFrequency(speedFraction: number): number {
