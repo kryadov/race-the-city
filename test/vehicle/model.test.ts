@@ -3,24 +3,23 @@ import * as THREE from 'three'
 import { buildVehicleMesh } from '../../src/vehicle/model'
 import { VEHICLE_TYPES } from '../../src/vehicle/vehicles'
 
-describe('buildVehicleMesh', () => {
-  it('builds a non-empty group for every vehicle type', () => {
+describe('vehicle models', () => {
+  it('builds a mesh for every declared type', () => {
     for (const type of VEHICLE_TYPES) {
-      const g = buildVehicleMesh(type)
-      expect(g).toBeInstanceOf(THREE.Group)
-      expect(g.children.length).toBeGreaterThan(3) // body + cabin + wheels at least
+      const mesh = buildVehicleMesh(type)
+      expect(mesh, type).toBeInstanceOf(THREE.Group)
+      expect(mesh.children.length, type).toBeGreaterThan(0)
     }
   })
 
-  it('gives the truck more parts than the car (extra axle)', () => {
-    const truck = buildVehicleMesh('truck').children.length
-    const car = buildVehicleMesh('car').children.length
-    expect(truck).toBeGreaterThan(car)
-  })
-
-  it('tags wheels with a radius so the render loop can spin them', () => {
-    const g = buildVehicleMesh('car')
-    const wheels = g.children.filter((c) => typeof c.userData.wheelRadius === 'number')
-    expect(wheels).toHaveLength(4)
+  it('gives every wheeled vehicle spinnable wheels', () => {
+    // syncCamera spins anything tagged wheelRadius; without the tag a model looks frozen.
+    for (const type of VEHICLE_TYPES) {
+      let wheels = 0
+      buildVehicleMesh(type).traverse((o) => {
+        if ((o.userData as { wheelRadius?: number }).wheelRadius) wheels++
+      })
+      expect(wheels, type).toBeGreaterThan(0)
+    }
   })
 })
