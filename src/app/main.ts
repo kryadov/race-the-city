@@ -164,9 +164,13 @@ function applyWeatherSetting(s: WeatherSetting): void {
     showWeather(s) // not 'auto' here: that is the branch above
   }
 }
-applyWeatherSetting(getWeather())
 const clouds = createClouds(stage.scene)
 clouds.setEnabled(getClouds())
+// After the clouds exist: applying the weather now sets the sky to match, and
+// this runs at module scope, where a const declared below is still in its
+// temporal dead zone. Reaching it through a function hides that from the
+// compiler — it threw at startup and took the whole app with it.
+applyWeatherSetting(getWeather())
 const sky = createSky(stage.scene)
 const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
