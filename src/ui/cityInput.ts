@@ -1,4 +1,5 @@
 import type { ViewMode } from '../app/theme'
+import { t, getLang, setLang, onLangChange, LANGS } from '../i18n/i18n'
 
 export interface CityInputHandle {
   /** Reflect the current view mode on the toggle button. */
@@ -17,23 +18,38 @@ export function createCityInput(
     'padding:8px;border-radius:10px'
 
   const input = document.createElement('input')
-  input.placeholder = 'Город или "lat,lon"'
-  input.value = 'Тбилиси'
+  input.placeholder = t('input.placeholder')
+  input.value = 'Monte Carlo'
   input.style.cssText = 'padding:8px 10px;border:0;border-radius:6px;font-size:14px;width:220px'
 
   const btn = document.createElement('button')
-  btn.textContent = 'Поехали'
+  btn.textContent = t('input.go')
   btn.style.cssText =
     'padding:8px 14px;border:0;border-radius:6px;background:#e63946;color:#fff;font-size:14px;cursor:pointer'
 
+  const secondary = 'padding:8px 12px;border:0;border-radius:6px;background:#26303f;color:#fff;font-size:14px;cursor:pointer'
+
   const viewBtn = document.createElement('button')
-  viewBtn.title = 'Переключить вид (клавиша V)'
-  viewBtn.style.cssText =
-    'padding:8px 12px;border:0;border-radius:6px;background:#26303f;color:#fff;font-size:14px;cursor:pointer'
+  viewBtn.title = t('view.title')
+  viewBtn.style.cssText = secondary
+  let currentMode: ViewMode = 'day'
   const setViewMode = (mode: ViewMode): void => {
-    viewBtn.textContent = mode === 'neon' ? '🌐 Neon' : '☀ День'
+    currentMode = mode
+    viewBtn.textContent = mode === 'neon' ? t('view.neon') : t('view.day')
   }
   setViewMode('day')
+
+  const langBtn = document.createElement('button')
+  langBtn.title = t('lang.title')
+  langBtn.style.cssText = secondary
+  const renderLang = (): void => {
+    langBtn.textContent = getLang().toUpperCase()
+  }
+  renderLang()
+  langBtn.addEventListener('click', () => {
+    const i = LANGS.indexOf(getLang())
+    setLang(LANGS[(i + 1) % LANGS.length])
+  })
 
   const go = (): void => {
     if (input.value.trim()) onSubmit(input.value.trim())
@@ -44,8 +60,17 @@ export function createCityInput(
   })
   viewBtn.addEventListener('click', onToggleView)
 
-  bar.append(input, btn, viewBtn)
+  bar.append(input, btn, viewBtn, langBtn)
   root.appendChild(bar)
+
+  onLangChange(() => {
+    input.placeholder = t('input.placeholder')
+    btn.textContent = t('input.go')
+    viewBtn.title = t('view.title')
+    setViewMode(currentMode) // refresh the day/neon label in the new language
+    langBtn.title = t('lang.title')
+    renderLang()
+  })
 
   return { setViewMode }
 }

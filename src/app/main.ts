@@ -12,6 +12,7 @@ import { ThemeController } from './theme'
 import { createCityInput } from '../ui/cityInput'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
+import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm } from '../geo/overpass'
 import { bboxKey, cacheGet, cachePut } from '../geo/cache'
@@ -48,12 +49,12 @@ async function loadCity(query: string): Promise<void> {
   if (loading_) return
   loading_ = true
   try {
-    loading.show('Ищу город…')
+    loading.show(t('loading.geocoding'))
     const center = await geocode(query)
     const projector = new Projector(center)
     const bbox = bboxAround(center, RADIUS)
 
-    loading.show('Загружаю карту OSM…')
+    loading.show(t('loading.osm'))
     const key = bboxKey(bbox)
     let osm = await cacheGet(key)
     if (!osm) {
@@ -62,7 +63,7 @@ async function loadCity(query: string): Promise<void> {
     }
     const world = parseOsm(osm, projector)
 
-    loading.show('Загружаю рельеф…')
+    loading.show(t('loading.terrain'))
     try {
       provider = await loadTerrarium(center, bbox, projector)
     } catch {
@@ -105,7 +106,8 @@ async function loadCity(query: string): Promise<void> {
       })
     }
   } catch (e) {
-    loading.error(e instanceof Error ? e.message : 'Не удалось загрузить город')
+    const key = e instanceof Error && e.message === 'city not found' ? 'error.cityNotFound' : 'error.loadFailed'
+    loading.error(t(key))
   } finally {
     loading_ = false
   }
@@ -121,4 +123,4 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === '-' || e.key === '_') stage.camDist = clampCamDist(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
 })
-void loadCity('Тбилиси')
+void loadCity('Monte Carlo')
