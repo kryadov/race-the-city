@@ -1,5 +1,12 @@
 import * as THREE from 'three'
-import { createStage, syncCamera, type Stage } from './scene'
+import {
+  createStage,
+  syncCamera,
+  CAM_DIST_MIN,
+  CAM_DIST_MAX,
+  CAM_DIST_STEP,
+  type Stage,
+} from './scene'
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
 import { createCityInput } from '../ui/cityInput'
@@ -104,9 +111,12 @@ async function loadCity(query: string): Promise<void> {
 
 const cityUi = createCityInput(ui, (q) => void loadCity(q), () => theme.toggle())
 theme.onChange = (mode) => cityUi.setViewMode(mode)
+const clampCamDist = (d: number): number => Math.min(CAM_DIST_MAX, Math.max(CAM_DIST_MIN, d))
 window.addEventListener('keydown', (e) => {
   const t = e.target as HTMLElement | null
-  if (t && (t.tagName === 'INPUT' || t.isContentEditable)) return // don't toggle while typing a city
-  if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
+  if (t && (t.tagName === 'INPUT' || t.isContentEditable)) return // ignore while typing a city
+  if (e.key === '+' || e.key === '=') stage.camDist = clampCamDist(stage.camDist - CAM_DIST_STEP) // zoom in
+  else if (e.key === '-' || e.key === '_') stage.camDist = clampCamDist(stage.camDist + CAM_DIST_STEP) // zoom out
+  else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
 })
 void loadCity('Тбилиси')

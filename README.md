@@ -44,6 +44,7 @@ Type a city into the box at the top, click **"Поехали"** (Go), and you ca
 | `S` / `↓` | Reverse / brake |
 | `A` / `←`, `D` / `→` | Steer |
 | `Space` | Brake |
+| `+` / `-` | Zoom camera in / out |
 | `V` | Toggle view: day ↔ neon wireframe |
 
 The camera follows the car from behind. You can't drive through buildings — the car

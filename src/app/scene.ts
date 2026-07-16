@@ -6,7 +6,13 @@ export interface Stage {
   camera: THREE.PerspectiveCamera
   renderer: THREE.WebGLRenderer
   carMesh: THREE.Object3D
+  /** Follow-camera distance multiplier (1 = default; smaller = closer). */
+  camDist: number
 }
+
+export const CAM_DIST_MIN = 0.4
+export const CAM_DIST_MAX = 3
+export const CAM_DIST_STEP = 0.15
 
 export function createStage(mount: HTMLElement): Stage {
   const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -37,7 +43,7 @@ export function createStage(mount: HTMLElement): Stage {
     renderer.setSize(window.innerWidth, window.innerHeight)
   })
 
-  return { scene, camera, renderer, carMesh }
+  return { scene, camera, renderer, carMesh, camDist: 1 }
 }
 
 const camPos = new THREE.Vector3()
@@ -48,7 +54,7 @@ export function syncCamera(stage: Stage, car: CarState, dt: number): void {
   stage.carMesh.position.set(car.x, car.y + 0.8, car.z)
   stage.carMesh.rotation.y = -car.heading // box faces +x at heading 0
 
-  const back = 14, up = 7
+  const back = 14 * stage.camDist, up = 7 * stage.camDist
   camPos.set(car.x - Math.cos(car.heading) * back, car.y + up, car.z - Math.sin(car.heading) * back)
   // Exponential smoothing: equal easing per real second regardless of frame rate.
   const t = 1 - Math.exp(-CAM_SMOOTH_K * dt)
