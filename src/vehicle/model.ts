@@ -12,17 +12,32 @@ function box(w: number, h: number, d: number, color: number, x: number, y: numbe
   return m
 }
 
-/** A wheel: cylinder with its axle along z (rolls forward along x). */
-function wheel(radius: number, width: number, x: number, y: number, z: number): THREE.Mesh {
-  const geo = new THREE.CylinderGeometry(radius, radius, width, 12)
-  geo.rotateX(Math.PI / 2) // axle Y → Z
-  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x1a1a1e, flatShading: true }))
-  m.position.set(x, y, z)
-  m.userData.wheelRadius = radius // tag so the render loop can spin it by rolling distance
-  return m
+/**
+ * A wheel (axle along z, rolls along x): dark tire + light rim + a spoke bar so
+ * the spin is visible. The whole group is tagged so the render loop rotates it.
+ */
+function wheel(radius: number, width: number, x: number, y: number, z: number): THREE.Object3D {
+  const g = new THREE.Group()
+  const mat = (c: number): THREE.MeshStandardMaterial =>
+    new THREE.MeshStandardMaterial({ color: c, flatShading: true })
+
+  const tire = new THREE.CylinderGeometry(radius, radius, width, 14)
+  tire.rotateX(Math.PI / 2) // axle Y → Z
+  g.add(new THREE.Mesh(tire, mat(0x141418)))
+
+  const rim = new THREE.CylinderGeometry(radius * 0.55, radius * 0.55, width * 1.06, 12)
+  rim.rotateX(Math.PI / 2)
+  g.add(new THREE.Mesh(rim, mat(0xc2c6ce)))
+
+  // spoke bar across the rim (in the wheel's xy plane) to read rotation
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(radius * 1.5, radius * 0.16, width * 1.08), mat(0x6a6f78)))
+
+  g.position.set(x, y, z)
+  g.userData.wheelRadius = radius // render loop spins this group by rolling distance
+  return g
 }
 
-function fourWheels(radius: number, width: number, axleX: number, halfTrack: number, y: number): THREE.Mesh[] {
+function fourWheels(radius: number, width: number, axleX: number, halfTrack: number, y: number): THREE.Object3D[] {
   return [
     wheel(radius, width, axleX, y, halfTrack),
     wheel(radius, width, axleX, y, -halfTrack),
