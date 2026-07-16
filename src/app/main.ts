@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
-import type { Building } from '../geo/types'
+import { buildRoads } from '../world/roads'
+import type { Building, Road } from '../geo/types'
 
 const mount = document.getElementById('app')!
 const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -36,6 +37,14 @@ const demoBuildings: Building[] = [
 ]
 const { mesh: buildingsMesh } = buildBuildings(demoBuildings, fake)
 scene.add(buildingsMesh)
+
+// TEMPORARY visual harness (Task 10): demo road ribbons draped on the fake
+// ground provider. Replaced/expanded in later tasks.
+const demoRoads: Road[] = [
+  { kind: 'motorway', points: [{ x: -150, z: 0 }, { x: 150, z: 0 }] },
+  { kind: 'residential', points: [{ x: 0, z: -150 }, { x: 0, z: 150 }] },
+]
+scene.add(buildRoads(demoRoads, fake))
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
