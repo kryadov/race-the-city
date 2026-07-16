@@ -1,5 +1,70 @@
 import { describe, it, expect } from 'vitest'
-import { engineFrequency, TRACKS, TRACK_NAMES, pickTrack, MUSIC_DEFAULTS } from '../../src/audio/audio'
+import {
+  engineFrequency,
+  TRACKS,
+  TRACK_NAMES,
+  pickTrack,
+  MUSIC_DEFAULTS,
+  engineProfile,
+  idleGain,
+  IDLE_MUTE_AFTER,
+} from '../../src/audio/audio'
+import { VEHICLE_TYPES } from '../../src/vehicle/vehicles'
+
+describe('engine character', () => {
+  it('gives every vehicle a profile', () => {
+    for (const type of VEHICLE_TYPES) {
+      const p = engineProfile(type)
+      expect(p.base, type).toBeGreaterThan(0)
+      expect(p.range, type).toBeGreaterThan(0)
+    }
+  })
+
+  it('makes a racecar scream and a tiller putter', () => {
+    const race = engineProfile('racecar')
+    const tiller = engineProfile('tiller')
+    // at full chat the racecar must sit well above the tiller
+    expect(engineFrequency(1, race)).toBeGreaterThan(engineFrequency(1, tiller) * 2)
+  })
+
+  it('keeps the heavy diesels below the cars', () => {
+    for (const heavy of ['lorry', 'bus', 'tanker', 'crane'] as const) {
+      expect(engineFrequency(0, engineProfile(heavy)), heavy).toBeLessThan(
+        engineFrequency(0, engineProfile('car')),
+      )
+    }
+  })
+
+  it('still rises with speed and clamps, whatever the vehicle', () => {
+    for (const type of VEHICLE_TYPES) {
+      const p = engineProfile(type)
+      expect(engineFrequency(1, p), type).toBeGreaterThan(engineFrequency(0, p))
+      expect(engineFrequency(5, p), type).toBeCloseTo(engineFrequency(1, p))
+      expect(engineFrequency(-5, p), type).toBeCloseTo(engineFrequency(0, p))
+    }
+  })
+})
+
+describe('idleGain', () => {
+  it('holds the engine at full while it has been idle only briefly', () => {
+    expect(idleGain(0)).toBe(1)
+    expect(idleGain(IDLE_MUTE_AFTER - 0.1)).toBe(1)
+  })
+
+  it('fades the engine out once parked past the threshold', () => {
+    expect(idleGain(IDLE_MUTE_AFTER + 0.5)).toBeLessThan(1)
+    expect(idleGain(IDLE_MUTE_AFTER + 0.5)).toBeGreaterThan(0)
+  })
+
+  it('reaches silence and stays there', () => {
+    expect(idleGain(IDLE_MUTE_AFTER + 10)).toBe(0)
+    expect(idleGain(9999)).toBe(0)
+  })
+
+  it('never goes negative', () => {
+    for (let t = 0; t < 60; t += 0.37) expect(idleGain(t)).toBeGreaterThanOrEqual(0)
+  })
+})
 
 describe('music tracks', () => {
   it('ships real audio files, not procedural loops', () => {

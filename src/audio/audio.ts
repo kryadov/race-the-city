@@ -1,3 +1,5 @@
+import type { VehicleType } from '../vehicle/vehicles'
+
 export interface AudioState {
   sound: boolean
   music: boolean
@@ -39,10 +41,69 @@ const KEY = 'rtc.audio'
 export const MUSIC_DEFAULTS: AudioState = { sound: true, music: true, soundVol: 0.6, musicVol: 0.35, track: 0 }
 const DEFAULTS = MUSIC_DEFAULTS
 
+/** How a given vehicle's engine sounds. */
+export interface EngineProfile {
+  base: number // idle frequency, Hz
+  range: number // how much it climbs at full speed, Hz
+  wave: OscillatorType
+  cutoff: number // low-pass at idle, Hz — how muffled it is
+  gain: number // relative loudness
+}
+
+const DIESEL: EngineProfile = { base: 34, range: 90, wave: 'sawtooth', cutoff: 130, gain: 1.15 }
+const PETROL: EngineProfile = { base: 55, range: 210, wave: 'sawtooth', cutoff: 180, gain: 1 }
+const RACE: EngineProfile = { base: 90, range: 470, wave: 'sawtooth', cutoff: 320, gain: 1.1 }
+const SMALL: EngineProfile = { base: 42, range: 120, wave: 'square', cutoff: 150, gain: 0.7 }
+const ELECTRIC: EngineProfile = { base: 160, range: 340, wave: 'triangle', cutoff: 900, gain: 0.5 }
+const TURBINE: EngineProfile = { base: 120, range: 260, wave: 'triangle', cutoff: 600, gain: 0.75 }
+
+/**
+ * Engine character per vehicle. A tiller and a formula car both ran the same
+ * 55Hz sawtooth before this; the point is only that they read as different
+ * machines, so vehicles group onto a handful of shared profiles.
+ */
+const ENGINES: Partial<Record<VehicleType, EngineProfile>> = {
+  racecar: RACE,
+  sports: { base: 75, range: 380, wave: 'sawtooth', cutoff: 260, gain: 1.05 },
+  motorbike: { base: 70, range: 330, wave: 'sawtooth', cutoff: 240, gain: 0.9 },
+  ev: ELECTRIC,
+  hover: TURBINE,
+  truck: DIESEL,
+  lorry: DIESEL,
+  bus: DIESEL,
+  tanker: DIESEL,
+  crane: DIESEL,
+  combine: { base: 36, range: 80, wave: 'sawtooth', cutoff: 120, gain: 1.1 },
+  tractor: { base: 40, range: 95, wave: 'sawtooth', cutoff: 130, gain: 1 },
+  roller: { base: 32, range: 60, wave: 'sawtooth', cutoff: 110, gain: 1 },
+  tracked: { base: 38, range: 110, wave: 'sawtooth', cutoff: 140, gain: 1.15 },
+  tiller: SMALL,
+  retro: { base: 50, range: 160, wave: 'triangle', cutoff: 165, gain: 0.95 },
+}
+
+/** The engine profile for a vehicle; ordinary cars fall back to the petrol one. */
+export function engineProfile(type: VehicleType): EngineProfile {
+  return ENGINES[type] ?? PETROL
+}
+
 /** Engine oscillator frequency (Hz) from a 0..1 speed fraction. Pure/testable. */
-export function engineFrequency(speedFraction: number): number {
+export function engineFrequency(speedFraction: number, profile: EngineProfile = PETROL): number {
   const f = Math.max(0, Math.min(1, speedFraction))
-  return 55 + f * 210
+  return profile.base + f * profile.range
+}
+
+/** Seconds parked before the engine starts fading out. */
+export const IDLE_MUTE_AFTER = 10
+const IDLE_FADE = 1.5 // seconds to fade to silence once past it
+
+/**
+ * Engine loudness from how long the car has sat still. An idle drone is tiring
+ * when you're parked reading the map, so it fades out — and comes straight back
+ * on the throttle, because the caller resets the timer.
+ */
+export function idleGain(idleSeconds: number): number {
+  if (idleSeconds <= IDLE_MUTE_AFTER) return 1
+  return Math.max(0, 1 - (idleSeconds - IDLE_MUTE_AFTER) / IDLE_FADE)
 }
 
 function loadState(): AudioState {
@@ -73,6 +134,8 @@ export class AudioEngine {
   private engineGain: GainNode | null = null
   private engineFilter: BiquadFilterNode | null = null
   private skidGain: GainNode | null = null
+  private engine: EngineProfile = PETROL
+  private idleFor = 0 // seconds the car has sat still, for the idle fade
   private state: AudioState = loadState()
   private musicEl: HTMLAudioElement | null = null
   private musicSrc: MediaElementAudioSourceNode | null = null
@@ -118,8 +181,8 @@ export class AudioEngine {
     this.engineFilter.Q.value = 0.6
     this.engineFilter.connect(this.engineGain)
     this.engineOsc = ctx.createOscillator()
-    this.engineOsc.type = 'sawtooth'
-    this.engineOsc.frequency.value = 55
+    this.engineOsc.type = this.engine.wave
+    this.engineOsc.frequency.value = this.engine.base
     this.engineOsc.connect(this.engineFilter)
     this.engineOsc.start()
 
@@ -147,13 +210,28 @@ export class AudioEngine {
     return buf
   }
 
-  updateEngine(speedFraction: number): void {
+  /** Switch the engine's character. Call when the player picks a vehicle. */
+  setVehicle(type: VehicleType): void {
+    this.engine = engineProfile(type)
+    this.idleFor = 0
+    if (this.engineOsc) this.engineOsc.type = this.engine.wave
+  }
+
+  /**
+   * @param speedFraction 0..1 of the vehicle's top speed
+   * @param dt seconds since the last frame
+   * @param active whether the car is moving or being driven — parking mutes it
+   */
+  updateEngine(speedFraction: number, dt: number, active: boolean): void {
+    this.idleFor = active ? 0 : this.idleFor + dt
     if (!this.ctx || !this.engineOsc || !this.engineGain || !this.engineFilter) return
     const now = this.ctx.currentTime
-    this.engineOsc.frequency.setTargetAtTime(engineFrequency(speedFraction), now, 0.05)
+    const p = this.engine
+    this.engineOsc.frequency.setTargetAtTime(engineFrequency(speedFraction, p), now, 0.05)
     // Filter opens up with revs; overall level is low and near-silent at idle.
-    this.engineFilter.frequency.setTargetAtTime(180 + speedFraction * 1000, now, 0.08)
-    this.engineGain.gain.setTargetAtTime(0.015 + speedFraction * 0.07, now, 0.1)
+    this.engineFilter.frequency.setTargetAtTime(p.cutoff + speedFraction * 1000, now, 0.08)
+    const level = (0.015 + speedFraction * 0.07) * p.gain * idleGain(this.idleFor)
+    this.engineGain.gain.setTargetAtTime(level, now, 0.1)
   }
 
   updateSkid(slipFraction: number): void {

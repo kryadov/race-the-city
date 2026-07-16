@@ -151,6 +151,7 @@ let blinkClock = 0 // free-running clock for the indicator blink
 const CYCLE_SECONDS = 240 // full day/night cycle
 let timeOfDay = 0.35 // start mid-morning
 setVehicleMesh(stage, buildVehicleMesh(vehicle))
+audio.setVehicle(vehicle)
 
 let worldGroup: import('three').Object3D[] = []
 let roadDetailMesh: import('three').Object3D | null = null
@@ -322,7 +323,9 @@ async function loadCity(query: string): Promise<void> {
         hud.setSpeed(Math.abs(fwd) * 3.6)
         odometer += Math.hypot(car.vx, car.vz) * dt // ground distance travelled
         hud.setDistance(odometer)
-        audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed))
+        // Parked and hands off? The engine fades out after a few seconds.
+        const driving = Math.abs(fwd) > 0.4 || input.throttle !== 0
+        audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed), dt, driving)
         audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
         // brake lights: handbrake, or throttling backwards while still rolling forward
@@ -427,6 +430,7 @@ const menu = createSettingsMenu(
     onSetView: (mode) => theme.set(mode),
     onSelectVehicle: (type) => {
       vehicle = type
+      audio.setVehicle(type)
       setVehicleMesh(stage, buildVehicleMesh(type))
       if (car) {
         car.vx = 0 // reset momentum for the new handling

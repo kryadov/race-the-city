@@ -66,10 +66,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Custom music file upload — use your own audio file as looping music — done in v0.49.0
 - [x] **Real music tracks instead of the procedural loops** — six mp3s in `public/audio/`,
       random on startup, another at random when one ends; music on by default — done in v0.59.0
-- [ ] **Fade the engine out after ~10s stationary** — idle engine drone is tiring when parked;
-      bring it back on throttle
-- [ ] **Per-vehicle engine sound** — a tiller and a racecar share one drone today
-      (`engineFrequency()` in `src/audio/audio.ts` is speed-only, no vehicle input)
+- [x] **Fade the engine out after ~10s stationary**, back on the throttle — done in v0.61.0
+- [x] **Per-vehicle engine sound** — diesel / petrol / race / small / electric / turbine
+      profiles — done in v0.61.0
 - [ ] Horn / indicator sounds, checkpoint chime
 - [ ] Positional audio (engine quieter as camera pulls back)
 
