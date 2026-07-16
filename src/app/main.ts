@@ -689,11 +689,29 @@ const menu = createSettingsMenu(
       setZoom(stage.camDist)
     },
     onResetLocation: () => {
-      // Forget the resume point and drop ?city= so we start fresh at the default.
+      // Put the car back on the start line. Not a reload: resetting where you are
+      // has nothing to do with which city you're in, and reloading threw away the
+      // city as well and took a fresh download to get back.
       clearSession()
-      const u = new URL(location.href)
-      u.searchParams.delete('city')
-      location.href = u.toString()
+      if (!car) return
+      car.x = 0
+      car.z = 0
+      car.heading = 0
+      car.vx = 0
+      car.vz = 0
+      car.vy = 0
+      car.y = provider.heightAt(0, 0) + (HOVERS[vehicle] ? HOVER_H : 0)
+      boostTimer = 0
+      boost = 0
+      // Everything that was arranged around the old spot follows the car back.
+      nitro.setSpots(
+        lastRoads.filter((r) => !r.bridge && !r.tunnel).flatMap((r) => r.points),
+        provider,
+        car.x,
+        car.z,
+      )
+      autopilot.reset(lastRoads, car)
+      if (trial.enabled()) trial.reset(lastRoads, provider, car)
     },
     onReset: () => {
       resetSettings()
