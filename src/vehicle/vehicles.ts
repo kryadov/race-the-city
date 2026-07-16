@@ -2,6 +2,7 @@ export type VehicleType =
   | 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
   | 'retro' | 'ev' | 'minivan' | 'tanker'
   | 'crane' | 'roller' | 'combine' | 'tiller'
+  | 'tracked'
 
 export const VEHICLE_TYPES: readonly VehicleType[] = [
   'car',
@@ -21,6 +22,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'roller',
   'combine',
   'tiller',
+  'tracked',
 ]
 
 /**
@@ -31,7 +33,7 @@ export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType
   { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan'] },
   { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus', 'tanker'] },
   { key: 'vehGroup.special', types: ['tractor', 'crane', 'roller', 'combine', 'tiller'] },
-  { key: 'vehGroup.exotic', types: ['motorbike'] },
+  { key: 'vehGroup.exotic', types: ['motorbike', 'tracked'] },
 ]
 
 /** Vehicles that bank into corners (only the bike leans). */
@@ -209,5 +211,10 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
   tiller: {
     key: 'tiller', accel: 22, brakeAccel: 30, dragForward: 1.6, gripLateral: 6,
     turnRate: 2.6, turnSpeedRef: 3, maxSpeed: 8, maxReverse: 4, radius: 0.5,
+  },
+  // Tracks bite: it crawls, but it will not slide out from under you.
+  tracked: {
+    key: 'tracked', accel: 40, brakeAccel: 55, dragForward: 1.6, gripLateral: 11,
+    turnRate: 1.4, turnSpeedRef: 6, maxSpeed: 18, maxReverse: 8, radius: 1.7,
   },
 }

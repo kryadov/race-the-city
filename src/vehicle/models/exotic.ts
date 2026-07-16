@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import {
-  box, wheel, light, lens, person,
+  box, wheel, glass, light, lens, person, housingBar,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -20,5 +20,32 @@ export function buildMotorbike(): THREE.Group {
   g.add(lens(TURN_RIGHT_MAT, 0.1, 0.1, rx, 0.88, 0.2, -1), lens(TURN_LEFT_MAT, 0.1, 0.1, rx, 0.88, -0.2, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.1, 0.1, fx, 1.1, 0.26, 1), lens(TURN_LEFT_MAT, 0.1, 0.1, fx, 1.1, -0.26, 1))
   g.add(person(-0.18, 0.98, 0, true, true))
+  return g
+}
+
+/**
+ * A tracked all-terrain vehicle. The tracks are static slabs; the road wheels
+ * inside them are tagged so they spin and sell the motion.
+ */
+export function buildTracked(): THREE.Group {
+  const g = new THREE.Group()
+  const body = 0x5c6b3f // olive
+  g.add(box(3.6, 0.9, 1.7, body, 0, 1.25, 0)) // hull
+  g.add(box(2.0, 0.7, 1.5, body, -0.3, 1.95, 0)) // cabin
+  g.add(glass(0.1, 0.5, 1.3, 0.72, 2.0, 0))
+  g.add(box(0.5, 0.3, 1.6, body, 1.9, 1.1, 0)) // sloped nose
+  // track slabs down each side
+  for (const z of [1.0, -1.0]) {
+    g.add(box(4.0, 0.5, 0.42, 0x24242a, 0, 0.55, z)) // track run
+    g.add(box(0.42, 0.42, 0.42, 0x24242a, 2.0, 0.72, z)) // front idler cover
+    g.add(box(0.42, 0.42, 0.42, 0x24242a, -2.0, 0.72, z)) // rear sprocket cover
+    // road wheels peeking out of the track — these spin
+    for (const x of [1.2, 0, -1.2]) g.add(wheel(0.3, 0.3, x, 0.55, z))
+  }
+  g.add(light(2.18, 1.2, 0.6), light(2.18, 1.2, -0.6))
+  const rx = -2.02
+  g.add(housingBar(0.36, 1.4, rx, 1.4, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.3, 0.24, rx, 1.4, 0.55, -1), lens(REAR_LIGHT_MAT, 0.3, 0.24, rx, 1.4, -0.55, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 1.4, 0.2, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 1.4, -0.2, -1))
   return g
 }
