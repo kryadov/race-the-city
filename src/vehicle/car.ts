@@ -1,52 +1,91 @@
 import type { SpatialGrid } from '../physics/grid'
 import { resolveCircle } from '../physics/collide'
 import type { ElevationProvider } from '../terrain/provider'
+import type { VehicleSpec } from './vehicles'
 
-export interface CarState { x: number; z: number; y: number; heading: number; speed: number }
-export interface CarInput { throttle: number; steer: number; brake: boolean }
-
-const ACCEL = 90 // m/s^2 at full throttle — punchy pickup
-const BRAKE = 60
-const FRICTION = 3.3 // per second velocity decay; terminal speed ≈ ACCEL/FRICTION ≈ 27 m/s (~98 km/h)
-const MAX_SPEED = 60
-const TURN_RATE = 2.2 // rad/s at full steer and full speed — responsive steering
-const CAR_RADIUS = 2
-
-export function createCar(x = 0, z = 0): CarState {
-  return { x, z, y: 0, heading: 0, speed: 0 }
+/** Car state. Velocity is a world-space vector (vx, vz) so the car can drift. */
+export interface CarState {
+  x: number
+  z: number
+  y: number
+  heading: number
+  vx: number
+  vz: number
+}
+export interface CarInput {
+  throttle: number
+  steer: number
+  brake: boolean
 }
 
-/** heading 0 faces +x; +heading rotates toward +z. */
+export function createCar(x = 0, z = 0): CarState {
+  return { x, z, y: 0, heading: 0, vx: 0, vz: 0 }
+}
+
+/**
+ * Arcade drift step. heading 0 faces +x; +heading rotates toward +z.
+ * Steering rotates the heading; the velocity is then split into forward and
+ * lateral components relative to the new heading. Forward gets engine/drag,
+ * lateral gets tire grip — low grip lets the tail slide out (drift).
+ */
 export function stepCar(
   car: CarState,
   input: CarInput,
   dt: number,
   grid: SpatialGrid,
   provider: ElevationProvider,
+  spec: VehicleSpec,
 ): CarState {
-  let speed = car.speed
-  speed += input.throttle * ACCEL * dt
-  if (input.brake) speed -= Math.sign(speed) * BRAKE * dt
-  speed *= Math.exp(-FRICTION * dt) // friction/drag (unconditionally stable exponential decay)
-  speed = Math.max(-MAX_SPEED / 2, Math.min(MAX_SPEED, speed))
-  if (Math.abs(speed) < 0.001) speed = 0
+  // Forward speed relative to the current heading (for steering authority + sign).
+  const fx0 = Math.cos(car.heading)
+  const fz0 = Math.sin(car.heading)
+  const vForward0 = car.vx * fx0 + car.vz * fz0
 
-  // steering scales with speed so a parked car can't spin
-  const speedFactor = Math.min(1, Math.abs(speed) / 10)
-  const heading = car.heading + input.steer * TURN_RATE * speedFactor * Math.sign(speed || 1) * dt
+  // Steering: scaled by speed (can't spin when parked), reversed when backing up.
+  const speedFactor = Math.min(1, Math.abs(vForward0) / spec.turnSpeedRef)
+  const dir = vForward0 < 0 ? -1 : 1
+  const heading = car.heading + input.steer * spec.turnRate * speedFactor * dir * dt
 
-  const nx = car.x + Math.cos(heading) * speed * dt
-  const nz = car.z + Math.sin(heading) * speed * dt
+  // New heading basis: forward (fx,fz) and right/lateral (rx,rz).
+  const fx = Math.cos(heading)
+  const fz = Math.sin(heading)
+  const rx = -fz
+  const rz = fx
 
-  const resolved = resolveCircle(nx, nz, CAR_RADIUS, grid)
-  const hitWall = resolved.x !== nx || resolved.z !== nz
-  if (hitWall) speed *= 0.3 // bleed speed on impact
+  let vF = car.vx * fx + car.vz * fz
+  let vL = car.vx * rx + car.vz * rz
+
+  // Engine + braking on the forward axis.
+  vF += input.throttle * spec.accel * dt
+  if (input.brake) {
+    const b = spec.brakeAccel * dt
+    vF = vF > 0 ? Math.max(0, vF - b) : Math.min(0, vF + b) // brake toward 0, never past it
+  }
+  vF *= Math.exp(-spec.dragForward * dt)
+  if (Math.abs(vF) < 0.001) vF = 0
+  vF = Math.max(-spec.maxReverse, Math.min(spec.maxSpeed, vF))
+
+  // Tire grip on the lateral axis: slide decays; low grip = drift.
+  vL *= Math.exp(-spec.gripLateral * dt)
+
+  // Recompose world velocity and integrate position.
+  let vx = vF * fx + vL * rx
+  let vz = vF * fz + vL * rz
+  const nx = car.x + vx * dt
+  const nz = car.z + vz * dt
+
+  const resolved = resolveCircle(nx, nz, spec.radius, grid)
+  if (resolved.x !== nx || resolved.z !== nz) {
+    vx *= 0.3 // bleed speed on impact
+    vz *= 0.3
+  }
 
   return {
     x: resolved.x,
     z: resolved.z,
     y: provider.heightAt(resolved.x, resolved.z),
     heading,
-    speed,
+    vx,
+    vz,
   }
 }

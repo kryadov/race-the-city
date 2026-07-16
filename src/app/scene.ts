@@ -31,10 +31,7 @@ export function createStage(mount: HTMLElement): Stage {
 
   const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.5, 2000)
 
-  const carMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 1.6, 2),
-    new THREE.MeshStandardMaterial({ color: 0xe63946, flatShading: true }),
-  )
+  const carMesh: THREE.Object3D = new THREE.Group() // populated by setVehicleMesh
   scene.add(carMesh)
 
   window.addEventListener('resize', () => {
@@ -46,13 +43,26 @@ export function createStage(mount: HTMLElement): Stage {
   return { scene, camera, renderer, carMesh, camDist: 1 }
 }
 
+/** Swap the vehicle mesh, disposing the old one's geometry/materials. */
+export function setVehicleMesh(stage: Stage, mesh: THREE.Object3D): void {
+  stage.scene.remove(stage.carMesh)
+  stage.carMesh.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (m.geometry) m.geometry.dispose()
+    const mat = m.material
+    if (mat) (Array.isArray(mat) ? mat : [mat]).forEach((x) => x.dispose())
+  })
+  stage.carMesh = mesh
+  stage.scene.add(mesh)
+}
+
 const camPos = new THREE.Vector3()
 const camTarget = new THREE.Vector3()
 const CAM_SMOOTH_K = 8 // higher = snappier; framerate-independent
 
 export function syncCamera(stage: Stage, car: CarState, dt: number): void {
-  stage.carMesh.position.set(car.x, car.y + 0.8, car.z)
-  stage.carMesh.rotation.y = -car.heading // box faces +x at heading 0
+  stage.carMesh.position.set(car.x, car.y, car.z)
+  stage.carMesh.rotation.y = -car.heading // model faces +x at heading 0
 
   const back = 14 * stage.camDist, up = 7 * stage.camDist
   camPos.set(car.x - Math.cos(car.heading) * back, car.y + up, car.z - Math.sin(car.heading) * back)
