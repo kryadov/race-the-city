@@ -32,6 +32,7 @@ import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
 import { buildRoads } from '../world/roads'
 import { buildWater } from '../world/water'
+import { buildGreenery } from '../world/greenery'
 import { SpatialGrid } from '../physics/grid'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
@@ -109,12 +110,13 @@ async function loadCity(query: string): Promise<void> {
     const { mesh: buildingsMesh, footprints } = buildBuildings(world.buildings, provider)
     const roadsMesh = buildRoads(world.roads, provider)
     const waterMesh = buildWater(world.water, provider)
-    for (const obj of [ground, waterMesh, buildingsMesh, roadsMesh]) {
+    const greenMesh = buildGreenery(world.green, world.trees, provider)
+    for (const obj of [ground, greenMesh, waterMesh, buildingsMesh, roadsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
     theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh })
-    minimap.setWorld(world.roads, footprints, world.water, RADIUS)
+    minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
 
     grid = new SpatialGrid(footprints, 25)
