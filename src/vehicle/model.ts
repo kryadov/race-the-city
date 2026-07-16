@@ -65,9 +65,9 @@ function light(x: number, y: number, z: number): THREE.Mesh {
 }
 
 /**
- * Shared rear-light material: dim red tail lights that the render loop
- * brightens on braking. One material for every vehicle → the loop sets its
- * emissiveIntensity once per frame with zero per-mesh work.
+ * Shared stop-light material: dim tail lights that the render loop brightens on
+ * braking. buildVehicleMesh() tints it per vehicle; the loop sets its
+ * emissiveIntensity once per frame, so every stop lens updates with no per-mesh work.
  */
 export const REAR_LIGHT_MAT = new THREE.MeshStandardMaterial({
   color: 0x5a0000,
@@ -76,32 +76,56 @@ export const REAR_LIGHT_MAT = new THREE.MeshStandardMaterial({
   flatShading: true,
 })
 
+// Per-vehicle stop-light colour so the cluster reads as part of the car's style.
+const STOP_STYLE: Record<VehicleType, { color: number; emissive: number }> = {
+  car: { color: 0x5a0000, emissive: 0xff1400 }, // classic red
+  truck: { color: 0x5a1e00, emissive: 0xff5a00 }, // amber-red
+  sports: { color: 0x4a0022, emissive: 0xff0055 }, // magenta LED
+}
+
 // Amber turn-signals. Left and right are separate materials so the loop can
-// blink one side independently; colour is clearly distinct from the red brakes.
-// The model faces +x, so its left side is -z and its right side is +z.
+// blink one side independently. The model faces +x, so its left is -z, right +z.
 const amber = (): THREE.MeshStandardMaterial =>
-  new THREE.MeshStandardMaterial({ color: 0x3a2600, emissive: 0xffa000, emissiveIntensity: 0, flatShading: true })
+  new THREE.MeshStandardMaterial({ color: 0x3a2600, emissive: 0xffb000, emissiveIntensity: 0, flatShading: true })
 export const TURN_LEFT_MAT = amber()
 export const TURN_RIGHT_MAT = amber()
 
-const HOUSING_MAT = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, flatShading: true })
+const HOUSING_MAT = new THREE.MeshStandardMaterial({ color: 0x141418, flatShading: true })
+const MIRROR_ARM_MAT = new THREE.MeshStandardMaterial({ color: 0x2a2a30, flatShading: true })
+const MIRROR_GLASS_MAT = new THREE.MeshStandardMaterial({ color: 0x9fbdd4, roughness: 0.3, flatShading: true })
 
-/** A tail/brake light block set into a dark housing (housing sits just behind it). */
-function tailLight(w: number, h: number, d: number, x: number, y: number, z: number): THREE.Object3D {
-  const g = new THREE.Group()
-  const housing = new THREE.Mesh(new THREE.BoxGeometry(d * 0.6, h + 0.14, w + 0.14), HOUSING_MAT)
-  housing.position.set(x - d * 0.35, y, z)
-  const lamp = new THREE.Mesh(new THREE.BoxGeometry(d, h, w), REAR_LIGHT_MAT)
-  lamp.position.set(x, y, z)
-  g.add(housing, lamp)
-  return g
+const LENS_D = 0.09 // how far a lens stands proud of its housing (so it faces the viewer)
+
+/**
+ * A light lens standing proud of the tail/nose so it always faces the viewer.
+ * `outX` is the x of the outward face; `face` is the outward direction along x
+ * (-1 = rear cluster, +1 = front). Lenses sit in front of the housing, never behind.
+ */
+function lens(mat: THREE.MeshStandardMaterial, w: number, h: number, outX: number, y: number, z: number, face: number): THREE.Mesh {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(LENS_D, h, w), mat)
+  m.position.set(outX - face * (LENS_D / 2), y, z)
+  return m
 }
 
-/** A turn-signal lamp; `mat` selects which side blinks. */
-function turn(mat: THREE.MeshStandardMaterial, x: number, y: number, z: number): THREE.Mesh {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), mat)
-  m.position.set(x, y, z)
+/** A dark housing bar sitting just inboard of the lenses, framing the cluster. */
+function housingBar(h: number, w: number, outX: number, y: number, z: number, face: number): THREE.Mesh {
+  const d = 0.16
+  const m = new THREE.Mesh(new THREE.BoxGeometry(d, h, w), HOUSING_MAT)
+  m.position.set(outX - face * (LENS_D + d / 2 - 0.01), y, z)
   return m
+}
+
+/** A side mirror: a short arm off the body plus a mirror head with a glass face. */
+function mirror(x: number, y: number, zBody: number, out: number): THREE.Object3D {
+  const g = new THREE.Group()
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.24), MIRROR_ARM_MAT)
+  arm.position.set(x, y, zBody + out * 0.14)
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.24, 0.1), MIRROR_ARM_MAT)
+  head.position.set(x, y + 0.03, zBody + out * 0.3)
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.17, 0.07), MIRROR_GLASS_MAT)
+  glass.position.set(x + 0.08, y + 0.03, zBody + out * 0.3) // faces forward
+  g.add(arm, head, glass)
+  return g
 }
 
 function buildCar(): THREE.Group {
@@ -110,10 +134,14 @@ function buildCar(): THREE.Group {
   g.add(box(2.1, 0.7, 1.7, 0xb5303b, -0.15, 1.25, 0)) // cabin
   g.add(...fourWheels(0.5, 0.4, 1.3, 0.95, 0.45))
   g.add(light(2, 0.65, 0.7), light(2, 0.65, -0.7))
-  // saloon: tall vertical tail-light blocks in the corners
-  g.add(tailLight(0.16, 0.42, 0.14, -2, 0.72, 0.72), tailLight(0.16, 0.42, 0.14, -2, 0.72, -0.72))
-  g.add(turn(TURN_RIGHT_MAT, -2.0, 0.5, 0.92), turn(TURN_LEFT_MAT, -2.0, 0.5, -0.92))
-  g.add(turn(TURN_RIGHT_MAT, 2.02, 0.55, 0.9), turn(TURN_LEFT_MAT, 2.02, 0.55, -0.9))
+  // rear cluster: one dark housing bar carrying red stops + amber indicators, flush
+  const bx = -2.0
+  g.add(housingBar(0.5, 1.9, bx, 0.72, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.5, 0.34, bx, 0.72, 0.5, -1), lens(REAR_LIGHT_MAT, 0.5, 0.34, bx, 0.72, -0.5, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.26, 0.24, bx, 0.72, 0.82, -1), lens(TURN_LEFT_MAT, 0.26, 0.24, bx, 0.72, -0.82, -1))
+  // front indicators beside the headlights + side mirrors on the cabin
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, 2.0, 0.62, 0.86, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, 2.0, 0.62, -0.86, 1))
+  g.add(mirror(0.8, 1.2, 0.95, 1), mirror(0.8, 1.2, -0.95, -1))
   return g
 }
 
@@ -126,11 +154,14 @@ function buildTruck(): THREE.Group {
   g.add(wheel(0.72, 0.5, -0.4, 0.7, 1.05)) // extra rear axle
   g.add(wheel(0.72, 0.5, -0.4, 0.7, -1.05))
   g.add(light(3, 1.1, 0.9), light(3, 1.1, -0.9))
-  // lorry: a stacked pair of round-ish light blocks each side, low on the cargo
-  g.add(tailLight(0.34, 0.24, 0.14, -3.4, 1.2, 0.92), tailLight(0.34, 0.24, 0.14, -3.4, 0.85, 0.92))
-  g.add(tailLight(0.34, 0.24, 0.14, -3.4, 1.2, -0.92), tailLight(0.34, 0.24, 0.14, -3.4, 0.85, -0.92))
-  g.add(turn(TURN_RIGHT_MAT, -3.4, 0.55, 1.02), turn(TURN_LEFT_MAT, -3.4, 0.55, -1.02))
-  g.add(turn(TURN_RIGHT_MAT, 2.95, 0.7, 1.0), turn(TURN_LEFT_MAT, 2.95, 0.7, -1.0))
+  // rear cluster low on the cargo
+  const bx = -3.4
+  g.add(housingBar(0.52, 2.0, bx, 0.98, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.5, 0.36, bx, 0.98, 0.7, -1), lens(REAR_LIGHT_MAT, 0.5, 0.36, bx, 0.98, -0.7, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.3, 0.26, bx, 0.98, 0.98, -1), lens(TURN_LEFT_MAT, 0.3, 0.26, bx, 0.98, -0.98, -1))
+  // front indicators + mirrors on the cab
+  g.add(lens(TURN_RIGHT_MAT, 0.22, 0.22, 3.0, 0.75, 0.98, 1), lens(TURN_LEFT_MAT, 0.22, 0.22, 3.0, 0.75, -0.98, 1))
+  g.add(mirror(2.4, 1.5, 1.05, 1), mirror(2.4, 1.5, -1.05, -1))
   return g
 }
 
@@ -141,10 +172,14 @@ function buildSports(): THREE.Group {
   g.add(box(1.0, 0.12, 1.9, 0x023047, -1.9, 0.95, 0)) // rear wing
   g.add(...fourWheels(0.46, 0.45, 1.45, 1.0, 0.42))
   g.add(light(2.1, 0.5, 0.75), light(2.1, 0.5, -0.75))
-  // sports: a single full-width slim light bar across the tail
-  g.add(tailLight(1.5, 0.12, 0.1, -2.12, 0.6, 0))
-  g.add(turn(TURN_RIGHT_MAT, -2.1, 0.5, 0.82), turn(TURN_LEFT_MAT, -2.1, 0.5, -0.82))
-  g.add(turn(TURN_RIGHT_MAT, 2.12, 0.45, 0.78), turn(TURN_LEFT_MAT, 2.12, 0.45, -0.78))
+  // sports: a slim LED strip across the tail with amber tips, all on one housing bar
+  const bx = -2.12
+  g.add(housingBar(0.22, 1.95, bx, 0.6, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 1.1, 0.12, bx, 0.6, 0, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.24, 0.12, bx, 0.6, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.12, bx, 0.6, -0.82, -1))
+  // front indicators + mirrors
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.14, 2.12, 0.5, 0.8, 1), lens(TURN_LEFT_MAT, 0.2, 0.14, 2.12, 0.5, -0.8, 1))
+  g.add(mirror(1.0, 0.95, 0.98, 1), mirror(1.0, 0.95, -0.98, -1))
   return g
 }
 
@@ -155,5 +190,8 @@ const BUILDERS: Record<VehicleType, () => THREE.Group> = {
 }
 
 export function buildVehicleMesh(type: VehicleType): THREE.Group {
+  const s = STOP_STYLE[type] // tint the shared stop material to match this vehicle
+  REAR_LIGHT_MAT.color.setHex(s.color)
+  REAR_LIGHT_MAT.emissive.setHex(s.emissive)
   return BUILDERS[type]()
 }
