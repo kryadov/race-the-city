@@ -27,6 +27,7 @@ import { createSettingsMenu } from '../ui/settingsMenu'
 import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
+import { createPauseButton } from '../ui/pauseButton'
 import {
   getDefaultCity,
   setDefaultCity,
@@ -152,6 +153,8 @@ const CYCLE_SECONDS = 240 // full day/night cycle
 let timeOfDay = 0.35 // start mid-morning
 setVehicleMesh(stage, buildVehicleMesh(vehicle))
 audio.setVehicle(vehicle)
+// Pausing resets the engine's idle timer, so resuming doesn't start mid-fade.
+const pause = createPauseButton(ui, () => audio.setVehicle(vehicle))
 
 let worldGroup: import('three').Object3D[] = []
 let roadDetailMesh: import('three').Object3D | null = null
@@ -300,11 +303,16 @@ async function loadCity(query: string): Promise<void> {
     loading.hide()
 
     if (!stopLoop) {
-      stopLoop = startLoop((dt) => {
+      stopLoop = startLoop((wallDt) => {
         if (!car) return
+        // Pausing feeds the whole sim a zero step: the car, the clock, the
+        // weather and the pickups all freeze together, and the scene keeps
+        // drawing. The engine is silenced outright, since a zero step would
+        // otherwise leave its idle timer — and its drone — exactly where it was.
+        const dt = pause.paused() ? 0 : wallDt
         const spec = VEHICLES[vehicle]
-        const kb = keyboard.read()
-        const tc = touch.read()
+        const kb = pause.paused() ? { throttle: 0, steer: 0, brake: false } : keyboard.read()
+        const tc = pause.paused() ? { throttle: 0, steer: 0, brake: false } : touch.read()
         const input = {
           throttle: Math.max(-1, Math.min(1, kb.throttle + tc.throttle)),
           steer: Math.max(-1, Math.min(1, kb.steer + tc.steer)),
@@ -325,8 +333,9 @@ async function loadCity(query: string): Promise<void> {
         hud.setDistance(odometer)
         // Parked and hands off? The engine fades out after a few seconds.
         const driving = Math.abs(fwd) > 0.4 || input.throttle !== 0
-        audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed), dt, driving)
-        audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
+        if (pause.paused()) audio.silenceEngine()
+        else audio.updateEngine(Math.min(1, Math.abs(fwd) / spec.maxSpeed), dt, driving)
+        audio.updateSkid(pause.paused() ? 0 : Math.min(1, Math.abs(lat) / 8))
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
         // brake lights: handbrake, or throttling backwards while still rolling forward
         const braking = input.brake || (input.throttle < 0 && fwd > 1)

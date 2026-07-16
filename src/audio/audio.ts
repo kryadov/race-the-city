@@ -234,6 +234,12 @@ export class AudioEngine {
     this.engineGain.gain.setTargetAtTime(level, now, 0.1)
   }
 
+  /** Cut the engine now, without waiting out the idle fade — used by pause. */
+  silenceEngine(): void {
+    if (!this.ctx || !this.engineGain) return
+    this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05)
+  }
+
   updateSkid(slipFraction: number): void {
     if (!this.ctx || !this.skidGain) return
     // Silent through gentle cornering; only real slides screech, and softly.

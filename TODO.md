@@ -21,6 +21,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       unfiltered roads to `buildRoadDetail`).
       - [ ] **Name the rivers** while doing this — `roadLabels` only labels roads today, and a
             bridge is worth crossing when you can see what it crosses. Ship with the bridges.
+- [ ] **Manhole covers** on the roads — `man_made=manhole` exists in OSM but is mapped patchily;
+      scattering them along road centrelines (like the nitro spots) will read better than the data
 - [ ] Roof shapes / colour buildings by type; better height heuristics
 - [ ] Larger area / stream neighbouring tiles as you drive
 - [ ] POI markers (cafés, fuel) from OSM
@@ -56,6 +58,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       (drive-to-a-point / coins still open)
 - [ ] Traffic — simple AI cars on roads
 - [ ] Pedestrians (ambience)
+- [ ] **Planes crossing the sky** — occasional, high up, with a contrail
+- [ ] **Trains on the rails** — freight, intercity and commuter EMUs, running the OSM railway
+      polylines we already parse (`world.railways`, drawn as bare ribbons since v0.15.0)
 
 ## 🎨 Visuals & atmosphere
 - [x] Weather (rain/snow/fog, menu option) — done in v0.26.0, auto-cycling in v0.42.0, snow tweak v0.45.1
@@ -83,7 +88,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 
 ## 🖥 UI / UX
 - [ ] Full-screen map on a key; minimap zoom
-- [ ] **Pause button next to the ⚙ button** — freeze the sim (and engine audio) from the corner
+- [x] **Pause button next to the ⚙ button** (Escape too) — done in v0.63.0
 - [ ] Controls help overlay
 - [x] Shareable link with the city in the URL (`?city=…`) — done in v0.41.0
 - [x] Save position / session (city + car pose) — done in v0.48.0
