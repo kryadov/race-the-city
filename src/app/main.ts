@@ -68,6 +68,7 @@ import { parseOsm } from '../geo/parse'
 import { Projector } from '../geo/project'
 import { loadTerrarium } from '../terrain/terrarium'
 import { FlatProvider } from '../terrain/flat'
+import { griddedProvider } from '../terrain/gridded'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
@@ -91,6 +92,10 @@ import {
 } from '../vehicle/model'
 
 const RADIUS = 1000
+// The ground mesh's resolution. Everything that sits on the ground is sampled
+// through griddedProvider at this same figure, so the surface the car drives on
+// is the surface on screen — keep the two together or the car sinks again.
+const GROUND_SEGMENTS = 160
 const sunScratch = new THREE.Vector3()
 
 const app = document.getElementById('app')!
@@ -220,14 +225,18 @@ async function loadCity(query: string): Promise<void> {
     const world = parseOsm(osm, projector)
 
     loading.show(t('loading.terrain'), 0.65)
+    let dem: ElevationProvider
     try {
-      provider = await withRetry(
+      dem = await withRetry(
         () => loadTerrarium(center, bbox, projector),
         (n) => loading.show(`${t('loading.terrain')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.65),
       )
     } catch {
-      provider = new FlatProvider() // graceful fallback: flat ground beats no city
+      dem = new FlatProvider() // graceful fallback: flat ground beats no city
     }
+    // Snap the DEM to the ground mesh's grid, so the car and everything else
+    // sit on the surface that is actually drawn rather than on the raw data.
+    provider = griddedProvider(dem, RADIUS, GROUND_SEGMENTS)
     loading.show(t('loading.build'), 0.85)
 
     // clear previous world (and free its GPU resources)
@@ -242,7 +251,7 @@ async function loadCity(query: string): Promise<void> {
     }
     worldGroup = []
 
-    const ground = buildGround(provider, RADIUS, world.green, 160)
+    const ground = buildGround(provider, RADIUS, world.green, GROUND_SEGMENTS)
     facades?.dispose() // the outgoing city's facade textures
     const { mesh: buildingsMesh, footprints, facades: newFacades } = buildBuildings(world.buildings, provider)
     facades = newFacades

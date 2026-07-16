@@ -56,6 +56,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Visible glass on enclosed vehicles — done in v0.54.0
 
 ## 🏁 Gameplay modes
+- [ ] **Demo / autopilot mode** (menu toggle) — the car drives itself around the city on the
+      roads, without hitting buildings. Road polylines exist (`world.roads`) but there is no
+      graph: no nodes, no junctions, no connectivity — that has to be built first.
 - [ ] Time trial — checkpoints, timer, best time (localStorage)
 - [x] Free objectives — nitro speed-boost pickups scattered on roads — done in v0.45.0
       (drive-to-a-point / coins still open)
@@ -91,6 +94,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Positional audio (engine quieter as camera pulls back)
 
 ## 🖥 UI / UX
+- [x] **Speedometer sized to match the minimap** — done in v0.67.0
 - [ ] Full-screen map on a key; minimap zoom
 - [x] **Pause button next to the ⚙ button** (Escape too) — done in v0.63.0
 - [ ] Controls help overlay

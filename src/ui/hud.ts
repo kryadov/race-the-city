@@ -15,7 +15,11 @@ export interface Hud {
 }
 
 const NS = 'http://www.w3.org/2000/svg'
+// SIZE is the gauge's own coordinate system, which the dial geometry below is
+// laid out in — DISPLAY is how big it lands on screen. Keeping them apart lets
+// the gauge match the minimap without redoing every tick and needle by hand.
 const SIZE = 120
+const DISPLAY = 172 // same as the minimap's diameter, so the corners balance
 const CX = 60
 const CY = 60
 const R = 48
@@ -40,7 +44,7 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   let metres = 0
   const box = document.createElement('div')
   box.style.cssText =
-    `position:absolute;bottom:16px;left:16px;width:${SIZE}px;pointer-events:none;text-align:center;` +
+    `position:absolute;bottom:16px;left:16px;width:${DISPLAY}px;pointer-events:none;text-align:center;` +
     'font-family:system-ui,sans-serif'
 
   const city = document.createElement('div')
@@ -48,7 +52,7 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     'font-size:12px;color:rgba(255,255,255,.8);margin-bottom:2px;overflow:hidden;' +
     'text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.7)'
 
-  const svg = svgEl('svg', { width: SIZE, height: SIZE, viewBox: `0 0 ${SIZE} ${SIZE}` })
+  const svg = svgEl('svg', { width: DISPLAY, height: DISPLAY, viewBox: `0 0 ${SIZE} ${SIZE}` })
 
   const [tx0, ty0] = polar(START, R)
   const [tx1, ty1] = polar(START + SWEEP, R)
