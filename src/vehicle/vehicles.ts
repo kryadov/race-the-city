@@ -1,4 +1,6 @@
-export type VehicleType = 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
+export type VehicleType =
+  | 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
+  | 'retro' | 'ev' | 'minivan'
 
 export const VEHICLE_TYPES: readonly VehicleType[] = [
   'car',
@@ -6,6 +8,9 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'racecar',
   'motorbike',
   'cabrio',
+  'retro',
+  'ev',
+  'minivan',
   'truck',
   'lorry',
   'bus',
@@ -17,7 +22,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
  * never names a vehicle itself, so adding a type is one line here.
  */
 export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType[] }[] = [
-  { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio'] },
+  { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan'] },
   { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus'] },
   { key: 'vehGroup.special', types: ['tractor'] },
   { key: 'vehGroup.exotic', types: ['motorbike'] },
@@ -158,5 +163,20 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
     maxSpeed: 48,
     maxReverse: 14,
     radius: 1.25,
+  },
+  // A 60s cruiser: soft springs, weak brakes, slides if you push it.
+  retro: {
+    key: 'retro', accel: 60, brakeAccel: 52, dragForward: 2.0, gripLateral: 4.6,
+    turnRate: 2.2, turnSpeedRef: 8, maxSpeed: 34, maxReverse: 11, radius: 1.35,
+  },
+  // Electric: instant torque off the line, modest top end, grips well.
+  ev: {
+    key: 'ev', accel: 130, brakeAccel: 80, dragForward: 2.0, gripLateral: 7.2,
+    turnRate: 2.5, turnSpeedRef: 7.5, maxSpeed: 44, maxReverse: 14, radius: 1.3,
+  },
+  // A people carrier: tall, unhurried, safe.
+  minivan: {
+    key: 'minivan', accel: 62, brakeAccel: 60, dragForward: 1.9, gripLateral: 5.5,
+    turnRate: 2.0, turnSpeedRef: 9, maxSpeed: 36, maxReverse: 12, radius: 1.6,
   },
 }

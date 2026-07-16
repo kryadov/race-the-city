@@ -83,3 +83,68 @@ export function buildCabrio(): THREE.Group {
   g.add(mirror(0.75, 1.2, 0.97, 1), mirror(0.75, 1.2, -0.97, -1))
   return g
 }
+
+/** A 60s cruiser: tall cabin, rounded wings, whitewall-ish fat wheels. */
+export function buildRetro(): THREE.Group {
+  const g = new THREE.Group()
+  const body = 0x2f6f4f // deep green
+  g.add(box(4.5, 0.5, 1.85, body, 0, 0.62, 0)) // low body pan
+  g.add(box(2.9, 0.42, 1.8, body, -0.1, 1.0, 0)) // waist
+  g.add(box(1.9, 0.6, 1.6, 0xdfe4e8, -0.25, 1.42, 0)) // tall greenhouse
+  g.add(glass(0.1, 0.44, 1.45, 0.68, 1.42, 0)) // windscreen
+  g.add(box(0.7, 0.3, 1.9, body, 1.95, 0.86, 0)) // rounded nose
+  g.add(box(0.5, 0.28, 1.9, body, -2.05, 0.86, 0)) // boot
+  g.add(...fourWheels(0.52, 0.42, 1.4, 0.95, 0.52))
+  g.add(light(2.28, 0.9, 0.62), light(2.28, 0.9, -0.62))
+  const rx = -2.28, fx = 2.28
+  g.add(housingBar(0.4, 1.7, rx, 0.9, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.4, 0.28, rx, 0.9, 0.55, -1), lens(REAR_LIGHT_MAT, 0.4, 0.28, rx, 0.9, -0.55, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 0.9, 0.85, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 0.9, -0.85, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 0.86, 0.86, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 0.86, -0.86, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.35, 0.95, 0.94), repeater(TURN_LEFT_MAT, 1.35, 0.95, -0.94))
+  g.add(mirror(0.85, 1.3, 0.94, 1), mirror(0.85, 1.3, -0.94, -1))
+  return g
+}
+
+/** Electric: smooth one-box shape, no grille, a light bar across the nose. */
+export function buildEv(): THREE.Group {
+  const g = new THREE.Group()
+  const body = 0xe8eef2 // pearl white
+  g.add(box(4.3, 0.62, 1.85, body, 0, 0.62, 0))
+  g.add(box(3.1, 0.52, 1.78, body, -0.15, 1.16, 0)) // smooth cabin
+  g.add(glass(0.1, 0.4, 1.6, 1.3, 1.2, 0)) // steep windscreen
+  g.add(glass(0.1, 0.36, 1.6, -1.68, 1.2, 0)) // rear screen
+  g.add(...fourWheels(0.46, 0.34, 1.42, 0.94, 0.46))
+  // full-width light bar instead of separate headlights
+  g.add(light(2.12, 0.82, 0.5), light(2.12, 0.82, 0), light(2.12, 0.82, -0.5))
+  const rx = -2.12, fx = 2.12
+  g.add(housingBar(0.26, 1.86, rx, 0.86, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.26, 1.5, rx, 0.86, 0, -1)) // single bar
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 0.6, 0.82, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 0.6, -0.82, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.6, 0.84, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.6, -0.84, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.3, 0.9, 0.94), repeater(TURN_LEFT_MAT, 1.3, 0.9, -0.94))
+  g.add(mirror(0.8, 1.24, 0.94, 1), mirror(0.8, 1.24, -0.94, -1))
+  return g
+}
+
+/** A people carrier: one tall box, sliding-door line, small wheels. */
+export function buildMinivan(): THREE.Group {
+  const g = new THREE.Group()
+  const body = 0x8f6fc0 // muted violet
+  g.add(box(4.6, 0.66, 1.95, body, 0, 0.66, 0))
+  g.add(box(3.9, 0.94, 1.9, body, -0.2, 1.44, 0)) // tall cabin
+  g.add(glass(0.1, 0.6, 1.7, 1.72, 1.5, 0)) // big windscreen
+  g.add(glass(0.08, 0.5, 1.7, -2.12, 1.5, 0)) // tailgate glass
+  g.add(box(0.06, 0.7, 0.06, 0x3a3a44, 0.2, 1.4, 0.97)) // sliding-door rail, right
+  g.add(box(0.06, 0.7, 0.06, 0x3a3a44, 0.2, 1.4, -0.97))
+  g.add(...fourWheels(0.44, 0.36, 1.5, 0.98, 0.44))
+  g.add(light(2.3, 0.82, 0.66), light(2.3, 0.82, -0.66))
+  const rx = -2.32, fx = 2.3
+  g.add(housingBar(0.8, 1.86, rx, 1.3, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.7, 0.24, rx, 1.3, 0.78, -1), lens(REAR_LIGHT_MAT, 0.7, 0.24, rx, 1.3, -0.78, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.22, 0.2, rx, 0.86, 0.8, -1), lens(TURN_LEFT_MAT, 0.22, 0.2, rx, 0.86, -0.8, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, fx, 0.6, 0.88, 1), lens(TURN_LEFT_MAT, 0.2, 0.18, fx, 0.6, -0.88, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.45, 0.95, 0.99), repeater(TURN_LEFT_MAT, 1.45, 0.95, -0.99))
+  g.add(mirror(1.5, 1.42, 0.99, 1), mirror(1.5, 1.42, -0.99, -1))
+  return g
+}

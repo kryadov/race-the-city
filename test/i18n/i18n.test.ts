@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { t, setLang, getLang, onLangChange } from '../../src/i18n/i18n'
+import { t, setLang, getLang, onLangChange, LANGS } from '../../src/i18n/i18n'
+import { VEHICLE_TYPES } from '../../src/vehicle/vehicles'
 
 describe('i18n', () => {
   it('translates a key per language', () => {
@@ -31,5 +32,17 @@ describe('i18n', () => {
     setLang('en')
     setLang('ru')
     expect(got).toBe('ru')
+  })
+
+  it('labels every vehicle and group in every language', () => {
+    for (const lang of LANGS) {
+      setLang(lang)
+      for (const key of [
+        ...VEHICLE_TYPES.map((v) => 'vehicle.' + v),
+        'vehGroup.cars', 'vehGroup.trucks', 'vehGroup.special', 'vehGroup.exotic',
+      ]) {
+        expect(t(key), `${lang}/${key}`).not.toBe(key) // key echoed back = translation missing
+      }
+    }
   })
 })

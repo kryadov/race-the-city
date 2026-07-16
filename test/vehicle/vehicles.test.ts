@@ -14,4 +14,8 @@ describe('vehicle groups', () => {
       expect(VEHICLES[type].key, type).toBe(type)
     }
   })
+
+  it('includes the requested car-family types', () => {
+    for (const t of ['retro', 'ev', 'minivan']) expect(VEHICLE_TYPES).toContain(t)
+  })
 })
