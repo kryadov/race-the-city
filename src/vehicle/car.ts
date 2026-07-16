@@ -30,7 +30,7 @@ export function createCar(x = 0, z = 0): CarState {
 
 /** Arcade gravity — heavier than life, so jumps land before you get bored. */
 export const GRAVITY = 18
-/** Climb rate the car must be carrying for a crest to throw it, m/s. */
+/** Below this climb rate nothing throws the car, however sharp the crest. */
 export const TAKEOFF_VY = 2.5
 /** Ceiling on the climb rate a slope can impart, m/s. */
 const MAX_CLIMB = 22
@@ -104,7 +104,13 @@ export function stepCar(
 
   let y: number
   let vy: number
-  if (car.y > groundY + AIR_EPS) {
+  // Are we flying? Ask the ground under where we ARE, not under where we're
+  // going. On a descent the ground ahead is legitimately lower — by more than
+  // AIR_EPS at speed — and testing against that calls a car driving downhill
+  // airborne. It then falls from rest, slower than the road drops, and detaches:
+  // that was the shudder coming off a bridge arch.
+  const groundHere = provider.heightAt(car.x, car.z)
+  if (car.y > groundHere + AIR_EPS) {
     // Airborne: fall, and land when the ground catches up.
     vy = car.vy - GRAVITY * dt
     y = car.y + vy * dt
@@ -115,8 +121,15 @@ export function stepCar(
   } else {
     // On the ground. The terrain asks for this much climb per second:
     const climb = Math.max(-MAX_CLIMB, Math.min(MAX_CLIMB, (groundY - car.y) / dt))
-    if (climb < 0 && car.vy > TAKEOFF_VY) {
-      // We were climbing and the ground has just dropped away — keep going up.
+    // How hard the surface is pulling away beneath us. You leave the ground only
+    // when it falls away faster than gravity can hold you to it — not merely
+    // because you were going up and now you aren't. Testing the latter launched
+    // the car off the crest of every bridge arch: at speed the arch is worth ~3m/s
+    // of climb, over the threshold, so it took off, landed, and took off again.
+    // That was the shake.
+    const surfaceAccel = (climb - car.vy) / dt
+    if (car.vy > TAKEOFF_VY && surfaceAccel < -GRAVITY) {
+      // The ground has dropped out from under us — carry on up.
       vy = car.vy
       y = car.y + vy * dt
       if (y < groundY) {

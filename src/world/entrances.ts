@@ -108,9 +108,11 @@ export function buildEntrances(buildings: Building[], provider: ElevationProvide
 
   const doorGeo = new THREE.BoxGeometry(1.3, 2.3, 0.1)
   doorGeo.translate(0, 1.15, 0) // sit on the ground, not through it
+  // Instance colours only: vertexColors would read a colour attribute the box
+  // hasn't got and paint every door black — which is exactly what it did.
   const doorMesh = new THREE.InstancedMesh(
     doorGeo,
-    new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }),
+    new THREE.MeshStandardMaterial({ flatShading: true }),
     doors.length,
   )
   doors.forEach((e, i) => {
@@ -129,7 +131,7 @@ export function buildEntrances(buildings: Building[], provider: ElevationProvide
     signGeo.translate(0, 3.1, 0) // above the door
     const signMesh = new THREE.InstancedMesh(
       signGeo,
-      new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }),
+      new THREE.MeshStandardMaterial({ flatShading: true }),
       signs.length,
     )
     signs.forEach((e, i) => {

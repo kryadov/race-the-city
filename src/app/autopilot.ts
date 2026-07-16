@@ -44,6 +44,11 @@ export interface Autopilot {
   /** Re-home onto the road network — call after a city loads or the car moves. */
   reset(roads: Road[], car: CarState): void
   /**
+   * Pick up the route from wherever the car actually is, keeping the graph.
+   * Cheap enough to call whenever the player has been steering.
+   */
+  rehome(car: CarState): void
+  /**
    * The input a driver would be giving right now.
    *
    * @param hazards things in the world it should not drive into — traffic,
@@ -128,6 +133,9 @@ export function createAutopilot(): Autopilot {
     },
     reset(roads, car) {
       graph = buildRoadGraph(roads)
+      this.rehome(car)
+    },
+    rehome(car) {
       at = graph.nearest(car.x, car.z)
       from = -1
       target = at >= 0 ? nextNode(graph, -1, at, rng) : -1

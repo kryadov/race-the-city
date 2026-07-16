@@ -21,7 +21,40 @@ const MAX_HOPS = 8
 /** How far up its own road a car looks for a train, in metres. */
 const CROSSING_LOOK = 11
 
-const BODY_COLORS = [0xb23b3b, 0x2f5fa8, 0xd8d8d0, 0x3c3c44, 0x2e7d5b, 0xc8a23a, 0x7a4a86, 0xe0e3e8]
+/**
+ * What a street actually looks like: mostly white, silver, grey and black, with
+ * the odd colour. A rank of primary-coloured cars reads as a toy box.
+ */
+const BODY_COLORS = [
+  0xe8ebee, 0xe8ebee, 0xdcdfe3, // white / off-white
+  0xa8aeb6, 0xa8aeb6, 0x8b9299, // silver, grey
+  0x2b2e33, 0x2b2e33, 0x3c4249, // black, graphite
+  0x8f1f24, // red
+  0x1f3f7a, // navy
+  0x2e5f4a, // dark green
+  0x7a2f5e, // plum
+  0xb8792a, // bronze
+]
+
+/**
+ * Body types, as scales on the one shape. A separate mesh per type would be a
+ * separate draw call per type; stretching the same box reads as a saloon, a
+ * hatchback, a van or an estate from the road, which is all that's wanted.
+ */
+interface BodyType {
+  body: [number, number, number]
+  cabin: [number, number, number]
+  /** Where the cabin sits along the car — a van's is over the nose. */
+  cabinX: number
+}
+
+const BODY_TYPES: readonly BodyType[] = [
+  { body: [1, 1, 1], cabin: [1, 1, 1], cabinX: -0.25 }, // saloon
+  { body: [0.86, 1, 0.96], cabin: [0.8, 1.02, 0.96], cabinX: -0.1 }, // hatchback
+  { body: [1.06, 1.3, 1.06], cabin: [1.55, 1.6, 1.0], cabinX: 0.15 }, // van
+  { body: [1.08, 1.05, 1], cabin: [1.35, 1.08, 1], cabinX: -0.15 }, // estate
+  { body: [1.02, 0.92, 1.02], cabin: [0.7, 0.95, 0.95], cabinX: 0.1 }, // pickup
+]
 
 export interface Traffic {
   /** @param blockers things the traffic must stop for — trains at a crossing */
@@ -37,6 +70,9 @@ interface Agent {
   to: number
   s: number
   speed: number
+  type: number
+  /** Consecutive U-turns. Two in a row means it's trapped on a stub. */
+  uturns: number
 }
 
 interface Placed {
@@ -98,7 +134,7 @@ export function createTraffic(
     }
     const to = nextNode(graph, -1, at, rng)
     if (to === at) return null
-    return { at, to, s: 0, speed: 7 + rand() * 6 }
+    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0 }
   }
 
   for (let i = 0; i < count; i++) {
@@ -116,13 +152,22 @@ export function createTraffic(
     head: new THREE.BoxGeometry(0.12, 0.18, 1.4),
   }
   parts.body.translate(0, 0.78, 0)
-  parts.cabin.translate(-0.25, 1.5, 0)
-  parts.glass.translate(-0.25, 1.36, 0)
+  parts.cabin.translate(0, 1.5, 0)
+  parts.glass.translate(0, 1.36, 0)
   parts.tail.translate(-2.06, 0.9, 0)
   parts.head.translate(2.06, 0.85, 0)
 
-  const bodyMesh = new THREE.InstancedMesh(parts.body, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }), n)
-  const cabinMesh = new THREE.InstancedMesh(parts.cabin, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }), n)
+  /**
+   * Instance colours only — NOT vertexColors.
+   *
+   * three's shader does `vColor *= color` under vertexColors, reading the
+   * geometry's colour attribute. A BoxGeometry hasn't got one, so WebGL feeds it
+   * zeroes and every car comes out black before instanceColor is ever applied —
+   * which is exactly what happened. USE_INSTANCING_COLOR is defined on its own
+   * the moment setColorAt is used, so this is all that's needed.
+   */
+  const bodyMesh = new THREE.InstancedMesh(parts.body, new THREE.MeshStandardMaterial({ flatShading: true }), n)
+  const cabinMesh = new THREE.InstancedMesh(parts.cabin, new THREE.MeshStandardMaterial({ flatShading: true }), n)
   const glassMesh = new THREE.InstancedMesh(parts.glass, solid(0x1e2a36), n)
   const tailMat = new THREE.MeshStandardMaterial({ color: 0x4a0000, emissive: 0xff2200, emissiveIntensity: 0 })
   const headMat = new THREE.MeshStandardMaterial({ color: 0x5a5a48, emissive: 0xfff2c0, emissiveIntensity: 0 })
@@ -157,11 +202,13 @@ export function createTraffic(
   if (cabinMesh.instanceColor) cabinMesh.instanceColor.needsUpdate = true
 
   const m = new THREE.Matrix4()
+  const mPart = new THREE.Matrix4()
   const mw = new THREE.Matrix4()
   const off = new THREE.Matrix4()
   const q = new THREE.Quaternion()
   const pos = new THREE.Vector3()
   const one = new THREE.Vector3(1, 1, 1)
+  const scl = new THREE.Vector3()
   const up = new THREE.Vector3(0, 1, 0)
 
   const place = (a: Agent): Placed => {
@@ -219,7 +266,8 @@ export function createTraffic(
         // test — "within ARRIVE of the end" — fired on the very first frame for
         // any edge shorter than ARRIVE, and city blocks are full of vertices a
         // couple of metres apart. Cars hopped node to node instead of driving.
-        for (let hop = 0; hop < MAX_HOPS; hop++) {
+        let hops = 0
+        for (; hops < MAX_HOPS; hops++) {
           const A = graph.nodes[a.at]
           const B = graph.nodes[a.to]
           const len = Math.hypot(B.x - A.x, B.z - A.z)
@@ -232,8 +280,23 @@ export function createTraffic(
           if (a.s < len) break
           a.s -= len
           const next = nextNode(graph, a.at, a.to, rng)
+          // Going back the way we came is a dead end turning us round. Once is a
+          // cul-de-sac; twice running means we're trapped on a stub — a driveway,
+          // or a fragment the graph left isolated — shuttling end to end and
+          // flipping 180 degrees every couple of seconds. That reads as a twitch,
+          // not as driving.
+          a.uturns = next === a.at ? a.uturns + 1 : 0
           a.at = a.to
           a.to = next
+        }
+        if (hops >= MAX_HOPS || a.uturns >= 2) {
+          const fresh = spawn({ x: camX, z: camZ })
+          if (fresh) {
+            agents[i] = fresh
+            a = fresh
+          } else {
+            a.uturns = 0 // nowhere to move it to; let it be rather than thrash
+          }
         }
 
         let p = place(a)
@@ -250,9 +313,16 @@ export function createTraffic(
         pos.set(p.x, provider.heightAt(p.x, p.z), p.z)
         q.setFromAxisAngle(up, -p.angle)
         m.compose(pos, q, one)
-        bodyMesh.setMatrixAt(i, m)
-        cabinMesh.setMatrixAt(i, m)
-        glassMesh.setMatrixAt(i, m)
+        const bt = BODY_TYPES[a.type]
+        // Same boxes, stretched: a van, a hatchback and an estate out of one shape.
+        scl.set(bt.body[0], bt.body[1], bt.body[2])
+        mPart.compose(pos, q, scl)
+        bodyMesh.setMatrixAt(i, mPart)
+        scl.set(bt.cabin[0], bt.cabin[1], bt.cabin[2])
+        off.makeTranslation(bt.cabinX, 0, 0)
+        mPart.compose(pos, q, scl).multiply(off)
+        cabinMesh.setMatrixAt(i, mPart)
+        glassMesh.setMatrixAt(i, mPart)
         tailMesh.setMatrixAt(i, m)
         headMesh.setMatrixAt(i, m)
         WHEELS.forEach(([wx, wz], k) => {

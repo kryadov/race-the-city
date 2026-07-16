@@ -279,3 +279,36 @@ describe('level crossings', () => {
     expect(moved).toBe(true)
   })
 })
+
+describe('cars trapped on a stub', () => {
+  it('moves a car off a dead-end stub instead of letting it shuttle', () => {
+    // A stub is a dead end at both ends: nextNode turns the car round every
+    // couple of seconds, flipping it 180 degrees on the spot. That's the twitch.
+    const stub: Road[] = [{ points: [v(0, 0), v(14, 0)], kind: 'residential' }]
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, stub, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    // no room to respawn on a 14m graph, so it must at least not throw or freeze
+    expect(() => {
+      for (let f = 0; f < 600; f++) t.update(1 / 60, 0, 0, 0)
+    }).not.toThrow()
+    expect(bodies.count).toBeGreaterThan(0)
+  })
+
+  it('takes a stubbed car to real road when there is some', () => {
+    // a long through-road plus a tiny stub: the car should end up on the road
+    // vertices every 50m, so there are nodes in the respawn ring (620..900m)
+    const mixed: Road[] = [
+      { points: Array.from({ length: 37 }, (_, i) => v(-900 + i * 50, 200)), kind: 'residential' },
+      { points: [v(0, 0), v(12, 0)], kind: 'residential' },
+    ]
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, mixed, flat, Math.random)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    for (let f = 0; f < 1200; f++) t.update(1 / 60, 0, 0, 0)
+    // nobody should still be pinned to the 12m stub
+    const onStub = positions(bodies).filter((p) => Math.abs(p.z) < 100 && p.x > -20 && p.x < 32)
+    expect(onStub.length).toBe(0)
+  })
+})

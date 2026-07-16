@@ -116,18 +116,16 @@ export function createPedestrians(
   armGeo.translate(0, -0.28, 0)
 
   const n = walkers.length || 1
-  const bodies = new THREE.InstancedMesh(
-    torsoGeo,
-    new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }),
-    n,
-  )
+  // Instance colours only — see the note by the traffic's materials: vertexColors
+  // on a geometry with no colour attribute paints every instance black.
+  const bodies = new THREE.InstancedMesh(torsoGeo, new THREE.MeshStandardMaterial({ flatShading: true }), n)
   const heads = new THREE.InstancedMesh(
     headGeo,
     new THREE.MeshStandardMaterial({ color: 0xe0ac69, flatShading: true }),
     n,
   )
   const legs = new THREE.InstancedMesh(legGeo, new THREE.MeshStandardMaterial({ color: 0x33363d, flatShading: true }), n * 2)
-  const arms = new THREE.InstancedMesh(armGeo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }), n * 2)
+  const arms = new THREE.InstancedMesh(armGeo, new THREE.MeshStandardMaterial({ flatShading: true }), n * 2)
   group.add(bodies, heads, legs, arms)
   // three computes an InstancedMesh's bounding sphere on first use and never
   // again, so once these drive away from it the whole batch gets frustum-culled

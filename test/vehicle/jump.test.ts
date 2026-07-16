@@ -97,3 +97,36 @@ describe('jumps', () => {
     expect(TAKEOFF_VY).toBeGreaterThan(0)
   })
 })
+
+describe('smooth crests do not throw the car', () => {
+  /** A bridge arch: 5m over a 100m span, which is what deckHeights builds. */
+  const arch: ElevationProvider = {
+    heightAt: (x: number) => (x > 0 && x < 100 ? Math.sin((Math.PI * x) / 100) * 5 : 0),
+  }
+
+  it('holds the car on a bridge arch at speed', () => {
+    // The old rule — "was climbing, now isn't" — fired at the crest of every
+    // arch: at 25m/s the arch is worth ~3m/s of climb, over the threshold. The
+    // car took off, landed and took off again, and that was the shake.
+    let c: CarState = { ...createCar(0, 0), vx: 25, y: 0 }
+    let worst = 0
+    for (let i = 0; i < 400; i++) {
+      c = stepCar(c, coast, DT, grid, arch, { ...car, dragForward: 0 })
+      c.vx = 25
+      worst = Math.max(worst, c.y - arch.heightAt(c.x, c.z))
+    }
+    expect(worst, 'the car left the deck').toBeLessThan(0.05)
+  })
+
+  it('still throws it off a sharp lip at the same speed', () => {
+    // the difference is the surface falling away faster than gravity holds you
+    let c: CarState = { ...createCar(0, 0), vx: 25, y: 0 }
+    let air = 0
+    for (let i = 0; i < 400; i++) {
+      c = stepCar(c, coast, DT, grid, jumpRamp, { ...car, dragForward: 0 })
+      c.vx = 25
+      air = Math.max(air, c.y - jumpRamp.heightAt(c.x, c.z))
+    }
+    expect(air, 'a real ramp should still launch it').toBeGreaterThan(0.5)
+  })
+})

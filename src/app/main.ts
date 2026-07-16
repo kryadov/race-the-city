@@ -469,8 +469,16 @@ async function loadCity(query: string): Promise<void> {
         // touch of the controls hands the wheel straight back. It reads the
         // BOOSTED spec, or it would cruise past a nitro bottle without using it,
         // and the hazards, or it would drive into a train.
-        if (autopilot.enabled() && !pause.paused() && !handsOn) {
-          input = autopilot.drive(car, activeSpec.maxSpeed, hazards)
+        if (autopilot.enabled() && !pause.paused()) {
+          if (handsOn) {
+            // You've taken the wheel: the demo's route is from wherever it left
+            // off, and steering back to it means aiming through whatever is now
+            // in between — usually a building. Pick the route up from where the
+            // car actually is instead.
+            autopilot.rehome(car)
+          } else {
+            input = autopilot.drive(car, activeSpec.maxSpeed, hazards)
+          }
         }
         // What counts as "the ground" for the car: a deck when it is already
         // riding one, terrain otherwise. Judged from last frame's height, so

@@ -171,3 +171,44 @@ describe('autopilot avoidance', () => {
     expect(closest, 'the demo drove into the train').toBeGreaterThan(2)
   })
 })
+
+describe('handing the wheel back', () => {
+  const grid2: Road[] = [
+    { points: [v(-500, 0), v(0, 0), v(500, 0)], kind: 'residential' },
+    { points: [v(0, -500), v(0, 0), v(0, 500)], kind: 'residential' },
+  ]
+
+  it('picks the route up from where the car actually is', () => {
+    // Drive off on your own and the demo's old target is somewhere behind you,
+    // usually through a building. Steering at it is the bug.
+    const a = createAutopilot()
+    a.reset(grid2, createCar(0, 0))
+
+    const strayed: CarState = { ...createCar(300, 300), vx: 5, vy: 0 }
+    a.rehome(strayed)
+    const i = a.drive(strayed, spec.maxSpeed)
+    expect(Math.abs(i.steer)).toBeLessThanOrEqual(1)
+    expect(Number.isFinite(i.steer)).toBe(true)
+  })
+
+  it('heads for road it can reach, not back across country', () => {
+    const a = createAutopilot()
+    a.reset(grid2, createCar(0, 0))
+    // stand the car near the north arm, facing north
+    let car: CarState = { ...createCar(0, 300), vx: 0, vy: 0, heading: Math.PI / 2 }
+    a.rehome(car)
+    for (let i = 0; i < 1800; i++) car = stepCar(car, a.drive(car, spec.maxSpeed), 1 / 60, grid, flat, spec)
+    // it should still be on the road network, not out in the fields
+    const onArm = Math.abs(car.x) < 40 || Math.abs(car.z) < 40
+    expect(onArm, 'the demo wandered off the roads').toBe(true)
+  })
+
+  it('rehome does not need the roads again', () => {
+    // it keeps the graph: cheap enough to call every frame the player steers
+    const a = createAutopilot()
+    a.reset(grid2, createCar(0, 0))
+    expect(() => {
+      for (let i = 0; i < 500; i++) a.rehome(createCar(i, 0))
+    }).not.toThrow()
+  })
+})

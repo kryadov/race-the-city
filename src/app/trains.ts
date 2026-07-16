@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { Railway, Vec2 } from '../geo/types'
 import type { Circle } from '../physics/collide'
+import { RAILHEAD_Y } from '../world/roads'
 import type { ElevationProvider } from '../terrain/provider'
 
 /** The three sorts of train, and how they're put together. */
@@ -20,16 +21,16 @@ const KINDS: Record<TrainKind, Kind> = {
   intercity: { cars: 7, len: 22, speed: 30, body: 0xd6dae0, roof: 0x9aa2ac, windows: true },
   commuter: { cars: 4, len: 18, speed: 20, body: 0x2f6f9a, roof: 0x24566f, windows: true },
   // Short, slow, and no locomotive: a tram is one carriage that drives itself.
-  tram: { cars: 2, len: 14, speed: 11, body: 0xc8492f, roof: 0xdedad2, windows: true },
+  tram: { cars: 2, len: 11, speed: 11, body: 0xd8dde2, roof: 0x2f6f9a, windows: true },
 }
 /** The heavy stuff, for lines of its own. */
 const MAINLINE: TrainKind[] = ['freight', 'intercity', 'commuter']
 
 /**
- * The rail ribbon is drawn at terrain + ROAD_Y_OFFSET (0.15); the wheels sit on
- * top of it. Anything else and the train floats over its own track.
+ * The height of the railhead, taken from the track builder rather than guessed:
+ * the wheels sit on it, and anything else floats the train over its own rails.
  */
-const RAIL_TOP = 0.15
+const RAIL_TOP = RAILHEAD_Y
 const RAIL_Y = RAIL_TOP + 0.45 // axle height above the railhead
 const MIN_LINE = 260 // metres of track needed before a train is worth running
 const MIN_TRAM_LINE = 120 // a tram works a shorter run than an intercity
@@ -131,6 +132,81 @@ function addBogies(g: THREE.Group, len: number): void {
   }
 }
 
+/**
+ * A tram carriage: low floor, a rounded end, a livery band, doors, and a
+ * pantograph on the roof. A pair of plain red boxes reads as freight on a
+ * street, which is what it looked like.
+ */
+function tramCar(k: Kind, first: boolean): THREE.Group {
+  const g = new THREE.Group()
+  const FLOOR = RAIL_TOP + 0.35 // low-floor: that is what a tram looks like
+  const H = 2.7
+  const body = new THREE.Mesh(new THREE.BoxGeometry(k.len, H, 2.4), mat(k.body))
+  body.position.y = FLOOR + H / 2
+  g.add(body)
+  // Rounded cab end, on the leading car only.
+  if (first) {
+    const nose = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 2.4, 10, 1, false, -Math.PI / 2, Math.PI), mat(k.body))
+    nose.rotation.x = Math.PI / 2
+    nose.rotation.z = -Math.PI / 2
+    nose.position.set(k.len / 2, FLOOR + 1.35, 0)
+    g.add(nose)
+  }
+  // Livery band along the waist — trams are two-tone, never one flat colour.
+  const band = new THREE.Mesh(new THREE.BoxGeometry(k.len * 0.99, 0.42, 2.46), mat(k.roof))
+  band.position.y = FLOOR + 0.55
+  g.add(band)
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(k.len * 0.96, 0.22, 2.3), mat(0xb8bec6))
+  roof.position.y = FLOOR + H + 0.05
+  g.add(roof)
+  // Glazing: a long strip each side, and the cab's screen.
+  const glass = new THREE.MeshStandardMaterial({
+    color: 0x1b2b36,
+    emissive: 0xffd98a,
+    emissiveIntensity: 0,
+    flatShading: true,
+  })
+  for (const z of [1.22, -1.22]) {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(k.len * 0.82, 1.1, 0.06), glass)
+    strip.position.set(0, FLOOR + 1.75, z)
+    strip.userData.trainGlass = true
+    g.add(strip)
+    // Doors, in the dark of the band.
+    for (const x of [k.len * 0.28, -k.len * 0.28]) {
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.06), mat(0x3f4a55))
+      door.position.set(x, FLOOR + 1.0, z * 1.01)
+      g.add(door)
+    }
+  }
+  if (first) {
+    const screen = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.2, 2.0), glass)
+    screen.position.set(k.len / 2 + 1.15, FLOOR + 1.75, 0)
+    screen.userData.trainGlass = true
+    g.add(screen)
+    const lamp = new THREE.MeshStandardMaterial({ color: 0x5a5a48, emissive: 0xfff2c0, emissiveIntensity: 0 })
+    for (const z of [0.75, -0.75]) {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.4), lamp)
+      l.position.set(k.len / 2 + 1.18, FLOOR + 0.5, z)
+      l.userData.trainLamp = true
+      g.add(l)
+    }
+  }
+  // Pantograph: the one thing that says 'electric tram' at a glance.
+  const pan = new THREE.Group()
+  const armA = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.07, 0.07), mat(0x33363d))
+  armA.rotation.z = 0.5
+  armA.position.y = 0.35
+  pan.add(armA)
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.07, 1.6), mat(0x33363d))
+  bar.position.set(0.62, 0.7, 0)
+  pan.add(bar)
+  pan.position.set(-k.len * 0.2, FLOOR + H + 0.16, 0)
+  g.add(pan)
+
+  addBogies(g, k.len)
+  return g
+}
+
 function carriage(k: Kind): THREE.Group {
   const g = new THREE.Group()
   const body = new THREE.Mesh(new THREE.BoxGeometry(k.len, 3.2, 3), mat(k.body))
@@ -194,8 +270,8 @@ export function createTrains(
     const k = KINDS[kind]
     const cars: THREE.Group[] = []
     for (let i = 0; i < k.cars; i++) {
-      // A tram has no locomotive: every car is the same, and the first drives.
-      const c = i === 0 && kind !== 'tram' ? locomotive(k) : carriage(k)
+      // A tram has no locomotive: the leading car has the cab and drives.
+      const c = kind === 'tram' ? tramCar(k, i === 0) : i === 0 ? locomotive(k) : carriage(k)
       group.add(c)
       cars.push(c)
     }

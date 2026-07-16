@@ -81,23 +81,103 @@ export function buildRoads(roads: Road[], provider: ElevationProvider, style: Ro
   return ribbonMesh(positions, style.color ?? 0x5b5c62) // tarmac grey, not a hole in the ground
 }
 
-const RAIL_WIDTH = 2.6
+/** Standard gauge, rail centre to rail centre. */
+const GAUGE = 1.435
+const RAIL_W = 0.09 // the railhead you can actually see
+const BALLAST_W = 3.0 // the stones the sleepers sit in
+const SLEEPER_GAP = 0.65 // metres between sleepers
+const BALLAST_Y = 0.06
+const SLEEPER_Y = 0.11
+/** Top of the rail — what a wheel sits on. Trains read this. */
+export const RAILHEAD_Y = 0.18
+
+/** The ribbon between two offsets of a line: a rail, rather than the whole track. */
+function bandBetween(points: Vec2[], from: number, to: number): RibbonSide[] {
+  const outer = offsetsForPolyline(points, Math.max(from, to))
+  const inner = offsetsForPolyline(points, Math.min(from, to))
+  const left: RibbonSide[] = []
+  for (let i = 0; i < outer.length; i++) left.push({ left: outer[i].left, right: inner[i].left })
+  return left
+}
+
+/** The same, on the other side of the line. */
+function bandBetweenRight(points: Vec2[], from: number, to: number): RibbonSide[] {
+  const outer = offsetsForPolyline(points, Math.max(from, to))
+  const inner = offsetsForPolyline(points, Math.min(from, to))
+  const right: RibbonSide[] = []
+  for (let i = 0; i < outer.length; i++) right.push({ left: inner[i].right, right: outer[i].right })
+  return right
+}
+
+/** Points every `gap` metres along a line, with the bearing there. */
+function tiesAlong(points: Vec2[], gap: number): { x: number; z: number; angle: number }[] {
+  const out: { x: number; z: number; angle: number }[] = []
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]
+    const b = points[i]
+    const len = Math.hypot(b.x - a.x, b.z - a.z)
+    const n = Math.floor(len / gap)
+    const angle = Math.atan2(b.z - a.z, b.x - a.x)
+    for (let k = 0; k < n; k++) {
+      const f = (k * gap) / len
+      out.push({ x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f, angle })
+    }
+  }
+  return out
+}
 
 /**
- * Thin dark ribbons for railway lines.
+ * Railway track: ballast, sleepers and two rails at standard gauge.
+ *
+ * It was one dark ribbon 2.6m wide — the width of a small road, and about as
+ * convincing. A track is two 9cm rails 1.435m apart; that is what you see, and
+ * the gaps between the sleepers are most of what makes it read as track at all.
  *
  * Tunnels are skipped: they run under the city, and drawing them on the surface
  * lays track through people's front rooms. Monaco's railway is tunnelled end to
  * end — all eleven ways of it.
  */
 export function buildRailways(railways: Railway[], provider: ElevationProvider): THREE.Object3D {
-  const positions: number[] = []
-  const y = (v: Vec2): number => provider.heightAt(v.x, v.z) + ROAD_Y_OFFSET
+  const group = new THREE.Group()
+  const ballast: number[] = []
+  const rails: number[] = []
+  const ties: { x: number; z: number; angle: number }[] = []
+
   for (const line of railways) {
     if (line.tunnel) continue
-    emitRibbon(positions, offsetsForPolyline(line.points, RAIL_WIDTH / 2), y)
+    const pts = line.points
+    emitRibbon(ballast, offsetsForPolyline(pts, BALLAST_W / 2), (v) => provider.heightAt(v.x, v.z) + BALLAST_Y)
+    const railY = (v: Vec2): number => provider.heightAt(v.x, v.z) + RAILHEAD_Y
+    emitRibbon(rails, bandBetween(pts, GAUGE / 2 - RAIL_W / 2, GAUGE / 2 + RAIL_W / 2), railY)
+    emitRibbon(rails, bandBetweenRight(pts, GAUGE / 2 - RAIL_W / 2, GAUGE / 2 + RAIL_W / 2), railY)
+    ties.push(...tiesAlong(pts, SLEEPER_GAP))
   }
-  return ribbonMesh(positions, 0x4a4038)
+
+  if (ballast.length) group.add(ribbonMesh(ballast, 0x6b6259))
+  if (rails.length) group.add(ribbonMesh(rails, 0x9aa0a8))
+
+  if (ties.length) {
+    // One instanced draw for every sleeper in the city.
+    const geo = new THREE.BoxGeometry(0.24, 0.1, GAUGE + 0.5)
+    const mesh = new THREE.InstancedMesh(
+      geo,
+      new THREE.MeshStandardMaterial({ color: 0x4a3b2c, flatShading: true }),
+      ties.length,
+    )
+    const m = new THREE.Matrix4()
+    const q = new THREE.Quaternion()
+    const p = new THREE.Vector3()
+    const one = new THREE.Vector3(1, 1, 1)
+    const up = new THREE.Vector3(0, 1, 0)
+    ties.forEach((t, i) => {
+      q.setFromAxisAngle(up, -t.angle)
+      p.set(t.x, provider.heightAt(t.x, t.z) + SLEEPER_Y, t.z)
+      mesh.setMatrixAt(i, m.compose(p, q, one))
+    })
+    mesh.instanceMatrix.needsUpdate = true
+    group.add(mesh)
+  }
+  return group
 }
 
 /**
