@@ -36,3 +36,22 @@ export function setRoadLabels(on: boolean): void {
     /* ignore */
   }
 }
+
+const DRIFT_FX_KEY = 'rtc.driftFx'
+
+/** Whether skid marks + drift smoke are shown (on by default). */
+export function getDriftFx(): boolean {
+  try {
+    return localStorage.getItem(DRIFT_FX_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setDriftFx(on: boolean): void {
+  try {
+    localStorage.setItem(DRIFT_FX_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}

@@ -15,6 +15,7 @@ export interface SettingsCallbacks {
   onAudioChange: (patch: Partial<AudioState>) => void
   onRoadLabels: (on: boolean) => void
   onSetTime: (t: number) => void
+  onDriftFx: (on: boolean) => void
 }
 
 export interface SettingsHandle {
@@ -39,6 +40,7 @@ export function createSettingsMenu(
     audio: AudioState
     roadLabels: boolean
     time: number
+    driftFx: boolean
   },
   cb: SettingsCallbacks,
 ): SettingsHandle {
@@ -46,6 +48,7 @@ export function createSettingsMenu(
   let vehicle = initial.vehicle
   let audio = initial.audio
   let roadLabels = initial.roadLabels
+  let driftFx = initial.driftFx
 
   const gear = document.createElement('button')
   gear.textContent = '⚙'
@@ -202,8 +205,17 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(labelsBtn)
+  const driftBtn = button()
+  driftBtn.style.cssText += ';width:100%;margin-top:4px'
+  driftBtn.addEventListener('click', () => {
+    driftFx = !driftFx
+    cb.onDriftFx(driftFx)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(driftBtn)
   function paintLabelsToggle(): void {
     labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
+    driftBtn.textContent = `${driftFx ? '☑' : '☐'} ${t('menu.driftFx')}`
   }
 
   // --- Time of day ---
