@@ -6,6 +6,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🗺 World & map
 - [x] Sea / coastline (approximate flat-plane sea for coastal areas) — done in v0.14.0
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0
+- [ ] **Palms in southern cities, not firs** — tree shape should follow latitude (the projector
+      knows the centre lat); conifers in Monaco read as wrong
 - [ ] Pedestrian zones, squares, parking (`highway=pedestrian`, `amenity=parking`)
 - [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)
 - [ ] **Drivable bridges** — deck as a real surface: parse `layer`, span flat between abutments
@@ -58,9 +60,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 
 ## 🔊 Audio
 - [x] Custom music file upload — use your own audio file as looping music — done in v0.49.0
-- [ ] **Real music tracks instead of the procedural loops** — ship mp3s in `public/audio/`,
-      pick one at random on startup (today `TRACKS` in `src/audio/audio.ts` is three
-      oscillator loops: Cruise / Chill / Upbeat)
+- [x] **Real music tracks instead of the procedural loops** — six mp3s in `public/audio/`,
+      random on startup, another at random when one ends; music on by default — done in v0.59.0
 - [ ] **Fade the engine out after ~10s stationary** — idle engine drone is tiring when parked;
       bring it back on throttle
 - [ ] **Per-vehicle engine sound** — a tiller and a racecar share one drone today

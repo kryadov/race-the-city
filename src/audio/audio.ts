@@ -6,23 +6,38 @@ export interface AudioState {
   track: number // index into TRACKS
 }
 
-interface Track {
+export interface Track {
   name: string
-  notes: number[]
-  stepDur: number
-  wave: OscillatorType
+  /** Path under public/, served next to index.html. */
+  file: string
 }
 
-// Mellow, distinct procedural loops (kept to gentle waveforms).
-const TRACKS: Track[] = [
-  { name: 'Cruise', notes: [220, 277.2, 329.6, 277.2, 246.9, 329.6, 293.7, 246.9], stepDur: 0.28, wave: 'triangle' },
-  { name: 'Chill', notes: [196, 246.9, 293.7, 246.9, 220, 261.6, 329.6, 261.6], stepDur: 0.44, wave: 'sine' },
-  { name: 'Upbeat', notes: [261.6, 329.6, 392, 329.6, 293.7, 349.2, 440, 349.2], stepDur: 0.18, wave: 'triangle' },
+// Real tracks, shipped in public/audio. Played like a radio: one at random on
+// startup, another at random when it ends.
+export const TRACKS: readonly Track[] = [
+  { name: 'Code Pulse', file: 'audio/code-pulse.mp3' },
+  { name: 'Lost Keygen', file: 'audio/lost-keygen.mp3' },
+  { name: 'Sax and Fog', file: 'audio/sax-and-fog.mp3' },
+  { name: 'Memory Disk', file: 'audio/memory-disk.mp3' },
+  { name: 'Pixels Deflate', file: 'audio/pixels-deflate.mp3' },
+  { name: 'Slow Error', file: 'audio/slow-error.mp3' },
 ]
 export const TRACK_NAMES: readonly string[] = TRACKS.map((t) => t.name)
 
+/**
+ * Pick a track index at random, avoiding `current` so the radio never plays the
+ * same thing twice in a row. Pass -1 for `current` to allow any track.
+ */
+export function pickTrack(count: number, current: number): number {
+  if (count <= 1) return 0
+  let n = current
+  while (n === current) n = Math.floor(Math.random() * count)
+  return n
+}
+
 const KEY = 'rtc.audio'
-const DEFAULTS: AudioState = { sound: true, music: false, soundVol: 0.6, musicVol: 0.35, track: 0 }
+export const MUSIC_DEFAULTS: AudioState = { sound: true, music: true, soundVol: 0.6, musicVol: 0.35, track: 0 }
+const DEFAULTS = MUSIC_DEFAULTS
 
 /** Engine oscillator frequency (Hz) from a 0..1 speed fraction. Pure/testable. */
 export function engineFrequency(speedFraction: number): number {
@@ -41,9 +56,14 @@ function loadState(): AudioState {
 }
 
 /**
- * Web Audio engine: a speed-driven engine tone, a slip-driven skid noise, a
- * collision thud, and a small procedural music loop. Everything is synthesized
- * — no audio assets. Must be resumed from a user gesture (autoplay policy).
+ * Web Audio engine: a synthesized speed-driven engine tone, slip-driven skid
+ * noise and collision thud, plus music played from real files. Must be resumed
+ * from a user gesture (autoplay policy).
+ *
+ * Music — built-in tracks and a user-supplied file alike — runs through ONE
+ * <audio> element routed into musicGain, so the music toggle and volume slider
+ * govern both. Switching tracks only swaps `src`, which keeps the element's
+ * MediaElementSourceNode valid (it can be created only once per element).
  */
 export class AudioEngine {
   private ctx: AudioContext | null = null
@@ -53,13 +73,11 @@ export class AudioEngine {
   private engineGain: GainNode | null = null
   private engineFilter: BiquadFilterNode | null = null
   private skidGain: GainNode | null = null
-  private musicStep = 0
-  private musicTimer: number | null = null
   private state: AudioState = loadState()
-  // A user-supplied audio file, looped in place of the procedural music.
-  // Session-only: a File can't be persisted, so it resets on reload.
-  private customEl: HTMLAudioElement | null = null
-  private customSrc: MediaElementAudioSourceNode | null = null
+  private musicEl: HTMLAudioElement | null = null
+  private musicSrc: MediaElementAudioSourceNode | null = null
+  // A user-supplied file, looped in place of the built-in tracks. Session-only:
+  // a File can't be persisted, so it resets on reload.
   private customUrl: string | null = null
   private customName = ''
 
@@ -77,9 +95,10 @@ export class AudioEngine {
     if (!Ctor) return
     this.ctx = new Ctor()
     this.build()
-    this.connectCustom() // a track picked before the context existed
+    this.connectMusic() // a custom file picked before the context existed
     this.applyVolumes()
-    if (!this.customEl) this.startMusic()
+    // Radio: start on a random track rather than always the same one.
+    if (!this.customUrl) this.playTrack(pickTrack(TRACKS.length, -1))
   }
 
   private build(): void {
@@ -162,50 +181,45 @@ export class AudioEngine {
     osc.stop(t + 0.26)
   }
 
-  private startMusic(): void {
-    const track = TRACKS[this.state.track] ?? TRACKS[0]
-    const tick = (): void => {
-      if (!this.ctx || !this.musicGain) return
-      const t = this.ctx.currentTime + 0.05
-      const osc = this.ctx.createOscillator()
-      osc.type = track.wave
-      osc.frequency.value = track.notes[this.musicStep % track.notes.length]
-      const g = this.ctx.createGain()
-      g.gain.setValueAtTime(0.0001, t)
-      g.gain.exponentialRampToValueAtTime(0.3, t + 0.02)
-      g.gain.exponentialRampToValueAtTime(0.0001, t + track.stepDur * 0.9)
-      osc.connect(g)
-      g.connect(this.musicGain)
-      osc.start(t)
-      osc.stop(t + track.stepDur)
-      this.musicStep++
+  /** The one <audio> element all music flows through, created on first use. */
+  private ensureEl(): HTMLAudioElement {
+    if (!this.musicEl) {
+      this.musicEl = new Audio()
+      // Radio: when a built-in track finishes, roll on to another one.
+      this.musicEl.addEventListener('ended', () => {
+        if (!this.customUrl) this.setState({ track: pickTrack(TRACKS.length, this.state.track) })
+      })
     }
-    this.musicTimer = window.setInterval(tick, track.stepDur * 1000)
+    return this.musicEl
   }
 
-  private restartMusic(): void {
-    if (this.musicTimer !== null) window.clearInterval(this.musicTimer)
-    this.musicStep = 0
-    if (!this.customEl) this.startMusic() // a custom track replaces the procedural loop
+  private connectMusic(): void {
+    if (!this.ctx || !this.musicGain || !this.musicEl || this.musicSrc) return
+    this.musicSrc = this.ctx.createMediaElementSource(this.musicEl)
+    this.musicSrc.connect(this.musicGain)
   }
 
-  /** The custom track's file name, or null when using the procedural music. */
+  /** Load and play a built-in track by index. */
+  private playTrack(i: number): void {
+    const track = TRACKS[i] ?? TRACKS[0]
+    const el = this.ensureEl()
+    el.loop = false // the 'ended' handler picks the next one
+    el.src = track.file
+    this.connectMusic()
+    if (this.state.music) void el.play().catch(() => undefined)
+  }
+
+  /** The custom file's name, or null when playing the built-in tracks. */
   getCustomName(): string | null {
-    return this.customEl ? this.customName : null
+    return this.customUrl ? this.customName : null
   }
 
   /**
-   * Play a user-supplied audio file on loop instead of the procedural music.
-   * Pass null to go back to the built-in loop. Routed through the same music
-   * gain, so the music toggle and volume slider keep working.
+   * Loop a user-supplied audio file instead of the built-in tracks. Pass null to
+   * go back to them. Shares the music element and gain, so the toggle and volume
+   * slider keep working either way.
    */
   setCustomMusic(file: File | null): void {
-    if (this.customEl) {
-      this.customEl.pause()
-      this.customEl = null
-    }
-    this.customSrc?.disconnect()
-    this.customSrc = null
     if (this.customUrl) {
       URL.revokeObjectURL(this.customUrl)
       this.customUrl = null
@@ -213,35 +227,25 @@ export class AudioEngine {
 
     if (!file) {
       this.customName = ''
-      this.restartMusic() // back to the procedural loop
-      this.applyVolumes()
+      this.playTrack(this.state.track) // back to the built-in radio
       return
     }
 
-    if (this.musicTimer !== null) {
-      window.clearInterval(this.musicTimer) // silence the procedural loop
-      this.musicTimer = null
-    }
     this.customUrl = URL.createObjectURL(file)
     this.customName = file.name
-    const el = new Audio(this.customUrl)
-    el.loop = true
-    this.customEl = el
-    this.connectCustom()
-    this.applyVolumes()
-  }
-
-  private connectCustom(): void {
-    if (!this.ctx || !this.musicGain || !this.customEl || this.customSrc) return
-    this.customSrc = this.ctx.createMediaElementSource(this.customEl)
-    this.customSrc.connect(this.musicGain)
+    const el = this.ensureEl()
+    el.loop = true // one file, so loop it rather than rolling on
+    el.src = this.customUrl
+    this.connectMusic()
+    if (this.state.music) void el.play().catch(() => undefined)
   }
 
   private applyVolumes(): void {
-    // A custom track is a real element: pause it rather than just muting the gain.
-    if (this.customEl) {
-      if (this.state.music) void this.customEl.play().catch(() => undefined)
-      else this.customEl.pause()
+    // Music is a real element: pause it rather than just muting the gain, so a
+    // muted track doesn't keep streaming.
+    if (this.musicEl?.src) {
+      if (this.state.music) void this.musicEl.play().catch(() => undefined)
+      else this.musicEl.pause()
     }
     if (!this.ctx || !this.sfxGain || !this.musicGain) return
     this.sfxGain.gain.value = this.state.sound ? this.state.soundVol : 0
@@ -257,6 +261,6 @@ export class AudioEngine {
       /* ignore */
     }
     this.applyVolumes()
-    if (trackChanged && this.ctx && !this.customEl) this.restartMusic()
+    if (trackChanged && this.ctx && !this.customUrl) this.playTrack(this.state.track)
   }
 }
