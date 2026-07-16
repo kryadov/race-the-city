@@ -96,6 +96,25 @@ export function setShadows(on: boolean): void {
   }
 }
 
+const CLOUDS_KEY = 'rtc.clouds'
+
+/** Whether clouds are shown (on by default). */
+export function getClouds(): boolean {
+  try {
+    return localStorage.getItem(CLOUDS_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setClouds(on: boolean): void {
+  try {
+    localStorage.setItem(CLOUDS_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const WEATHER_KEY = 'rtc.weather'
 
 /** Persisted weather (clear by default). */
