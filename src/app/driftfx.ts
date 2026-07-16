@@ -13,6 +13,7 @@ const MARK_OFFSET = 0.2 // above roads (0.15)
 export interface DriftFx {
   update(car: CarState, dt: number, provider: ElevationProvider): void
   reset(): void
+  setEnabled(on: boolean): void
 }
 
 /** Skid marks and drift smoke, both instanced (2 draw calls). */
@@ -68,8 +69,10 @@ export function createDriftFx(scene: THREE.Scene): DriftFx {
     life[i] = 0.7
   }
 
-  return {
+  let enabled = true
+  const api: DriftFx = {
     update(car, dt, provider) {
+      if (!enabled) return
       const fx = Math.cos(car.heading)
       const fz = Math.sin(car.heading)
       const forward = car.vx * fx + car.vz * fz
@@ -122,7 +125,12 @@ export function createDriftFx(scene: THREE.Scene): DriftFx {
       hideAll(puffs)
       puffs.instanceMatrix.needsUpdate = true
     },
+    setEnabled(on) {
+      enabled = on
+      if (!on) api.reset()
+    },
   }
+  return api
 }
 
 function hideAll(im: THREE.InstancedMesh): void {

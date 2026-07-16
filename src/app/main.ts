@@ -18,7 +18,7 @@ import { createSettingsMenu } from '../ui/settingsMenu'
 import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
-import { getDefaultCity, setDefaultCity, getRoadLabels, setRoadLabels } from './prefs'
+import { getDefaultCity, setDefaultCity, getRoadLabels, setRoadLabels, getDriftFx, setDriftFx } from './prefs'
 import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
@@ -55,6 +55,7 @@ const keyboard = new Keyboard()
 const touch = createTouchControls(ui)
 const theme = new ThemeController(stage)
 const driftFx = createDriftFx(stage.scene)
+driftFx.setEnabled(getDriftFx())
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
@@ -179,6 +180,7 @@ const menu = createSettingsMenu(
     audio: audio.getState(),
     roadLabels: getRoadLabels(),
     time: timeOfDay,
+    driftFx: getDriftFx(),
   },
   {
     onLoadCity: (q) => void loadCity(q),
@@ -199,6 +201,10 @@ const menu = createSettingsMenu(
     },
     onSetTime: (tt) => {
       timeOfDay = tt
+    },
+    onDriftFx: (on) => {
+      setDriftFx(on)
+      driftFx.setEnabled(on)
     },
   },
 )

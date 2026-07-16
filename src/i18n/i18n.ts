@@ -31,6 +31,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.roadLabels': 'Street names',
     'menu.map': 'Map',
     'menu.time': 'Time of day',
+    'menu.driftFx': 'Drift effects',
   },
   ru: {
     'input.placeholder': 'Город или "lat,lon"',
@@ -59,6 +60,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'menu.roadLabels': 'Названия улиц',
     'menu.map': 'Карта',
     'menu.time': 'Время суток',
+    'menu.driftFx': 'Эффекты дрифта',
   },
 }
 
