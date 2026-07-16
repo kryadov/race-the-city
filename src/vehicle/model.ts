@@ -72,7 +72,7 @@ function buildCar(): THREE.Group {
 function buildTruck(): THREE.Group {
   const g = new THREE.Group()
   g.add(box(4.2, 1.7, 2.2, 0x5b7186, -1.3, 1.45, 0)) // cargo box
-  g.add(box(2.0, 1.7, 2.15, 0xffb703, 2.0, 1.35, 0)) // cab
+  g.add(box(2.0, 1.2, 2.15, 0xffb703, 2.0, 1.15, 0)) // cab (lower than the cargo)
   g.add(box(7.0, 0.4, 2.0, 0x2a3440, 0, 0.55, 0)) // chassis
   g.add(...fourWheels(0.72, 0.5, 2.1, 1.05, 0.7))
   g.add(wheel(0.72, 0.5, -0.4, 0.7, 1.05)) // extra rear axle
