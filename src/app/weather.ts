@@ -3,60 +3,75 @@ import * as THREE from 'three'
 export type Weather = 'clear' | 'rain' | 'snow' | 'fog'
 export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'snow', 'fog']
 
-const COUNT = 900
-const AREA = 70 // horizontal half-extent around the camera
-const TOP = 45 // spawn height above camera
-const BOT = -35 // recycle below camera
-
-interface Layer {
-  points: THREE.Points
-  geo: THREE.BufferGeometry
-  pos: Float32Array
-}
+const AREA = 55 // horizontal half-extent of the (camera-local) particle box
+const TOP = 42
+const BOT = -30
+const RAIN_N = 700
+const SNOW_N = 550
+const STREAK = 1.6 // rain drop length
 
 export interface WeatherFx {
   setWeather(w: Weather): void
   update(cam: THREE.Vector3, dt: number): void
 }
 
-/** Rain/snow particle layers around the camera, plus a thick-fog mode. */
+/**
+ * Rain (line-segment streaks) and snow (points), kept in a camera-local box so
+ * they always surround the view without batchy respawns. Per-particle speeds
+ * avoid synchronized "sheets". Plus a thick-fog mode. One draw call per layer.
+ */
 export function createWeather(scene: THREE.Scene, fog: THREE.Fog): WeatherFx {
   const fogNear = fog.near
   const fogFar = fog.far
+  const rnd = (): number => Math.random() * 2 - 1
 
-  const makeLayer = (color: number, size: number): Layer => {
-    const pos = new Float32Array(COUNT * 3)
-    for (let i = 0; i < COUNT; i++) {
-      pos[i * 3] = (Math.random() * 2 - 1) * AREA
-      pos[i * 3 + 1] = Math.random() * (TOP - BOT) + BOT
-      pos[i * 3 + 2] = (Math.random() * 2 - 1) * AREA
-    }
-    const geo = new THREE.BufferGeometry()
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-    const mat = new THREE.PointsMaterial({
-      color,
-      size,
-      sizeAttenuation: true,
-      transparent: true,
-      opacity: 0.8,
-      depthWrite: false,
-    })
-    const points = new THREE.Points(geo, mat)
-    points.frustumCulled = false
-    points.visible = false
-    scene.add(points)
-    return { points, geo, pos }
+  // --- rain: LineSegments, 2 verts per drop ---
+  const rainPos = new Float32Array(RAIN_N * 6)
+  const rainSpeed = new Float32Array(RAIN_N)
+  for (let i = 0; i < RAIN_N; i++) {
+    const x = rnd() * AREA
+    const z = rnd() * AREA
+    const y = Math.random() * (TOP - BOT) + BOT
+    rainSpeed[i] = 50 + Math.random() * 35
+    rainPos.set([x, y, z, x, y - STREAK, z], i * 6)
   }
+  const rainGeo = new THREE.BufferGeometry()
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3))
+  const rain = new THREE.LineSegments(
+    rainGeo,
+    new THREE.LineBasicMaterial({ color: 0x9fb4d8, transparent: true, opacity: 0.4 }),
+  )
+  rain.frustumCulled = false
+  rain.visible = false
+  scene.add(rain)
 
-  const rain = makeLayer(0xafc4e0, 0.5)
-  const snow = makeLayer(0xffffff, 1.3)
+  // --- snow: Points ---
+  const snowPos = new Float32Array(SNOW_N * 3)
+  const snowSpeed = new Float32Array(SNOW_N)
+  const snowPhase = new Float32Array(SNOW_N)
+  for (let i = 0; i < SNOW_N; i++) {
+    snowPos.set([rnd() * AREA, Math.random() * (TOP - BOT) + BOT, rnd() * AREA], i * 3)
+    snowSpeed[i] = 2.5 + Math.random() * 3
+    snowPhase[i] = Math.random() * Math.PI * 2
+  }
+  const snowGeo = new THREE.BufferGeometry()
+  snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3))
+  const snow = new THREE.Points(
+    snowGeo,
+    new THREE.PointsMaterial({ color: 0xffffff, size: 1.1, sizeAttenuation: true, transparent: true, opacity: 0.85, depthWrite: false }),
+  )
+  snow.frustumCulled = false
+  snow.visible = false
+  scene.add(snow)
+
   let current: Weather = 'clear'
+  let t = 0
 
   return {
     setWeather(w) {
       current = w
-      rain.points.visible = w === 'rain'
-      snow.points.visible = w === 'snow'
+      rain.visible = w === 'rain'
+      snow.visible = w === 'snow'
       if (w === 'fog') {
         fog.near = 15
         fog.far = 170
@@ -67,24 +82,35 @@ export function createWeather(scene: THREE.Scene, fog: THREE.Fog): WeatherFx {
     },
 
     update(cam, dt) {
-      const layer = current === 'rain' ? rain : current === 'snow' ? snow : null
-      if (!layer) return
-      const speed = current === 'rain' ? 55 : 4
-      const drift = current === 'rain' ? 1 : 4
-      const p = layer.pos
-      for (let i = 0; i < COUNT; i++) {
-        const j = i * 3
-        p[j + 1] -= speed * dt
-        p[j] += (Math.random() - 0.5) * drift * dt
-        if (p[j + 1] - cam.y < BOT) {
-          p[j + 1] = cam.y + TOP
-          p[j] = cam.x + (Math.random() * 2 - 1) * AREA
-          p[j + 2] = cam.z + (Math.random() * 2 - 1) * AREA
+      t += dt
+      if (current === 'rain') {
+        rain.position.copy(cam) // whole cloud follows the camera
+        for (let i = 0; i < RAIN_N; i++) {
+          const j = i * 6
+          const d = rainSpeed[i] * dt
+          rainPos[j + 1] -= d
+          rainPos[j + 4] -= d
+          if (rainPos[j + 1] < BOT) {
+            const x = rnd() * AREA
+            const z = rnd() * AREA
+            rainPos.set([x, TOP, z, x, TOP - STREAK, z], j)
+          }
         }
-        if (Math.abs(p[j] - cam.x) > AREA * 1.4) p[j] = cam.x + (Math.random() * 2 - 1) * AREA
-        if (Math.abs(p[j + 2] - cam.z) > AREA * 1.4) p[j + 2] = cam.z + (Math.random() * 2 - 1) * AREA
+        rainGeo.attributes.position.needsUpdate = true
+      } else if (current === 'snow') {
+        snow.position.copy(cam)
+        for (let i = 0; i < SNOW_N; i++) {
+          const j = i * 3
+          snowPos[j + 1] -= snowSpeed[i] * dt
+          snowPos[j] += Math.sin(t * 1.5 + snowPhase[i]) * 0.4 * dt // gentle sway
+          if (snowPos[j + 1] < BOT) {
+            snowPos[j] = rnd() * AREA
+            snowPos[j + 1] = TOP
+            snowPos[j + 2] = rnd() * AREA
+          }
+        }
+        snowGeo.attributes.position.needsUpdate = true
       }
-      layer.geo.attributes.position.needsUpdate = true
     },
   }
 }
