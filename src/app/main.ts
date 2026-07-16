@@ -28,6 +28,7 @@ import {
   setDriftFx,
   getHud,
   setHud,
+  resetSettings,
 } from './prefs'
 import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
@@ -234,6 +235,10 @@ const menu = createSettingsMenu(
     onHud: (on) => {
       setHud(on)
       hud.setVisible(on)
+    },
+    onReset: () => {
+      resetSettings()
+      location.reload()
     },
   },
 )
