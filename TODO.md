@@ -15,6 +15,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       being single-valued (one Y per X,Z) — needs a deck-aware surface query. Bridge lane markings,
       labels and nitro spots currently render on the terrain *under* the deck (`main.ts` passes
       unfiltered roads to `buildRoadDetail`).
+      - [ ] **Name the rivers** while doing this — `roadLabels` only labels roads today, and a
+            bridge is worth crossing when you can see what it crosses. Ship with the bridges.
 - [ ] Roof shapes / colour buildings by type; better height heuristics
 - [ ] Larger area / stream neighbouring tiles as you drive
 - [ ] POI markers (cafés, fuel) from OSM
@@ -52,6 +54,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Glowing building windows at night
 - [x] Shadows (sun shadow map, car-following frustum, menu toggle) — done in v0.23.0
 - [x] Sky dome with gradient + sun disc — done in v0.33.0
+- [x] **Stars at night** — hashed from the view direction in the sky shader, no new
+      objects or draw calls — done in v0.60.0
 - [x] Clouds + menu toggle — done in v0.27.0
 - [ ] Bloom / post-processing for neon mode
 - [ ] Water reflections, ripple animation

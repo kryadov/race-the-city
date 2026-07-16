@@ -375,7 +375,7 @@ async function loadCity(query: string): Promise<void> {
           const s = sampleDayNight(timeOfDay)
           const sunVis = Math.max(0, Math.min(1, (sunElevation(timeOfDay) + 0.05) / 0.17))
           sunDir.copy(sunScratch).normalize()
-          sky.update(stage.camera.position, s.sky, s.sun, sunDir, sunVis)
+          sky.update(stage.camera.position, s.sky, s.sun, sunDir, sunVis, night)
         }
         if (autoWeather) {
           autoWeatherTimer += dt
