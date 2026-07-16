@@ -28,6 +28,8 @@ import {
   setDriftFx,
   getHud,
   setHud,
+  getShadows,
+  setShadows,
   resetSettings,
 } from './prefs'
 import { AudioEngine } from '../audio/audio'
@@ -53,10 +55,12 @@ import { VEHICLES, type VehicleType } from '../vehicle/vehicles'
 import { buildVehicleMesh } from '../vehicle/model'
 
 const RADIUS = 1000
+const sunScratch = new THREE.Vector3()
 
 const app = document.getElementById('app')!
 const ui = document.getElementById('ui')!
 const stage: Stage = createStage(app)
+stage.sun.castShadow = getShadows()
 const loading = createLoading(ui)
 const minimap = createMinimap(ui)
 const roadLabels = createRoadLabels(ui)
@@ -136,6 +140,15 @@ async function loadCity(query: string): Promise<void> {
     const waterMesh = buildWater(world.water, provider)
     const greenMesh = buildGreenery(world.green, world.trees, provider)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
+    ground.receiveShadow = true
+    roadsMesh.receiveShadow = true
+    buildingsMesh.traverse((o) => {
+      o.castShadow = true
+      o.receiveShadow = true
+    })
+    greenMesh.traverse((o) => {
+      o.castShadow = true
+    })
     for (const obj of [ground, seaMesh, greenMesh, waterMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, buildingsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
@@ -173,6 +186,11 @@ async function loadCity(query: string): Promise<void> {
         driftFx.update(car, dt, provider)
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
         applyDayNight(stage, timeOfDay, theme.current === 'neon')
+        // keep the sun's shadow frustum centred on the car
+        sunScratch.copy(stage.sun.position).normalize().multiplyScalar(240)
+        stage.sun.position.set(car.x + sunScratch.x, car.y + sunScratch.y, car.z + sunScratch.z)
+        stage.sun.target.position.set(car.x, car.y, car.z)
+        stage.sun.target.updateMatrixWorld()
         menu.setTime(timeOfDay)
         const night = Math.max(0, Math.min(1, (0.12 - sunElevation(timeOfDay)) / 0.45))
         headlight.intensity = night * 4
@@ -207,6 +225,7 @@ const menu = createSettingsMenu(
     time: timeOfDay,
     driftFx: getDriftFx(),
     hud: getHud(),
+    shadows: getShadows(),
   },
   {
     onLoadCity: (q) => void loadCity(q),
@@ -235,6 +254,10 @@ const menu = createSettingsMenu(
     onHud: (on) => {
       setHud(on)
       hud.setVisible(on)
+    },
+    onShadows: (on) => {
+      setShadows(on)
+      stage.sun.castShadow = on
     },
     onReset: () => {
       resetSettings()

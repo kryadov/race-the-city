@@ -17,6 +17,7 @@ export interface SettingsCallbacks {
   onSetTime: (t: number) => void
   onDriftFx: (on: boolean) => void
   onHud: (on: boolean) => void
+  onShadows: (on: boolean) => void
   onReset: () => void
 }
 
@@ -44,6 +45,7 @@ export function createSettingsMenu(
     time: number
     driftFx: boolean
     hud: boolean
+    shadows: boolean
   },
   cb: SettingsCallbacks,
 ): SettingsHandle {
@@ -53,6 +55,7 @@ export function createSettingsMenu(
   let roadLabels = initial.roadLabels
   let driftFx = initial.driftFx
   let hud = initial.hud
+  let shadows = initial.shadows
 
   const gear = document.createElement('button')
   gear.textContent = '⚙'
@@ -225,10 +228,19 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(hudBtn)
+  const shadowsBtn = button()
+  shadowsBtn.style.cssText += ';width:100%;margin-top:4px'
+  shadowsBtn.addEventListener('click', () => {
+    shadows = !shadows
+    cb.onShadows(shadows)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(shadowsBtn)
   function paintLabelsToggle(): void {
     labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
     driftBtn.textContent = `${driftFx ? '☑' : '☐'} ${t('menu.driftFx')}`
     hudBtn.textContent = `${hud ? '☑' : '☐'} ${t('menu.hud')}`
+    shadowsBtn.textContent = `${shadows ? '☑' : '☐'} ${t('menu.shadows')}`
   }
 
   // --- Time of day ---
