@@ -97,10 +97,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Random-city button — done in v0.43.0
 - [x] Collapsible menu groups + reset-location button — done in v0.57.0
 - [x] Notify when a new version is deployed — done in v0.50.0
-- [ ] **Update notice: make dismiss stick** — `updateNotice.ts:9` claims "never shown twice for
-      the same version" and `show(version: string)` takes the version, but the implementation
-      ignores it and never dedupes. `main.ts:579` re-polls every 5 min, so ✕ only hides the bar
-      until the next poll and it pops back. Remember the dismissed version.
+- [x] **Update notice: dismiss sticks** — done in v0.65.2 (untested: no jsdom in the suite,
+      which runs in node; not worth a devDependency for three lines)
 
 ## ⚙️ Data & performance
 - [ ] Overpass caching proxy (if we hit rate limits — designed for)

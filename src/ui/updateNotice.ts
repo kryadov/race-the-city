@@ -6,9 +6,12 @@ export interface UpdateNotice {
 
 /**
  * A small bar offering to reload when a newer build has been deployed.
- * Dismissible, and never shown twice for the same version.
+ * Dismissing it sticks: the poll runs every few minutes, so without this the bar
+ * came straight back and ✕ only ever bought you one poll's worth of quiet.
  */
 export function createUpdateNotice(root: HTMLElement): UpdateNotice {
+  let dismissed: string | null = null
+  let showing = ''
   const bar = document.createElement('div')
   bar.style.cssText =
     'position:absolute;top:16px;left:50%;transform:translateX(-50%);pointer-events:auto;display:none;' +
@@ -22,7 +25,10 @@ export function createUpdateNotice(root: HTMLElement): UpdateNotice {
   const close = document.createElement('button')
   close.textContent = '✕'
   close.style.cssText = 'padding:6px 8px;border:0;border-radius:6px;background:#26303f;color:#fff;cursor:pointer;font-size:12px'
-  close.addEventListener('click', () => (bar.style.display = 'none'))
+  close.addEventListener('click', () => {
+    dismissed = showing
+    bar.style.display = 'none'
+  })
 
   bar.append(text, reload, close)
   root.appendChild(bar)
@@ -35,7 +41,9 @@ export function createUpdateNotice(root: HTMLElement): UpdateNotice {
   onLangChange(paint)
 
   return {
-    show() {
+    show(version: string) {
+      if (version === dismissed) return
+      showing = version
       paint()
       bar.style.display = 'flex'
     },
