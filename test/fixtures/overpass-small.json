@@ -5,13 +5,14 @@
     { "type": "node", "id": 3, "lat": 41.7161, "lon": 44.8281 },
     { "type": "node", "id": 4, "lat": 41.7151, "lon": 44.8281 },
     { "type": "node", "id": 5, "lat": 41.7156, "lon": 44.8276, "tags": { "natural": "tree" } },
-    { "type": "way", "id": 100, "nodes": [1, 2], "tags": { "highway": "residential", "name": "Main St" } },
-    { "type": "way", "id": 101, "nodes": [2, 3], "tags": { "highway": "motorway" } },
+    { "type": "way", "id": 100, "nodes": [1, 2], "tags": { "highway": "residential", "name": "Main St", "tunnel": "yes" } },
+    { "type": "way", "id": 101, "nodes": [2, 3], "tags": { "highway": "motorway", "bridge": "yes" } },
     { "type": "way", "id": 200, "nodes": [1, 2, 3, 4, 1], "tags": { "building": "yes", "building:levels": "5" } },
     { "type": "way", "id": 201, "nodes": [1, 3, 4], "tags": { "building": "house", "height": "8" } },
     { "type": "way", "id": 300, "nodes": [1, 2], "tags": { "amenity": "cafe" } },
     { "type": "way", "id": 400, "nodes": [1, 2, 3, 4, 1], "tags": { "natural": "water" } },
     { "type": "way", "id": 500, "nodes": [1, 2, 3, 4, 1], "tags": { "leisure": "park" } },
-    { "type": "way", "id": 600, "nodes": [1, 2, 3], "tags": { "natural": "coastline" } }
+    { "type": "way", "id": 600, "nodes": [1, 2, 3], "tags": { "natural": "coastline" } },
+    { "type": "way", "id": 700, "nodes": [1, 2, 3], "tags": { "railway": "rail" } }
   ]
 }
