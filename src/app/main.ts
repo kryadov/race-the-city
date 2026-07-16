@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { createStage, syncCamera, type Stage } from './scene'
 import { startLoop } from './loop'
 import { createCityInput } from '../ui/cityInput'
@@ -54,8 +55,16 @@ async function loadCity(query: string): Promise<void> {
       provider = new FlatProvider() // graceful fallback
     }
 
-    // clear previous world
-    for (const obj of worldGroup) stage.scene.remove(obj)
+    // clear previous world (and free its GPU resources)
+    for (const obj of worldGroup) {
+      stage.scene.remove(obj)
+      obj.traverse((o) => {
+        const mesh = o as THREE.Mesh
+        if (mesh.geometry) mesh.geometry.dispose()
+        const mat = mesh.material
+        if (mat) (Array.isArray(mat) ? mat : [mat]).forEach((m) => m.dispose())
+      })
+    }
     worldGroup = []
 
     const ground = buildGround(provider, RADIUS, 160)
