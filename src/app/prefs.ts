@@ -1,3 +1,5 @@
+import type { Weather } from './weather'
+
 const DEFAULT_CITY_KEY = 'rtc.defaultCity'
 const FALLBACK_CITY = 'Monte Carlo'
 
@@ -89,6 +91,27 @@ export function getShadows(): boolean {
 export function setShadows(on: boolean): void {
   try {
     localStorage.setItem(SHADOWS_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
+const WEATHER_KEY = 'rtc.weather'
+
+/** Persisted weather (clear by default). */
+export function getWeather(): Weather {
+  try {
+    const w = localStorage.getItem(WEATHER_KEY)
+    if (w === 'clear' || w === 'rain' || w === 'snow' || w === 'fog') return w
+  } catch {
+    /* ignore */
+  }
+  return 'clear'
+}
+
+export function setWeather(w: Weather): void {
+  try {
+    localStorage.setItem(WEATHER_KEY, w)
   } catch {
     /* ignore */
   }

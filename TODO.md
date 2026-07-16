@@ -27,7 +27,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Pedestrians (ambience)
 
 ## 🎨 Visuals & atmosphere
-- [ ] Weather — rain / snow / fog (tie into day/night)
+- [x] Weather (rain/snow/fog, menu option) — done in v0.26.0
 - [ ] Glowing windows / street lights at night
 - [x] Shadows (sun shadow map, car-following frustum, menu toggle) — done in v0.23.0
 - [ ] Bloom / post-processing for neon mode
