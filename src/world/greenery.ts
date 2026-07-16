@@ -3,34 +3,16 @@ import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { pointInPolygon } from '../physics/collide'
 
-const GREEN_OFFSET = 0.08 // just above terrain, below roads (0.15)
 const MAX_TREES = 600
 const TREE_AREA = 550 // one scattered tree per ~this many m² of green
 const MAX_PER_AREA = 60 // cap scatter per polygon
 
-/** Green areas as flat polygons plus low-poly instanced trees. */
+/**
+ * Low-poly instanced trees scattered in the green areas (the green ground tint
+ * itself is painted onto the ground mesh in buildGround).
+ */
 export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider): THREE.Object3D {
   const group = new THREE.Group()
-
-  const mat = new THREE.MeshStandardMaterial({ color: 0x4c7a42, flatShading: true, side: THREE.DoubleSide })
-  for (const ring of green) {
-    if (ring.length < 3) continue
-    const shape = new THREE.Shape()
-    shape.moveTo(ring[0].x, ring[0].z)
-    for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i].x, ring[i].z)
-    shape.closePath()
-    const geo = new THREE.ShapeGeometry(shape)
-    geo.rotateX(Math.PI / 2) // XY shape → XZ plane, z preserved
-    let cx = 0
-    let cz = 0
-    for (const p of ring) {
-      cx += p.x
-      cz += p.z
-    }
-    geo.translate(0, provider.heightAt(cx / ring.length, cz / ring.length) + GREEN_OFFSET, 0)
-    group.add(new THREE.Mesh(geo, mat))
-  }
-
   const spots = collectTreeSpots(green, trees)
   if (spots.length) group.add(buildTrees(spots, provider))
   return group

@@ -125,7 +125,7 @@ async function loadCity(query: string): Promise<void> {
     }
     worldGroup = []
 
-    const ground = buildGround(provider, RADIUS, 160)
+    const ground = buildGround(provider, RADIUS, world.green, 160)
     const { mesh: buildingsMesh, footprints } = buildBuildings(world.buildings, provider)
     const normalRoads = world.roads.filter((r) => !r.bridge && !r.tunnel)
     const roadsMesh = buildRoads(normalRoads, provider)
