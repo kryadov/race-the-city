@@ -13,6 +13,7 @@ const INACTIVE = '#26303f'
 export interface SettingsCallbacks {
   onLoadCity: (query: string) => void
   onSetDefaultCity: (query: string) => void
+  onShareCity: () => void
   onSetView: (mode: ViewMode) => void
   onSelectVehicle: (type: VehicleType) => void
   onAudioChange: (patch: Partial<AudioState>) => void
@@ -115,7 +116,14 @@ export function createSettingsMenu(
   cityRow.append(input, goBtn)
   const defBtn = button()
   defBtn.style.cssText += ';width:100%;margin-top:6px'
-  citySec.append(cityRow, defBtn)
+  const shareBtn = button()
+  shareBtn.style.cssText += ';width:100%;margin-top:6px'
+  citySec.append(cityRow, defBtn, shareBtn)
+  shareBtn.addEventListener('click', () => {
+    cb.onShareCity()
+    shareBtn.textContent = '✓ ' + t('menu.shared')
+    setTimeout(paintLabels, 1400)
+  })
   const go = (): void => {
     const q = input.value.trim()
     if (q) cb.onLoadCity(q)
@@ -331,6 +339,7 @@ export function createSettingsMenu(
     input.placeholder = t('input.placeholder')
     goBtn.textContent = t('input.go')
     defBtn.textContent = '★ ' + t('menu.setDefault')
+    shareBtn.textContent = '🔗 ' + t('menu.share')
     resetBtn.textContent = t('menu.reset')
     for (const { el, key } of labels) el.textContent = t(key)
   }

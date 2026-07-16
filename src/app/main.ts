@@ -128,6 +128,10 @@ async function loadCity(query: string): Promise<void> {
   try {
     loading.show(t('loading.geocoding'))
     const center = await geocode(query)
+    // reflect the loaded city in the address bar so the URL is shareable
+    const u = new URL(location.href)
+    u.searchParams.set('city', query)
+    history.replaceState(null, '', u)
     const projector = new Projector(center)
     const bbox = bboxAround(center, RADIUS)
 
@@ -292,6 +296,7 @@ const menu = createSettingsMenu(
   {
     onLoadCity: (q) => void loadCity(q),
     onSetDefaultCity: (q) => setDefaultCity(q),
+    onShareCity: () => void navigator.clipboard?.writeText(location.href),
     onSetView: (mode) => theme.set(mode),
     onSelectVehicle: (type) => {
       vehicle = type
@@ -359,4 +364,5 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === '-' || e.key === '_') applyZoom(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
 })
-void loadCity(getDefaultCity())
+// a ?city=… link opens straight to that city; otherwise the saved default
+void loadCity(new URL(location.href).searchParams.get('city') || getDefaultCity())
