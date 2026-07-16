@@ -1,5 +1,5 @@
 import type { Projector } from './project'
-import type { Building, Road, RoadKind, Vec2, WorldData } from './types'
+import type { Building, BuildingKind, Road, RoadKind, Vec2, WorldData } from './types'
 
 export interface OverpassElement {
   type: 'node' | 'way' | 'relation'
@@ -48,6 +48,35 @@ export function isGreen(tags: Record<string, string>): boolean {
   )
 }
 
+const HOUSE = new Set(['house', 'detached', 'semidetached_house', 'bungalow', 'terrace', 'hut', 'cabin'])
+const APARTMENTS = new Set(['apartments', 'residential', 'dormitory', 'hotel'])
+const RETAIL = new Set(['retail', 'supermarket', 'shop', 'kiosk', 'commercial', 'restaurant'])
+const OFFICE = new Set(['office', 'government'])
+const INDUSTRIAL = new Set(['industrial', 'warehouse', 'factory', 'hangar', 'garage', 'garages', 'shed', 'service'])
+const CIVIC = new Set(['school', 'university', 'college', 'hospital', 'church', 'cathedral', 'mosque',
+  'synagogue', 'temple', 'museum', 'train_station', 'civic', 'public', 'stadium', 'sports_hall'])
+
+/**
+ * What a building is for. `building=yes` is by far the most common tag and says
+ * nothing, so fall back to the tags people do add — a shop or an office on the
+ * building — and only then guess from its size.
+ */
+export function classifyBuilding(tags: Record<string, string>): BuildingKind {
+  const b = tags.building ?? ''
+  if (HOUSE.has(b)) return 'house'
+  if (APARTMENTS.has(b)) return 'apartments'
+  if (RETAIL.has(b)) return 'retail'
+  if (OFFICE.has(b)) return 'office'
+  if (INDUSTRIAL.has(b)) return 'industrial'
+  if (CIVIC.has(b)) return 'civic'
+  // untyped building: believe the other tags before the default
+  if (tags.shop || tags.amenity === 'restaurant' || tags.amenity === 'cafe' || tags.amenity === 'bar') return 'retail'
+  if (tags.office) return 'office'
+  if (tags.amenity === 'school' || tags.amenity === 'hospital' || tags.amenity === 'place_of_worship') return 'civic'
+  if (tags.man_made === 'works' || tags.industrial) return 'industrial'
+  return 'apartments'
+}
+
 export function buildingHeight(tags: Record<string, string>): number {
   const h = parseFloat(tags.height)
   if (!Number.isNaN(h) && h > 0) return h
@@ -92,7 +121,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       railways.push(points)
     } else if (tags.building) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
-      if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags) })
+      if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags), kind: classifyBuilding(tags) })
     } else if (tags.highway) {
       const road: Road = { points, kind: classifyRoad(tags.highway) }
       if (tags.name) road.name = tags.name

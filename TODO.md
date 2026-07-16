@@ -23,7 +23,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
             bridge is worth crossing when you can see what it crosses. Ship with the bridges.
 - [ ] **Manhole covers** on the roads — `man_made=manhole` exists in OSM but is mapped patchily;
       scattering them along road centrelines (like the nitro spots) will read better than the data
-- [ ] Roof shapes / colour buildings by type; better height heuristics
+- [x] **Buildings read by type** — windows, doors and signage from the OSM classification —
+      done in v0.66.0
+- [ ] Roof shapes; better height heuristics
 - [ ] Larger area / stream neighbouring tiles as you drive
 - [ ] POI markers (cafés, fuel) from OSM
 - [x] Sky dome with gradient + sun disc — done in v0.33.0
@@ -66,7 +68,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎨 Visuals & atmosphere
 - [x] Weather (rain/snow/fog, menu option) — done in v0.26.0, auto-cycling in v0.42.0, snow tweak v0.45.1
 - [x] Street lights at night — lamps, fixtures & light pools — done in v0.31.0, reworked v0.37.0
-- [ ] Glowing building windows at night
+- [x] **Glowing building windows at night** — emissive facade map, driven by the same night
+      factor as the street lamps — done in v0.66.0
 - [x] Shadows (sun shadow map, car-following frustum, menu toggle) — done in v0.23.0
 - [x] Sky dome with gradient + sun disc — done in v0.33.0
 - [x] **Stars at night** — hashed from the view direction in the sky shader, no new

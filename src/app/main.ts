@@ -170,10 +170,14 @@ let timeOfDay = 0.35 // start mid-morning
 showVehicle(vehicle)
 audio.setVehicle(vehicle)
 // Pausing resets the engine's idle timer, so resuming doesn't start mid-fade.
-const pause = createPauseButton(ui, () => audio.setVehicle(vehicle))
+const pause = createPauseButton(ui, (paused) => {
+  audio.setDucked(paused) // music drops but plays on
+  audio.setVehicle(vehicle) // resets the engine's idle timer, so resuming doesn't start mid-fade
+})
 
 let worldGroup: import('three').Object3D[] = []
 let roadDetailMesh: import('three').Object3D | null = null
+let facades: import('../world/facade').FacadeMaterials | null = null
 let tunnelSegs: { ax: number; az: number; bx: number; bz: number; r2: number }[] = []
 // Buildings indexed for the camera-occlusion test, with their heights.
 let occGrid = new SpatialGrid([], 25)
@@ -239,7 +243,9 @@ async function loadCity(query: string): Promise<void> {
     worldGroup = []
 
     const ground = buildGround(provider, RADIUS, world.green, 160)
-    const { mesh: buildingsMesh, footprints } = buildBuildings(world.buildings, provider)
+    facades?.dispose() // the outgoing city's facade textures
+    const { mesh: buildingsMesh, footprints, facades: newFacades } = buildBuildings(world.buildings, provider)
+    facades = newFacades
     const normalRoads = world.roads.filter((r) => !r.bridge && !r.tunnel)
     const roadsMesh = buildRoads(normalRoads, provider)
     const bridgesMesh = buildRoads(world.roads.filter((r) => r.bridge), provider, { lift: 4, color: 0x55555f })
@@ -391,6 +397,7 @@ async function loadCity(query: string): Promise<void> {
         headlight.intensity = night * 4
         LAMP_MAT.emissiveIntensity = night * 1.6 // street lamps glow after dusk
         POOL_MAT.opacity = night * 0.5 // and throw a soft pool of light on the road
+        facades?.setNight(night) // windows come on behind them
         if (night > 0) {
           const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
           headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)

@@ -1,6 +1,9 @@
 import * as THREE from 'three'
 import type { Building, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
+import { createFacadeMaterials, type FacadeMaterials } from './facade'
+import { facadeUVs } from './facadeUv'
+import { buildEntrances } from './entrances'
 
 const COLORS = [0xcbb7a3, 0xbfae99, 0xd4c4b0, 0xc2b280, 0xb9a68f, 0xd8cab6, 0xc7b49c]
 const RNG_SEED = 0x5ee7b1d // fixed seed → identical facades on every browser/reload
@@ -44,12 +47,14 @@ function paintVolume(geo: THREE.BufferGeometry, wall: THREE.Color, roof: THREE.C
 export function buildBuildings(
   buildings: Building[],
   provider: ElevationProvider,
-): { mesh: THREE.Object3D; footprints: Vec2[][] } {
+): { mesh: THREE.Object3D; footprints: Vec2[][]; facades: FacadeMaterials } {
   const group = new THREE.Group()
   const footprints: Vec2[][] = []
   const rng = makeRng(RNG_SEED)
   const wall = new THREE.Color()
   const roof = new THREE.Color()
+  // Six materials for the whole city, one per class, rather than one each.
+  const facades = createFacadeMaterials()
 
   for (const b of buildings) {
     if (b.footprint.length < 3) continue
@@ -72,15 +77,15 @@ export function buildBuildings(
     wall.offsetHSL((rng() - 0.5) * 0.04, (rng() - 0.5) * 0.12, (rng() - 0.5) * 0.16)
     roof.copy(wall).offsetHSL(0, -0.3, -0.17)
     paintVolume(geo, wall, roof)
-    const mesh = new THREE.Mesh(
-      geo,
-      new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }),
-    )
-    group.add(mesh)
+    facadeUVs(geo, avg) // windows by the metre, roof aimed at the tile's plain strip
+    group.add(new THREE.Mesh(geo, facades.of(b.kind)))
     footprints.push(b.footprint)
   }
 
-  return { mesh: group, footprints }
+  // Doors and signs for every building in two instanced draws.
+  group.add(buildEntrances(buildings, provider))
+
+  return { mesh: group, footprints, facades }
 }
 
 /** Average and minimum terrain height sampled at a footprint's vertices. */

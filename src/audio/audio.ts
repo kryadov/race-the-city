@@ -96,6 +96,9 @@ export function engineFrequency(speedFraction: number, profile: EngineProfile = 
 export const IDLE_MUTE_AFTER = 10
 const IDLE_FADE = 1.5 // seconds to fade to silence once past it
 
+/** How far music drops while paused. */
+const DUCK = 0.25
+
 /**
  * Engine loudness from how long the car has sat still. An idle drone is tiring
  * when you're parked reading the map, so it fades out — and comes straight back
@@ -135,6 +138,7 @@ export class AudioEngine {
   private engineFilter: BiquadFilterNode | null = null
   private skidGain: GainNode | null = null
   private engine: EngineProfile = PETROL
+  private ducked = false // music pulled down (pause), without touching the user's volume
   private idleFor = 0 // seconds the car has sat still, for the idle fade
   private state: AudioState = loadState()
   private musicEl: HTMLAudioElement | null = null
@@ -232,6 +236,16 @@ export class AudioEngine {
     this.engineFilter.frequency.setTargetAtTime(p.cutoff + speedFraction * 1000, now, 0.08)
     const level = (0.015 + speedFraction * 0.07) * p.gain * idleGain(this.idleFor)
     this.engineGain.gain.setTargetAtTime(level, now, 0.1)
+  }
+
+  /**
+   * Duck the music down while paused rather than stopping it — the track keeps
+   * its place, and the user's volume setting is left alone.
+   */
+  setDucked(on: boolean): void {
+    if (on === this.ducked) return
+    this.ducked = on
+    this.applyVolumes()
   }
 
   /** Cut the engine now, without waiting out the idle fade — used by pause. */
@@ -333,7 +347,7 @@ export class AudioEngine {
     }
     if (!this.ctx || !this.sfxGain || !this.musicGain) return
     this.sfxGain.gain.value = this.state.sound ? this.state.soundVol : 0
-    this.musicGain.gain.value = this.state.music ? this.state.musicVol : 0
+    this.musicGain.gain.value = this.state.music ? this.state.musicVol * (this.ducked ? DUCK : 1) : 0
   }
 
   setState(patch: Partial<AudioState>): void {

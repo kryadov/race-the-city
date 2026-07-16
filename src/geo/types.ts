@@ -7,7 +7,10 @@ export type RoadKind =
   | 'motorway' | 'primary' | 'secondary' | 'residential' | 'service' | 'path' | 'other'
 
 export interface Road { points: Vec2[]; kind: RoadKind; name?: string; bridge?: boolean; tunnel?: boolean }
-export interface Building { footprint: Vec2[]; height: number }
+/** What a building is for — decides its facade: windows, doors and signage. */
+export type BuildingKind = 'house' | 'apartments' | 'retail' | 'office' | 'industrial' | 'civic'
+
+export interface Building { footprint: Vec2[]; height: number; kind: BuildingKind }
 export interface WorldData {
   roads: Road[]
   buildings: Building[]
