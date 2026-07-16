@@ -66,13 +66,12 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       (drive-to-a-point / coins still open)
 - [x] Traffic — AI cars walking the road graph, kept around the player — done in v0.75.0
 - [x] Pedestrians (ambience) — walking the pavements, incl. footways cars can't use — done in v0.75.0
-- [ ] **Livestock in the fields** — cows, goats, pigs on `landuse=farmland` / `meadow`
-      (OSM does tag `landuse=animal_keeping`, but rarely; scatter them like the trees)
+- [x] **Livestock in the fields** — cows, goats and pigs on farmland/meadow — done in v0.76.0
 - [x] **Planes crossing the sky** — one at a time, 420m up, with a contrail — done in v0.74.0
 - [x] **Trains on the rails** — freight, intercity and commuter, running the OSM railway
       polylines — done in v0.74.0
-- [ ] **Boats on the big water** — the odd ship, and people in a rowing boat. Needs an area
-      test so they only appear on water wide enough to carry them, not on a pond.
+- [x] **Boats on the big water** — a ship where there's room for one, a rowing boat where there
+      isn't — sized by the water's inradius, not its area — done in v0.76.0
 
 ## 🎨 Visuals & atmosphere
 - [x] Weather (rain/snow/fog, menu option) — done in v0.26.0, auto-cycling in v0.42.0, snow tweak v0.45.1

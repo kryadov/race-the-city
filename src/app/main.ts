@@ -34,6 +34,8 @@ import { createPlanes } from './planes'
 import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
 import { createPedestrians, type Pedestrians } from './pedestrians'
+import { createBoats, type Boats } from './boats'
+import { createLivestock, type Livestock } from './livestock'
 import {
   getDefaultCity,
   setDefaultCity,
@@ -157,6 +159,8 @@ const planes = createPlanes(stage.scene)
 let trains: Trains | null = null
 let traffic: Traffic | null = null
 let people: Pedestrians | null = null
+let boats: Boats | null = null
+let herds: Livestock | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
@@ -363,6 +367,10 @@ async function loadCity(query: string): Promise<void> {
     traffic = createTraffic(stage.scene, world.roads, provider)
     people?.dispose()
     people = createPedestrians(stage.scene, world.roads, provider)
+    boats?.dispose()
+    boats = createBoats(stage.scene, world.water, provider)
+    herds?.dispose()
+    herds = createLivestock(stage.scene, world.fields, provider)
     lastRoads = world.roads
     autopilot.reset(world.roads, car)
     currentCity = query
@@ -467,6 +475,8 @@ async function loadCity(query: string): Promise<void> {
         trains?.update(dt, night)
         traffic?.update(dt, car.x, car.z, night)
         people?.update(dt, car.x, car.z)
+        boats?.update(dt)
+        herds?.update(dt)
         if (night > 0) {
           const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
           headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)

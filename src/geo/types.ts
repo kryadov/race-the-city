@@ -31,6 +31,8 @@ export interface WorldData {
   trees: Vec2[]
   /** Ornaments dotted about: fountains, statues, flowerbeds. */
   props: Prop[]
+  /** Open country: where livestock graze. */
+  fields: Vec2[][]
   coast: Vec2[][]
   railways: Vec2[][]
 }

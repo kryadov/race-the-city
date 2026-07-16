@@ -43,6 +43,13 @@ export function classifyProp(tags: Record<string, string>): PropKind | null {
   return null
 }
 
+const FIELD_LANDUSE = new Set(['farmland', 'farmyard', 'animal_keeping', 'meadow', 'orchard'])
+
+/** Open country — grazing land, near enough. */
+export function isField(tags: Record<string, string>): boolean {
+  return FIELD_LANDUSE.has(tags.landuse)
+}
+
 export function isParking(tags: Record<string, string>): boolean {
   // Multi-storey and underground parking are buildings, not painted tarmac.
   return tags.amenity === 'parking' && !tags.building && tags.parking !== 'underground' && tags.parking !== 'multi-storey'
@@ -131,6 +138,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const water: Vec2[][] = []
   const green: Vec2[][] = []
   const parking: Vec2[][] = []
+  const fields: Vec2[][] = []
   const coast: Vec2[][] = []
   const railways: Vec2[][] = []
 
@@ -159,9 +167,12 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     } else if (isParking(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) parking.push(ring)
-    } else if (isGreen(tags)) {
+    } else if (isGreen(tags) || isField(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
-      if (ring.length >= 3) green.push(ring)
+      if (ring.length >= 3) {
+        green.push(ring)
+        if (isField(tags)) fields.push(ring) // still greenery; also grazing
+      }
     } else if (isRailway(tags)) {
       railways.push(points)
     } else if (tags.building) {
@@ -197,7 +208,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  return { roads, buildings, water, green, parking, trees, props, coast, railways }
+  return { roads, buildings, water, green, parking, fields, trees, props, coast, railways }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */
