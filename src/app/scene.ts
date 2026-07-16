@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { CarState } from '../vehicle/car'
+import type { ElevationProvider } from '../terrain/provider'
 
 export interface Stage {
   scene: THREE.Scene
@@ -63,9 +64,26 @@ const camPos = new THREE.Vector3()
 const camTarget = new THREE.Vector3()
 const CAM_SMOOTH_K = 8 // higher = snappier; framerate-independent
 
-export function syncCamera(stage: Stage, car: CarState, dt: number): void {
+const nUp = new THREE.Vector3()
+const nFwd = new THREE.Vector3()
+const nRight = new THREE.Vector3()
+const nFwd0 = new THREE.Vector3()
+const basis = new THREE.Matrix4()
+
+export function syncCamera(stage: Stage, car: CarState, dt: number, provider: ElevationProvider): void {
   stage.carMesh.position.set(car.x, car.y, car.z)
-  stage.carMesh.rotation.y = -car.heading // model faces +x at heading 0
+
+  // Orient to the terrain: build a basis from the surface normal + heading so
+  // the car pitches on hills and banks on side-slopes.
+  const e = 2
+  const dHx = provider.heightAt(car.x + e, car.z) - provider.heightAt(car.x - e, car.z)
+  const dHz = provider.heightAt(car.x, car.z + e) - provider.heightAt(car.x, car.z - e)
+  nUp.set(-dHx / (2 * e), 1, -dHz / (2 * e)).normalize()
+  nFwd0.set(Math.cos(car.heading), 0, Math.sin(car.heading))
+  nRight.crossVectors(nFwd0, nUp).normalize()
+  nFwd.crossVectors(nUp, nRight).normalize()
+  basis.makeBasis(nFwd, nUp, nRight)
+  stage.carMesh.quaternion.setFromRotationMatrix(basis)
 
   // Spin wheels by rolling distance (forward speed / radius).
   const forward = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)

@@ -144,7 +144,7 @@ async function loadCity(query: string): Promise<void> {
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
         applyDayNight(stage, timeOfDay, theme.current === 'neon')
         menu.setTime(timeOfDay)
-        syncCamera(stage, car, dt)
+        syncCamera(stage, car, dt, provider)
         minimap.update(car)
         roadLabels.update(stage.camera, car.x, car.z)
         stage.renderer.render(stage.scene, stage.camera)
