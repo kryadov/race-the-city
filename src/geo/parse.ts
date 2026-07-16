@@ -1,5 +1,5 @@
 import type { Projector } from './project'
-import type { Building, BuildingKind, Prop, PropKind, Road, RoadKind, Vec2, WorldData } from './types'
+import type { Building, BuildingKind, Prop, PropKind, Railway, Road, RoadKind, Vec2, WorldData } from './types'
 
 export interface OverpassMember {
   type: 'node' | 'way' | 'relation'
@@ -140,7 +140,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const parking: Vec2[][] = []
   const fields: Vec2[][] = []
   const coast: Vec2[][] = []
-  const railways: Vec2[][] = []
+  const railWays: { nodes: number[]; tram: boolean }[] = []
 
   for (const el of json.elements) {
     if (el.type !== 'way' || !el.nodes || el.nodes.length < 2) continue
@@ -174,7 +174,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
         if (isField(tags)) fields.push(ring) // still greenery; also grazing
       }
     } else if (isRailway(tags)) {
-      railways.push(points)
+      railWays.push({ nodes: el.nodes, tram: tags.railway === 'tram' })
     } else if (tags.building) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags), kind: classifyBuilding(tags) })
@@ -186,6 +186,17 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       const layer = parseInt(tags.layer, 10)
       if (!Number.isNaN(layer) && layer !== 0) road.layer = layer
       roads.push(road)
+    }
+  }
+
+  // Join the railway fragments into continuous lines, keeping trams apart from
+  // the mainline: they are different networks that happen to share a tag.
+  const railways: Railway[] = []
+  for (const tram of [false, true]) {
+    const ways = railWays.filter((w) => w.tram === tram).map((w) => w.nodes)
+    for (const chain of joinChains(ways)) {
+      const points = chain.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
+      if (points.length >= 2) railways.push({ points, tram })
     }
   }
 
@@ -252,6 +263,48 @@ export function stitchRings(ways: number[][]): number[][] {
     if (ring.length >= 4 && ring[0] === ring[ring.length - 1]) rings.push(ring.slice(0, -1))
   }
   return rings
+}
+
+/**
+ * Join ways end to end into the longest continuous chains they make.
+ *
+ * OSM cuts a railway into a way per bridge, junction and boundary, so a single
+ * line arrives as a heap of fragments whose ends happen to meet. Left alone,
+ * each fragment ends in the middle of the map — and a train running one has to
+ * do something at that end, in full view. Joined up, the line runs off the edge
+ * of the loaded square, which is where it actually goes.
+ *
+ * Matched on node id: the ends are the same node, and comparing floats would
+ * leave the join open over rounding.
+ */
+export function joinChains(ways: number[][]): number[][] {
+  const pool = ways.filter((w) => w.length >= 2).map((w) => w.slice())
+  const chains: number[][] = []
+
+  while (pool.length) {
+    let chain = pool.pop() as number[]
+    let joined = true
+    while (joined) {
+      joined = false
+      for (let i = 0; i < pool.length; i++) {
+        const w = pool[i]
+        const head = chain[0]
+        const tail = chain[chain.length - 1]
+        if (w[0] === tail) chain = chain.concat(w.slice(1))
+        else if (w[w.length - 1] === tail) chain = chain.concat(w.slice(0, -1).reverse())
+        else if (w[w.length - 1] === head) chain = w.slice(0, -1).concat(chain)
+        else if (w[0] === head) chain = w.slice(1).reverse().concat(chain)
+        else continue
+        pool.splice(i, 1)
+        joined = true
+        break
+      }
+      // A ring: stop, or it walks itself forever.
+      if (chain.length > 2 && chain[0] === chain[chain.length - 1]) break
+    }
+    chains.push(chain)
+  }
+  return chains
 }
 
 /** Ring length excluding the repeated closing node (OSM closed ways repeat the first node last). */

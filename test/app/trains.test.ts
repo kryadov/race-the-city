@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { createTrains } from '../../src/app/trains'
 import { createAircraft } from '../../src/app/aircraft'
-import type { Vec2 } from '../../src/geo/types'
+import type { Railway, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
 const v = (x: number, z: number): Vec2 => ({ x, z })
 /** A 1km straight line — long enough to be worth a train. */
-const mainLine: Vec2[] = [v(0, 0), v(500, 0), v(1000, 0)]
-const siding: Vec2[] = [v(0, 50), v(40, 50)] // 40m: not worth one
+const mainLine: Railway = { points: [v(0, 0), v(500, 0), v(1000, 0)], tram: false }
+const siding: Railway = { points: [v(0, 50), v(40, 50)], tram: false } // 40m: not worth one
+const tramLine: Railway = { points: [v(0, 90), v(600, 90)], tram: true }
 
 const countCars = (scene: THREE.Scene): number =>
   (scene.children[0] as THREE.Group).children.length
@@ -43,6 +44,21 @@ describe('trains', () => {
     t.update(0.016, 0)
     const cars = (scene.children[0] as THREE.Group).children
     expect(cars[0].position.distanceTo(cars[1].position)).toBeGreaterThan(5)
+  })
+
+  it('runs a tram on tram tracks, not a mainline train', () => {
+    // tram tracks run down the street: an intercity on one drives a full-length
+    // train straight through the traffic
+    const scene = new THREE.Scene()
+    createTrains(scene, [tramLine], flat, () => 0.5)
+    expect(countCars(scene), 'a tram is a car or two, not a rake').toBeLessThanOrEqual(2)
+    expect(countCars(scene)).toBeGreaterThan(0)
+  })
+
+  it('works a tram line too short for an intercity', () => {
+    const scene = new THREE.Scene()
+    createTrains(scene, [{ points: [v(0, 0), v(150, 0)], tram: true }], flat, () => 0.5)
+    expect(countCars(scene)).toBeGreaterThan(0)
   })
 
   it('takes itself off the scene when the city changes', () => {

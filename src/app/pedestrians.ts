@@ -14,7 +14,7 @@ const FAR = 620
 const SPAWN_MIN = 380
 const SPAWN_MAX = 600
 const KERB = 4.4 // metres off the centreline — the pavement, not the carriageway
-const ARRIVE = 2
+const MAX_HOPS = 8
 const SPEED_MIN = 1.1 // m/s: a walk
 const SPEED_MAX = 1.8
 
@@ -178,16 +178,29 @@ export function createPedestrians(
       clock += dt
       solidAt.length = 0
       walkers.forEach((w, i) => {
-        const A = graph.nodes[w.at]
-        const B = graph.nodes[w.to]
-        const len = Math.hypot(B.x - A.x, B.z - A.z) || 1
         w.s += w.speed * dt
-        if (w.s >= len - ARRIVE) {
+        // Walk by arc length, carrying the overshoot on — see the note in
+        // traffic.ts: a fixed arrival radius fires instantly on the short edges
+        // a dense city is made of, and they jitter instead of walking.
+        for (let hop = 0; hop < MAX_HOPS; hop++) {
+          const a0 = graph.nodes[w.at]
+          const b0 = graph.nodes[w.to]
+          const l = Math.hypot(b0.x - a0.x, b0.z - a0.z)
+          if (l <= 0.001) {
+            w.at = w.to
+            w.to = nextNode(graph, w.at, w.to, rng)
+            w.s = 0
+            continue
+          }
+          if (w.s < l) break
+          w.s -= l
           const next = nextNode(graph, w.at, w.to, rng)
           w.at = w.to
           w.to = next
-          w.s = 0
         }
+        const A = graph.nodes[w.at]
+        const B = graph.nodes[w.to]
+        const len = Math.hypot(B.x - A.x, B.z - A.z) || 1
         const f = Math.min(1, w.s / len)
         const angle = Math.atan2(B.z - A.z, B.x - A.x)
         const x = A.x + (B.x - A.x) * f + Math.sin(angle) * KERB * w.side

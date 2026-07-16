@@ -15,7 +15,8 @@ const FAR = 940
 const SPAWN_MIN = 620
 const SPAWN_MAX = 900
 const LANE = 2.2 // metres right of the centreline
-const ARRIVE = 4
+/** Guard on the walk below, so a pile of coincident nodes can't spin forever. */
+const MAX_HOPS = 8
 
 const BODY_COLORS = [0xb23b3b, 0x2f5fa8, 0xd8d8d0, 0x3c3c44, 0x2e7d5b, 0xc8a23a, 0x7a4a86, 0xe0e3e8]
 
@@ -197,15 +198,26 @@ export function createTraffic(
       headMat.emissiveIntensity = night * 2.2
       for (let i = 0; i < agents.length; i++) {
         let a = agents[i]
-        const A = graph.nodes[a.at]
-        const B = graph.nodes[a.to]
-        const len = Math.hypot(B.x - A.x, B.z - A.z) || 1
         a.s += a.speed * dt
-        if (a.s >= len - ARRIVE) {
+        // Walk by arc length, carrying the overshoot into the next edge. The old
+        // test — "within ARRIVE of the end" — fired on the very first frame for
+        // any edge shorter than ARRIVE, and city blocks are full of vertices a
+        // couple of metres apart. Cars hopped node to node instead of driving.
+        for (let hop = 0; hop < MAX_HOPS; hop++) {
+          const A = graph.nodes[a.at]
+          const B = graph.nodes[a.to]
+          const len = Math.hypot(B.x - A.x, B.z - A.z)
+          if (len <= 0.001) {
+            a.at = a.to
+            a.to = nextNode(graph, a.at, a.to, rng)
+            a.s = 0
+            continue
+          }
+          if (a.s < len) break
+          a.s -= len
           const next = nextNode(graph, a.at, a.to, rng)
           a.at = a.to
           a.to = next
-          a.s = 0
         }
 
         let p = place(a)

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Road, RoadKind, Vec2 } from '../geo/types'
+import type { Railway, Road, RoadKind, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 
 const WIDTHS: Record<RoadKind, number> = {
@@ -84,10 +84,10 @@ export function buildRoads(roads: Road[], provider: ElevationProvider, style: Ro
 const RAIL_WIDTH = 2.6
 
 /** Thin dark ribbons for railway lines. */
-export function buildRailways(railways: Vec2[][], provider: ElevationProvider): THREE.Object3D {
+export function buildRailways(railways: Railway[], provider: ElevationProvider): THREE.Object3D {
   const positions: number[] = []
   const y = (v: Vec2): number => provider.heightAt(v.x, v.z) + ROAD_Y_OFFSET
-  for (const line of railways) emitRibbon(positions, offsetsForPolyline(line, RAIL_WIDTH / 2), y)
+  for (const line of railways) emitRibbon(positions, offsetsForPolyline(line.points, RAIL_WIDTH / 2), y)
   return ribbonMesh(positions, 0x4a4038)
 }
 

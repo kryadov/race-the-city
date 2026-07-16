@@ -16,6 +16,9 @@ export interface Road {
   layer?: number
 }
 /** What a building is for — decides its facade: windows, doors and signage. */
+/** A railway line. Trams share the street, so they carry trams and nothing else. */
+export interface Railway { points: Vec2[]; tram: boolean }
+
 export type PropKind = 'fountain' | 'statue' | 'flowerbed'
 export interface Prop { at: Vec2; kind: PropKind }
 
@@ -34,5 +37,5 @@ export interface WorldData {
   /** Open country: where livestock graze. */
   fields: Vec2[][]
   coast: Vec2[][]
-  railways: Vec2[][]
+  railways: Railway[]
 }

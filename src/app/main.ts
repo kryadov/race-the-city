@@ -448,11 +448,20 @@ async function loadCity(query: string): Promise<void> {
           else if (st.taken !== lastGate) audio.chime(false)
           lastGate = st.taken
         }
+        // Everything solid that moves: traffic, people, trains.
+        const hazards: Circle[] = [
+          ...(traffic?.obstacles() ?? []),
+          ...(people?.obstacles() ?? []),
+          ...(trains?.obstacles() ?? []),
+        ]
         // The demo drives with the same three inputs a player has, through the
         // same physics — so it drifts, it hits things, and it sounds right. Any
         // touch of the controls hands the wheel straight back. It reads the
-        // BOOSTED spec, or it would cruise past a nitro bottle without using it.
-        if (autopilot.enabled() && !pause.paused() && !handsOn) input = autopilot.drive(car, activeSpec.maxSpeed)
+        // BOOSTED spec, or it would cruise past a nitro bottle without using it,
+        // and the hazards, or it would drive into a train.
+        if (autopilot.enabled() && !pause.paused() && !handsOn) {
+          input = autopilot.drive(car, activeSpec.maxSpeed, hazards)
+        }
         // What counts as "the ground" for the car: a deck when it is already
         // riding one, terrain otherwise. Judged from last frame's height, so
         // driving *under* a bridge doesn't teleport the car up onto it. stepCar
@@ -465,7 +474,7 @@ async function loadCity(query: string): Promise<void> {
         // Traffic and people are solid. They move, so they can't live in the
         // static grid: push the car out and bounce it off. You stop; they don't
         // get run over.
-        const movers: Circle[] = traffic ? traffic.obstacles().concat(people ? people.obstacles() : []) : []
+        const movers: Circle[] = hazards
         if (movers.length) {
           const freed = resolveAgainstCircles(car.x, car.z, spec.radius, movers)
           if (freed.hit) {

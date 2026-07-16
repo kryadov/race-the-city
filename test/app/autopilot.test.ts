@@ -104,3 +104,70 @@ describe('autopilot on nitro', () => {
     expect(topSpeed(spec.maxSpeed * 10)).toBeLessThan(60)
   })
 })
+
+describe('autopilot avoidance', () => {
+  const straight: Road[] = [{ points: [v(0, 0), v(600, 0), v(1200, 0)], kind: 'primary' }]
+
+  /** Set the car rolling east down the straight. */
+  const rolling = (): CarState => ({ ...createCar(0, 0), vx: 22, vy: 0 })
+
+  it('brakes for something stopped in its path', () => {
+    const a = createAutopilot()
+    a.reset(straight, createCar(0, 0))
+    const train = [{ x: 20, z: 0, r: 2.4 }] // dead ahead, close
+    expect(a.drive(rolling(), spec.maxSpeed, train).brake).toBe(true)
+  })
+
+  it('steers away from it rather than straight through', () => {
+    const a = createAutopilot()
+    a.reset(straight, createCar(0, 0))
+    // sitting slightly right of us: we should go left
+    const car = [{ x: 18, z: 1.2, r: 2 }]
+    expect(a.drive(rolling(), spec.maxSpeed, car).steer).toBeLessThan(0)
+  })
+
+  it('swerves the other way for something on the other side', () => {
+    const a = createAutopilot()
+    a.reset(straight, createCar(0, 0))
+    const car = [{ x: 18, z: -1.2, r: 2 }]
+    expect(a.drive(rolling(), spec.maxSpeed, car).steer).toBeGreaterThan(0)
+  })
+
+  it('ignores what is behind it', () => {
+    const a = createAutopilot()
+    a.reset(straight, createCar(0, 0))
+    const behind = [{ x: -20, z: 0, r: 2.4 }]
+    expect(a.drive(rolling(), spec.maxSpeed, behind).brake).toBe(false)
+  })
+
+  it('ignores what it will comfortably pass', () => {
+    // braking for everything within a radius means never getting anywhere
+    const a = createAutopilot()
+    a.reset(straight, createCar(0, 0))
+    const wide = [{ x: 20, z: 14, r: 2 }]
+    expect(a.drive(rolling(), spec.maxSpeed, wide).brake).toBe(false)
+  })
+
+  it('drives on as before when the road is clear', () => {
+    const a = createAutopilot()
+    a.reset(straight, createCar(0, 0))
+    const clear = a.drive(rolling(), spec.maxSpeed, [])
+    const none = a.drive(rolling(), spec.maxSpeed)
+    expect(clear.brake).toBe(none.brake)
+  })
+
+  it('does not drive through a train parked across the road', () => {
+    const a = createAutopilot()
+    let car: CarState = createCar(0, 0)
+    a.reset(straight, car)
+    // a train sitting across the straight at x=300
+    const train = Array.from({ length: 9 }, (_, i) => ({ x: 300, z: (i - 4) * 2.2, r: 2.4 }))
+    let closest = Infinity
+    for (let i = 0; i < 4000; i++) {
+      car = stepCar(car, a.drive(car, spec.maxSpeed, train), 1 / 60, grid, flat, spec)
+      if (car.x > 260 && car.x < 340) closest = Math.min(closest, Math.abs(car.x - 300))
+    }
+    // it should never simply barrel through where the train stands
+    expect(closest, 'the demo drove into the train').toBeGreaterThan(2)
+  })
+})

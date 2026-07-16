@@ -162,3 +162,69 @@ describe('recycling out of sight', () => {
     }
   })
 })
+
+describe('dense city, short edges', () => {
+  /** A road mapped with vertices ~3m apart, as OSM does through a town. */
+  const finelyMapped: Road[] = [
+    { points: Array.from({ length: 400 }, (_, i) => v(i * 3, 0)), kind: 'residential' },
+  ]
+
+  it('drives smoothly where the vertices are metres apart', () => {
+    // The bug: the car advanced when within ARRIVE(4m) of the next node, which
+    // on a 3m edge is true on the first frame — so it hopped node to node every
+    // frame instead of driving, and jittered.
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, finelyMapped, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    t.update(1 / 60, 0, 0, 0)
+    let prev = positions(bodies).map((p) => p.clone())
+    for (let f = 0; f < 200; f++) {
+      t.update(1 / 60, 0, 0, 0)
+      const now = positions(bodies)
+      now.forEach((p, i) => {
+        const step = p.distanceTo(prev[i])
+        // at ~13m/s a frame is ~0.22m; anything near a metre is a teleport
+        expect(step, 'a car jumped instead of driving').toBeLessThan(1)
+      })
+      prev = now.map((p) => p.clone())
+    }
+  })
+
+  it('walks people smoothly on the same roads', () => {
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, finelyMapped, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    p.update(1 / 60, 0, 0)
+    let prev = positions(bodies).map((q) => q.clone())
+    for (let f = 0; f < 200; f++) {
+      p.update(1 / 60, 0, 0)
+      const now = positions(bodies)
+      now.forEach((q, i) => {
+        expect(q.distanceTo(prev[i]), 'a pedestrian jumped').toBeLessThan(0.5)
+      })
+      prev = now.map((q) => q.clone())
+    }
+  })
+
+  it('still gets somewhere, rather than standing still', () => {
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, finelyMapped, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    t.update(1 / 60, 0, 0, 0)
+    const start = positions(bodies).map((p) => p.clone())
+    for (let f = 0; f < 600; f++) t.update(1 / 60, 0, 0, 0)
+    const moved = positions(bodies).some((p, i) => p.distanceTo(start[i]) > 20)
+    expect(moved).toBe(true)
+  })
+
+  it('survives a road with a repeated point', () => {
+    // duplicate vertices give a zero-length edge; dividing by it hangs the walk
+    const dupes: Road[] = [{ points: [v(0, 0), v(10, 0), v(10, 0), v(20, 0)], kind: 'residential' }]
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, dupes, flat, () => 0.5)
+    expect(() => {
+      for (let f = 0; f < 200; f++) t.update(1 / 60, 0, 0, 0)
+    }).not.toThrow()
+  })
+})

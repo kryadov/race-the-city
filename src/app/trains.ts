@@ -1,9 +1,10 @@
 import * as THREE from 'three'
-import type { Vec2 } from '../geo/types'
+import type { Railway, Vec2 } from '../geo/types'
+import type { Circle } from '../physics/collide'
 import type { ElevationProvider } from '../terrain/provider'
 
 /** The three sorts of train, and how they're put together. */
-export type TrainKind = 'freight' | 'intercity' | 'commuter'
+export type TrainKind = 'freight' | 'intercity' | 'commuter' | 'tram'
 
 interface Kind {
   cars: number
@@ -18,7 +19,11 @@ const KINDS: Record<TrainKind, Kind> = {
   freight: { cars: 12, len: 12, speed: 14, body: 0x7a4a32, roof: 0x5f3a26, windows: false },
   intercity: { cars: 7, len: 22, speed: 30, body: 0xd6dae0, roof: 0x9aa2ac, windows: true },
   commuter: { cars: 4, len: 18, speed: 20, body: 0x2f6f9a, roof: 0x24566f, windows: true },
+  // Short, slow, and no locomotive: a tram is one carriage that drives itself.
+  tram: { cars: 2, len: 14, speed: 11, body: 0xc8492f, roof: 0xdedad2, windows: true },
 }
+/** The heavy stuff, for lines of its own. */
+const MAINLINE: TrainKind[] = ['freight', 'intercity', 'commuter']
 
 /**
  * The rail ribbon is drawn at terrain + ROAD_Y_OFFSET (0.15); the wheels sit on
@@ -27,9 +32,12 @@ const KINDS: Record<TrainKind, Kind> = {
 const RAIL_TOP = 0.15
 const RAIL_Y = RAIL_TOP + 0.45 // axle height above the railhead
 const MIN_LINE = 260 // metres of track needed before a train is worth running
+const MIN_TRAM_LINE = 120 // a tram works a shorter run than an intercity
 
 export interface Trains {
   update(dt: number, night: number): void
+  /** Where the carriages are, for the player and the demo to reckon with. */
+  obstacles(): Circle[]
   setEnabled(on: boolean): void
   /** Take them off the scene — the trains belong to one city's railways. */
   dispose(): void
@@ -44,10 +52,15 @@ function measure(line: Vec2[]): number[] {
   return d
 }
 
-/** Where you are, and which way you face, `s` metres along a line. */
+/**
+ * Where you are, and which way you face, `s` metres along a line.
+ *
+ * `s` is clamped, not wrapped: wrapping teleports the train from one end of the
+ * line to the other, and in view that reads as it vanishing.
+ */
 function at(line: Vec2[], cum: number[], s: number): { x: number; z: number; angle: number } {
   const total = cum[cum.length - 1]
-  const t = ((s % total) + total) % total
+  const t = s < 0 ? 0 : s > total ? total : s
   let i = 1
   while (i < cum.length - 1 && cum[i] < t) i++
   const a = line[i - 1]
@@ -153,33 +166,44 @@ function carriage(k: Kind): THREE.Group {
  */
 export function createTrains(
   scene: THREE.Scene,
-  railways: Vec2[][],
+  railways: Railway[],
   provider: ElevationProvider,
   rand: () => number = Math.random,
 ): Trains {
   const group = new THREE.Group()
   scene.add(group)
 
-  const kinds = Object.keys(KINDS) as TrainKind[]
-  const running: { line: Vec2[]; cum: number[]; k: Kind; cars: THREE.Group[]; s: number }[] = []
+  const running: { line: Vec2[]; cum: number[]; k: Kind; cars: THREE.Group[]; s: number; dir: number }[] = []
 
-  for (const line of railways) {
+  for (const rail of railways) {
+    const line = rail.points
     if (line.length < 2) continue
     const cum = measure(line)
-    if (cum[cum.length - 1] < MIN_LINE) continue
-    const k = KINDS[kinds[Math.floor(rand() * kinds.length)]]
+    const total = cum[cum.length - 1]
+    if (total < (rail.tram ? MIN_TRAM_LINE : MIN_LINE)) continue
+
+    // Tram tracks run down the street. Putting an intercity on one drives a
+    // full-length train through the traffic — a tram is the only thing that
+    // belongs there.
+    const kind: TrainKind = rail.tram ? 'tram' : MAINLINE[Math.floor(rand() * MAINLINE.length)]
+    const k = KINDS[kind]
     const cars: THREE.Group[] = []
     for (let i = 0; i < k.cars; i++) {
-      const c = i === 0 ? locomotive(k) : carriage(k)
+      // A tram has no locomotive: every car is the same, and the first drives.
+      const c = i === 0 && kind !== 'tram' ? locomotive(k) : carriage(k)
       group.add(c)
       cars.push(c)
     }
-    running.push({ line, cum, k, cars, s: rand() * cum[cum.length - 1] })
+    running.push({ line, cum, k, cars, s: rand() * total, dir: rand() < 0.5 ? 1 : -1 })
   }
 
+  const solidAt: Circle[] = []
+
   return {
+    obstacles: () => solidAt,
     setEnabled(on) {
       group.visible = on
+      if (!on) solidAt.length = 0
     },
     dispose() {
       scene.remove(group)
@@ -190,16 +214,40 @@ export function createTrains(
         if (mat) (Array.isArray(mat) ? mat : [mat]).forEach((x) => x.dispose())
       })
       running.length = 0
+      solidAt.length = 0
     },
     update(dt, night) {
+      solidAt.length = 0
       for (const tr of running) {
-        tr.s += tr.k.speed * dt
+        const total = tr.cum[tr.cum.length - 1]
+        tr.s += tr.k.speed * dt * tr.dir
+        // Run to the end of the line and come back, rather than jumping to the
+        // start: the jump is visible, and a line that leaves the map has to end
+        // somewhere anyway.
+        const rake = (tr.k.cars - 1) * (tr.k.len + 1.2)
+        if (tr.dir > 0 && tr.s > total) {
+          tr.s = total
+          tr.dir = -1
+        } else if (tr.dir < 0 && tr.s < rake) {
+          tr.s = rake
+          tr.dir = 1
+        }
         tr.cars.forEach((car, i) => {
           // Each carriage sits a car-length back along the same track, so the
-          // whole train follows the curve instead of pivoting as one stick.
-          const p = at(tr.line, tr.cum, tr.s - i * (tr.k.len + 1.2))
+          // whole train follows the curve instead of pivoting as one stick —
+          // and 'back' is whichever way it happens to be running.
+          const p = at(tr.line, tr.cum, tr.s - tr.dir * i * (tr.k.len + 1.2))
           car.position.set(p.x, provider.heightAt(p.x, p.z), p.z)
-          car.rotation.y = -p.angle
+          car.rotation.y = -(p.angle + (tr.dir < 0 ? Math.PI : 0)) // face the way it's going
+          // A carriage is long; cover it with a couple of circles rather than
+          // one, or you can drive through its middle.
+          for (const along of [-0.25, 0.25]) {
+            solidAt.push({
+              x: p.x + Math.cos(p.angle) * tr.k.len * along,
+              z: p.z + Math.sin(p.angle) * tr.k.len * along,
+              r: 2.4,
+            })
+          }
           car.traverse((o) => {
             if (o.userData.trainGlass) {
               ;((o as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = night * 1.1

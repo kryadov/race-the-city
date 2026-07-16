@@ -55,7 +55,13 @@ export function applyQuality(stage: Stage, q: Quality, shadowsWanted: boolean): 
 
 export function createStage(mount: HTMLElement, quality: Quality = 'normal'): Stage {
   // Antialias can't change after construction, so it's fixed from the saved tier.
-  const renderer = new THREE.WebGLRenderer({ antialias: quality !== 'low' })
+  const renderer = new THREE.WebGLRenderer({
+    antialias: quality !== 'low',
+    // Ask for the discrete GPU. Without this the browser is free to pick the
+    // integrated one, which on a two-GPU machine it generally does — and that is
+    // the difference between a smooth frame and a slideshow.
+    powerPreference: 'high-performance',
+  })
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setPixelRatio(pixelRatioFor(quality))
   renderer.shadowMap.enabled = quality !== 'low'
