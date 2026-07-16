@@ -1,6 +1,7 @@
 export type VehicleType =
   | 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
   | 'retro' | 'ev' | 'minivan' | 'tanker'
+  | 'crane' | 'roller' | 'combine' | 'tiller'
 
 export const VEHICLE_TYPES: readonly VehicleType[] = [
   'car',
@@ -16,6 +17,10 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'tanker',
   'bus',
   'tractor',
+  'crane',
+  'roller',
+  'combine',
+  'tiller',
 ]
 
 /**
@@ -25,7 +30,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
 export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType[] }[] = [
   { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan'] },
   { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus', 'tanker'] },
-  { key: 'vehGroup.special', types: ['tractor'] },
+  { key: 'vehGroup.special', types: ['tractor', 'crane', 'roller', 'combine', 'tiller'] },
   { key: 'vehGroup.exotic', types: ['motorbike'] },
 ]
 
@@ -184,5 +189,25 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
   tanker: {
     key: 'tanker', accel: 34, brakeAccel: 44, dragForward: 1.5, gripLateral: 2.6,
     turnRate: 0.9, turnSpeedRef: 12, maxSpeed: 27, maxReverse: 8, radius: 2.4,
+  },
+  // A mobile crane: long, top-heavy, hauls itself around at a walking pace.
+  crane: {
+    key: 'crane', accel: 30, brakeAccel: 42, dragForward: 1.4, gripLateral: 3.0,
+    turnRate: 1.0, turnSpeedRef: 12, maxSpeed: 22, maxReverse: 7, radius: 2.3,
+  },
+  // A road roller: barely moves, stops on a coin.
+  roller: {
+    key: 'roller', accel: 20, brakeAccel: 38, dragForward: 1.3, gripLateral: 5,
+    turnRate: 1.2, turnSpeedRef: 5, maxSpeed: 10, maxReverse: 5, radius: 1.8,
+  },
+  // A combine harvester: big, slow, surprisingly tidy through a bend.
+  combine: {
+    key: 'combine', accel: 24, brakeAccel: 38, dragForward: 1.3, gripLateral: 3.8,
+    turnRate: 1.5, turnSpeedRef: 6, maxSpeed: 13, maxReverse: 6, radius: 2.2,
+  },
+  // A walk-behind tiller: tiny, slow, spins on the spot.
+  tiller: {
+    key: 'tiller', accel: 22, brakeAccel: 30, dragForward: 1.6, gripLateral: 6,
+    turnRate: 2.6, turnSpeedRef: 3, maxSpeed: 8, maxReverse: 4, radius: 0.5,
   },
 }

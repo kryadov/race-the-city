@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { VehicleType } from './vehicles'
 import { buildCar, buildSports, buildRaceCar, buildCabrio, buildRetro, buildEv, buildMinivan } from './models/cars'
 import { buildTruck, buildBus, buildLorry, buildTanker } from './models/trucks'
-import { buildTractor } from './models/special'
+import { buildTractor, buildCrane, buildRoller, buildCombine, buildTiller } from './models/special'
 import { buildMotorbike } from './models/exotic'
 import { REAR_LIGHT_MAT } from './models/parts'
 
@@ -25,6 +25,10 @@ const STOP_STYLE: Record<VehicleType, { color: number; emissive: number }> = {
   ev: { color: 0x3a0030, emissive: 0xff2eb0 }, // pink LED bar
   minivan: { color: 0x5a0018, emissive: 0xff1a3c },
   tanker: { color: 0x5a1e00, emissive: 0xff5a00 },
+  crane: { color: 0x5a2400, emissive: 0xff6a00 },
+  roller: { color: 0x5a2400, emissive: 0xff6a00 },
+  combine: { color: 0x5a2400, emissive: 0xff6a00 },
+  tiller: { color: 0x5a0e00, emissive: 0xff3c00 },
 }
 
 const BUILDERS: Record<VehicleType, () => THREE.Group> = {
@@ -41,6 +45,10 @@ const BUILDERS: Record<VehicleType, () => THREE.Group> = {
   ev: buildEv,
   minivan: buildMinivan,
   tanker: buildTanker,
+  crane: buildCrane,
+  roller: buildRoller,
+  combine: buildCombine,
+  tiller: buildTiller,
 }
 
 export function buildVehicleMesh(type: VehicleType): THREE.Group {
