@@ -200,6 +200,25 @@ export function clearSession(): void {
   }
 }
 
+const DEMO_KEY = 'rtc.demo'
+
+/** Whether the car drives itself (off by default — it's a demo, not the game). */
+export function getDemo(): boolean {
+  try {
+    return localStorage.getItem(DEMO_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setDemo(on: boolean): void {
+  try {
+    localStorage.setItem(DEMO_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const NITRO_KEY = 'rtc.nitro'
 
 /** Whether nitro speed-boost pickups appear (on by default). */

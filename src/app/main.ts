@@ -29,6 +29,7 @@ import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
 import { createPauseButton } from '../ui/pauseButton'
+import { createAutopilot } from './autopilot'
 import {
   getDefaultCity,
   setDefaultCity,
@@ -48,6 +49,8 @@ import {
   setRoadDetail,
   getNitro,
   setNitro,
+  getDemo,
+  setDemo,
   getQuality,
   setQuality,
   getUnits,
@@ -145,6 +148,8 @@ const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
 nitro.setEnabled(getNitro())
 const flame = createNitroFlame()
+const autopilot = createAutopilot()
+autopilot.setEnabled(getDemo())
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
 function showVehicle(type: VehicleType): void {
   const mesh = buildVehicleMesh(type)
@@ -197,6 +202,7 @@ let provider: ElevationProvider = new FlatProvider()
 let stopLoop: (() => void) | null = null
 let loading_ = false
 let currentCity = '' // the loaded city query, for session save/restore
+let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
 
 async function loadCity(query: string): Promise<void> {
   if (loading_) return
@@ -341,6 +347,8 @@ async function loadCity(query: string): Promise<void> {
       car.z,
     )
     hud.setDistance(odometer)
+    lastRoads = world.roads
+    autopilot.reset(world.roads, car)
     currentCity = query
     driftFx.reset()
 
@@ -363,11 +371,16 @@ async function loadCity(query: string): Promise<void> {
         const spec = VEHICLES[vehicle]
         const kb = pause.paused() ? { throttle: 0, steer: 0, brake: false } : keyboard.read()
         const tc = pause.paused() ? { throttle: 0, steer: 0, brake: false } : touch.read()
-        const input = {
+        let input = {
           throttle: Math.max(-1, Math.min(1, kb.throttle + tc.throttle)),
           steer: Math.max(-1, Math.min(1, kb.steer + tc.steer)),
           brake: kb.brake || tc.brake,
         }
+        // The demo drives with the same three inputs a player has, through the
+        // same physics — so it drifts, it hits things, and it sounds right. Any
+        // touch of the controls hands the wheel straight back.
+        const handsOn = input.throttle !== 0 || input.steer !== 0 || input.brake
+        if (autopilot.enabled() && !pause.paused() && !handsOn) input = autopilot.drive(car, spec.maxSpeed)
         // nitro: collecting a bottle boosts the top speed for a short window
         if (nitro.update(car.x, car.z, dt)) boostTimer = BOOST_TIME
         if (boostTimer > 0) boostTimer -= dt
@@ -499,6 +512,7 @@ const menu = createSettingsMenu(
     clouds: getClouds(),
     roadDetail: getRoadDetail(),
     nitro: getNitro(),
+    demo: getDemo(),
     quality: getQuality(),
     units: getUnits(),
     weather: getWeather(),
@@ -549,6 +563,11 @@ const menu = createSettingsMenu(
     onRoadDetail: (on) => {
       setRoadDetail(on)
       if (roadDetailMesh) roadDetailMesh.visible = on
+    },
+    onDemo: (on) => {
+      setDemo(on)
+      autopilot.setEnabled(on)
+      if (on && car) autopilot.reset(lastRoads, car)
     },
     onNitro: (on) => {
       setNitro(on)
