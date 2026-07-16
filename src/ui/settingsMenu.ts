@@ -14,11 +14,13 @@ export interface SettingsCallbacks {
   onSelectVehicle: (type: VehicleType) => void
   onAudioChange: (patch: Partial<AudioState>) => void
   onRoadLabels: (on: boolean) => void
+  onSetTime: (t: number) => void
 }
 
 export interface SettingsHandle {
   setViewMode(mode: ViewMode): void
   setVehicle(type: VehicleType): void
+  setTime(t: number): void
 }
 
 function button(): HTMLButtonElement {
@@ -30,7 +32,14 @@ function button(): HTMLButtonElement {
 /** ⚙ button that opens a panel holding every setting ("all in the menu"). */
 export function createSettingsMenu(
   root: HTMLElement,
-  initial: { city: string; view: ViewMode; vehicle: VehicleType; audio: AudioState; roadLabels: boolean },
+  initial: {
+    city: string
+    view: ViewMode
+    vehicle: VehicleType
+    audio: AudioState
+    roadLabels: boolean
+    time: number
+  },
   cb: SettingsCallbacks,
 ): SettingsHandle {
   let view = initial.view
@@ -186,7 +195,22 @@ export function createSettingsMenu(
     labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
   }
 
-  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec)
+  // --- Time of day ---
+  const timeSec = section('menu.time')
+  const timeSlider = document.createElement('input')
+  timeSlider.type = 'range'
+  timeSlider.min = '0'
+  timeSlider.max = '1'
+  timeSlider.step = '0.005'
+  timeSlider.value = String(initial.time)
+  timeSlider.style.cssText = 'width:100%'
+  let timeDragging = false
+  timeSlider.addEventListener('pointerdown', () => (timeDragging = true))
+  window.addEventListener('pointerup', () => (timeDragging = false))
+  timeSlider.addEventListener('input', () => cb.onSetTime(Number(timeSlider.value)))
+  timeSec.appendChild(timeSlider)
+
+  panel.append(citySec, langSec, viewSec, vehSec, audioSec, mapSec, timeSec)
   root.append(gear, panel)
 
   function paintLabels(): void {
@@ -227,5 +251,8 @@ export function createSettingsMenu(
       paintStates()
     },
     setVehicle,
+    setTime(t: number) {
+      if (!timeDragging) timeSlider.value = String(t)
+    },
   }
 }
