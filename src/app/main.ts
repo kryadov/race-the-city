@@ -91,7 +91,7 @@ async function loadCity(query: string): Promise<void> {
       stopLoop = startLoop((dt) => {
         if (!car) return
         car = stepCar(car, keyboard.read(), dt, grid, provider)
-        syncCamera(stage, car)
+        syncCamera(stage, car, dt)
         stage.renderer.render(stage.scene, stage.camera)
       })
     }

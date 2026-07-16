@@ -5,11 +5,11 @@ import type { ElevationProvider } from '../terrain/provider'
 export interface CarState { x: number; z: number; y: number; heading: number; speed: number }
 export interface CarInput { throttle: number; steer: number; brake: boolean }
 
-const ACCEL = 40 // m/s^2 at full throttle
+const ACCEL = 90 // m/s^2 at full throttle — punchy pickup
 const BRAKE = 60
-const FRICTION = 4 // per second velocity decay
+const FRICTION = 3.3 // per second velocity decay; terminal speed ≈ ACCEL/FRICTION ≈ 27 m/s (~98 km/h)
 const MAX_SPEED = 60
-const TURN_RATE = 1.8 // rad/s at full steer and full speed
+const TURN_RATE = 2.2 // rad/s at full steer and full speed — responsive steering
 const CAR_RADIUS = 2
 
 export function createCar(x = 0, z = 0): CarState {

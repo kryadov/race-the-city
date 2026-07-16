@@ -42,14 +42,17 @@ export function createStage(mount: HTMLElement): Stage {
 
 const camPos = new THREE.Vector3()
 const camTarget = new THREE.Vector3()
+const CAM_SMOOTH_K = 8 // higher = snappier; framerate-independent
 
-export function syncCamera(stage: Stage, car: CarState): void {
+export function syncCamera(stage: Stage, car: CarState, dt: number): void {
   stage.carMesh.position.set(car.x, car.y + 0.8, car.z)
   stage.carMesh.rotation.y = -car.heading // box faces +x at heading 0
 
   const back = 14, up = 7
   camPos.set(car.x - Math.cos(car.heading) * back, car.y + up, car.z - Math.sin(car.heading) * back)
-  stage.camera.position.lerp(camPos, 0.12)
+  // Exponential smoothing: equal easing per real second regardless of frame rate.
+  const t = 1 - Math.exp(-CAM_SMOOTH_K * dt)
+  stage.camera.position.lerp(camPos, t)
   camTarget.set(car.x, car.y + 1.5, car.z)
   stage.camera.lookAt(camTarget)
 }
