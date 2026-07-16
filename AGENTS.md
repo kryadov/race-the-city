@@ -57,6 +57,14 @@ createCar → startLoop(stepCar + syncCamera + render)`. All wired in `src/app/m
 - **No backend.** Fetch OSM/terrain/geocode straight from the browser. Cache OSM in IndexedDB.
 - **Style:** low-poly `flatShading`. The neon/wireframe view is a decoration layer
   (`app/theme.ts`) over the same meshes — do not fork the world builders for it.
+- **Neon coverage is mandatory.** Every world/scene mesh added to a city MUST switch
+  look in neon via `ThemeController`, or it sticks out as a day-styled object in the
+  dark neon world. Register it in `WorldRefs` and `theme.setWorld(...)`. Two patterns:
+  non-instanced solids (buildings, roads) get hidden + replaced by glowing edge lines;
+  **instanced** meshes (trees, lamps, signs) can't use edge-outlines (one edge geo can't
+  replicate per instance) — flip their materials to neon `wireframe` + `emissive` in
+  `apply()` and restore the saved day values off-neon. When you add a new world layer,
+  wire it into the theme in the SAME change.
 - **TypeScript strict**, plus `noUnusedLocals`/`noUnusedParameters` — prefix a deliberately
   unused param with `_`.
 
@@ -79,6 +87,12 @@ verify `tsc` + `build` + existing tests and defer the visual check to a human.
   not just `scene.remove` — removing from the graph does not free GPU buffers.
 - **Ambiguous city names.** Nominatim returns the top hit; `Poti` may resolve elsewhere.
   Suggest `City, Country` or `lat,lon`.
+- **Shared light materials.** `HEADLIGHT_MAT`, `REAR_LIGHT_MAT`, `TURN_*_MAT`, `LAMP_MAT`
+  are module-level and driven from the render loop (one `emissiveIntensity`/`color` set
+  per frame lights every instance). Only one vehicle is on screen at a time, so tinting
+  the shared stop material per vehicle in `buildVehicleMesh` is fine. When you set a lens
+  into a housing, the lens must stand *proud* of (in front of) the housing on the outward
+  face, or the housing occludes it and it renders black (the v0.32 tail-light bug).
 
 ## Deploy
 

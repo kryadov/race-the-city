@@ -8,12 +8,25 @@ const NEON_BG = 0x05070d
 const NEON_GROUND = 0x0a0f1a
 const BUILDING_EDGE = 0x38f5ff
 const ROAD_EDGE = 0xff5bd0
+const NEON_TREE = 0x1dd85f // greenery glows green in neon
+const NEON_DETAIL = 0xffb13b // lamps/signs glow amber in neon
 const EDGE_ANGLE = 20 // degrees: keep only significant edges (box corners, outlines)
 
 export interface WorldRefs {
   ground: THREE.Mesh
   buildings: THREE.Object3D // group of building meshes
   roads: THREE.Object3D // single roads mesh
+  greenery: THREE.Object3D // trees (instanced) — neon-styled by material, not edges
+  roadDetail: THREE.Object3D // lamps/signs/lane lines (instanced) — same
+}
+
+/** A material we recolour for neon, plus its day values to restore. */
+interface NeonMat {
+  mat: THREE.MeshStandardMaterial
+  target: number
+  wire: boolean
+  emissive: number
+  emissiveI: number
 }
 
 /**
@@ -27,6 +40,7 @@ export class ThemeController {
   private world: WorldRefs | null = null
   private edges: THREE.LineSegments[] = []
   private edgesBuilt = false
+  private neonMats: NeonMat[] = []
   private readonly dayGroundColor = new THREE.Color()
 
   /** Called after every mode change so the UI can reflect the current view. */
@@ -44,8 +58,38 @@ export class ThemeController {
     this.edgesBuilt = false
     this.world = world
     this.dayGroundColor.copy((world.ground.material as THREE.MeshStandardMaterial).color)
+    this.collectNeonMats(world)
     if (this.mode === 'neon') this.buildEdges()
     this.apply()
+  }
+
+  /**
+   * Trees and road furniture are instanced, so edge-outlines can't replicate
+   * per instance. Instead we flip their materials to a glowing neon wireframe.
+   * Record each material's day values here so they can be restored.
+   */
+  private collectNeonMats(world: WorldRefs): void {
+    this.neonMats = []
+    const collect = (root: THREE.Object3D, target: number): void => {
+      const seen = new Set<THREE.Material>()
+      root.traverse((o) => {
+        const m = (o as THREE.Mesh).material
+        if (!m) return
+        for (const mat of Array.isArray(m) ? m : [m]) {
+          if (!(mat instanceof THREE.MeshStandardMaterial) || seen.has(mat)) continue
+          seen.add(mat)
+          this.neonMats.push({
+            mat,
+            target,
+            wire: mat.wireframe,
+            emissive: mat.emissive.getHex(),
+            emissiveI: mat.emissiveIntensity,
+          })
+        }
+      })
+    }
+    collect(world.greenery, NEON_TREE)
+    collect(world.roadDetail, NEON_DETAIL)
   }
 
   toggle(): void {
@@ -104,6 +148,17 @@ export class ThemeController {
       else groundMat.color.copy(this.dayGroundColor)
     }
     for (const line of this.edges) line.visible = neon
+    for (const e of this.neonMats) {
+      if (neon) {
+        e.mat.wireframe = true
+        e.mat.emissive.setHex(e.target)
+        e.mat.emissiveIntensity = 1
+      } else {
+        e.mat.wireframe = e.wire
+        e.mat.emissive.setHex(e.emissive)
+        e.mat.emissiveIntensity = e.emissiveI
+      }
+    }
 
     this.onChange?.(this.mode)
   }

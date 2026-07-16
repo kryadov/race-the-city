@@ -28,7 +28,12 @@ function makeWorld() {
     new THREE.Mesh(new THREE.BoxGeometry(2, 3, 2), new THREE.MeshStandardMaterial()),
   )
   const roads = new THREE.Mesh(new THREE.PlaneGeometry(20, 4), new THREE.MeshStandardMaterial())
-  return { ground, buildings, roads }
+  // greenery + road detail are instanced groups, neon-styled by material
+  const greenery = new THREE.Group()
+  greenery.add(new THREE.InstancedMesh(new THREE.ConeGeometry(1, 2, 6), new THREE.MeshStandardMaterial({ color: 0x2f7d3b }), 4))
+  const roadDetail = new THREE.Group()
+  roadDetail.add(new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.1, 4), new THREE.MeshStandardMaterial({ color: 0x9a9ea6 }), 4))
+  return { ground, buildings, roads, greenery, roadDetail }
 }
 
 const lineCount = (scene: THREE.Scene) =>
@@ -66,6 +71,23 @@ describe('ThemeController', () => {
     // 2 building meshes + 1 roads mesh => 3 edge overlays, all visible
     expect(lines.length).toBe(3)
     expect(lines.every((l) => l.visible)).toBe(true)
+  })
+
+  it('neon-styles instanced greenery/road detail (wireframe + emissive) and restores on day', () => {
+    const { stage } = makeStage()
+    const theme = new ThemeController(stage)
+    const world = makeWorld()
+    theme.setWorld(world)
+    const treeMat = (world.greenery.children[0] as THREE.InstancedMesh).material as THREE.MeshStandardMaterial
+    const dayEmissive = treeMat.emissive.getHex()
+
+    theme.toggle() // neon
+    expect(treeMat.wireframe).toBe(true)
+    expect(treeMat.emissive.getHex()).not.toBe(dayEmissive)
+
+    theme.toggle() // day
+    expect(treeMat.wireframe).toBe(false)
+    expect(treeMat.emissive.getHex()).toBe(dayEmissive)
   })
 
   it('switches back to day: restores solids, ground color, sky, hides edges', () => {

@@ -182,7 +182,7 @@ async function loadCity(query: string): Promise<void> {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
-    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh })
+    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
 
