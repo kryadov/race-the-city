@@ -21,11 +21,15 @@ function openDb(): Promise<IDBDatabase> {
 export async function cacheGet(key: string): Promise<OverpassResponse | undefined> {
   try {
     const db = await openDb()
-    return await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readonly').objectStore(STORE).get(key)
-      tx.onsuccess = () => resolve(tx.result as OverpassResponse | undefined)
-      tx.onerror = () => reject(tx.error)
-    })
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readonly').objectStore(STORE).get(key)
+        tx.onsuccess = () => resolve(tx.result as OverpassResponse | undefined)
+        tx.onerror = () => reject(tx.error)
+      })
+    } finally {
+      db.close()
+    }
   } catch {
     return undefined // caching is best-effort
   }
@@ -34,11 +38,15 @@ export async function cacheGet(key: string): Promise<OverpassResponse | undefine
 export async function cachePut(key: string, value: OverpassResponse): Promise<void> {
   try {
     const db = await openDb()
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite').objectStore(STORE).put(value, key)
-      tx.onsuccess = () => resolve()
-      tx.onerror = () => reject(tx.error)
-    })
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite').objectStore(STORE).put(value, key)
+        tx.onsuccess = () => resolve()
+        tx.onerror = () => reject(tx.error)
+      })
+    } finally {
+      db.close()
+    }
   } catch {
     /* best-effort */
   }

@@ -52,7 +52,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Loading progress bar with percentages
 
 ## 🧹 Tech debt / polish
-- [ ] Update GitHub Actions versions (Node 20 deprecation warning)
-- [ ] Split the bundle (~500 kB single chunk — Vite warning)
+- [x] Update Actions node (22) — v0.25.0
+- [x] Split the bundle (three vendor chunk) — v0.25.0
 - [ ] E2E test of a real city load (currently unit tests + headless smoke without network)
-- [ ] Minor early-review nits: naming in `parse`, `db.close()` in cache, etc.
+- [x] Early-review nits (parse naming, cache db.close) — v0.25.0
