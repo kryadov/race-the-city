@@ -46,17 +46,39 @@ export function createNitroFlame(): NitroFlame {
     attachTo(mesh) {
       // Fresh geometry each time: setVehicleMesh disposes the old mesh's whole
       // tree, this flame included.
-      const box = new THREE.Box3().setFromObject(mesh)
       const g = new THREE.Group()
-      const y = Math.max(0.3, box.min.y + (box.max.y - box.min.y) * 0.22)
-      const spread = Math.min(0.45, (box.max.z - box.min.z) * 0.22)
-      for (const z of [spread, -spread]) {
-        const jet = new THREE.Group()
-        jet.add(cone(1.5, 0.22, OUTER, 0.55))
-        jet.add(cone(0.8, 0.12, CORE, 0.9))
-        jet.position.set(box.min.x + 0.05, y, z)
-        g.add(jet)
+
+      const jet = (x: number, y: number, z: number, up: boolean, len: number): THREE.Group => {
+        const j = new THREE.Group()
+        j.add(cone(len, len * 0.15, OUTER, 0.55))
+        j.add(cone(len * 0.53, len * 0.08, CORE, 0.9))
+        j.position.set(x, y, z)
+        // Cones point -x by default; -90° about z swings that to +y, out of a stack.
+        if (up) j.rotation.z = -Math.PI / 2
+        return j
       }
+
+      // A model can say where its exhaust is; a work machine's stack fires at
+      // the sky, and the tiller's rear face is its trailer's tailboard.
+      const marks: THREE.Object3D[] = []
+      mesh.traverse((o) => {
+        if ((o.userData as { exhaust?: string }).exhaust) marks.push(o)
+      })
+
+      if (marks.length) {
+        for (const m of marks) {
+          const up = (m.userData as { exhaust?: string }).exhaust === 'up'
+          g.add(jet(m.position.x, m.position.y, m.position.z, up, up ? 1.1 : 1.5))
+        }
+      } else {
+        // Otherwise: out of the middle of the rear face, which is right for
+        // anything with a tailpipe, and fits a vehicle we haven't built yet.
+        const box = new THREE.Box3().setFromObject(mesh)
+        const y = Math.max(0.3, box.min.y + (box.max.y - box.min.y) * 0.22)
+        const spread = Math.min(0.45, (box.max.z - box.min.z) * 0.22)
+        for (const z of [spread, -spread]) g.add(jet(box.min.x + 0.05, y, z, false, 1.5))
+      }
+
       g.visible = false
       mesh.add(g)
       group = g

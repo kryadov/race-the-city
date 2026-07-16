@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import {
-  box, wheel, steers, light, lens, glass, person, housingBar, repeater,
+  box, wheel, steers, exhaust, light, lens, glass, person, housingBar, repeater,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -15,6 +15,7 @@ export function buildTractor(): THREE.Group {
   const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.1, 6), new THREE.MeshStandardMaterial({ color: 0x33363d, flatShading: true }))
   pipe.position.set(0.75, 1.95, 0.42)
   g.add(pipe)
+  g.add(exhaust(0.75, 2.5, 0.42, true)) // out the top of that stack
   g.add(wheel(0.95, 0.5, -0.85, 0.95, 0.8), wheel(0.95, 0.5, -0.85, 0.95, -0.8)) // big rear
   g.add(steers(wheel(0.5, 0.3, 1.0, 0.5, 0.62)), steers(wheel(0.5, 0.3, 1.0, 0.5, -0.62))) // small front
   g.add(light(1.24, 1.3, 0.42), light(1.24, 1.3, -0.42))
@@ -33,6 +34,8 @@ export function buildCrane(): THREE.Group {
   g.add(box(1.7, 1.4, 2.0, body, 2.1, 1.9, 0)) // cab
   g.add(glass(0.1, 0.7, 1.7, 2.98, 2.1, 0))
   g.add(box(1.8, 1.0, 1.9, 0x3a3a44, -0.9, 1.8, 0)) // slew housing
+  g.add(box(0.16, 1.0, 0.16, 0x33363d, 1.5, 1.9, 0.8)) // exhaust stack
+  g.add(exhaust(1.5, 2.45, 0.8, true))
   // boom: raked up toward +x, built as three shortening segments
   const boom = new THREE.Group()
   boom.add(box(4.2, 0.45, 0.5, body, 2.1, 0, 0))
@@ -63,6 +66,8 @@ export function buildRoller(): THREE.Group {
   g.add(box(2.6, 0.7, 1.5, body, -0.4, 1.15, 0)) // frame
   g.add(box(1.3, 0.9, 1.4, body, -1.0, 1.9, 0)) // operator platform
   g.add(box(0.1, 0.5, 1.2, 0x1c2733, -0.38, 2.1, 0)) // screen
+  g.add(box(0.14, 0.8, 0.14, 0x33363d, -0.1, 1.5, 0.5)) // exhaust stack
+  g.add(exhaust(-0.1, 1.95, 0.5, true))
   g.add(person(-1.0, 2.0, 0, false, true))
   // drum: a wide cylinder with its axle along z, tagged so it rolls
   const drumGeo = new THREE.CylinderGeometry(0.75, 0.75, 1.7, 20)
@@ -90,6 +95,8 @@ export function buildCombine(): THREE.Group {
   g.add(box(1.5, 1.2, 1.8, 0xdfe4e8, 1.5, 2.9, 0)) // cab up high
   g.add(glass(0.1, 0.8, 1.6, 2.22, 2.9, 0))
   g.add(box(1.2, 1.0, 1.4, body, -2.4, 2.6, 0)) // grain tank
+  g.add(box(0.18, 1.1, 0.18, 0x33363d, 0.6, 2.9, 0.85)) // exhaust stack
+  g.add(exhaust(0.6, 3.5, 0.85, true))
   g.add(box(2.2, 0.24, 0.24, 0xd9dde2, -1.6, 3.3, 0.9)) // unloading auger
   // header: wide bar with teeth, low at the front
   g.add(box(0.7, 0.5, 3.6, 0xf2b33a, 2.5, 0.75, 0))
@@ -115,6 +122,8 @@ export function buildTiller(): THREE.Group {
   g.add(box(0.8, 0.5, 0.6, body, 0.6, 0.62, 0)) // engine block
   g.add(box(0.3, 0.34, 0.34, 0x3a3a44, 1.05, 0.62, 0)) // exhaust/filter
   g.add(box(0.16, 0.3, 0.16, 0xb8bec6, 0.6, 0.95, 0)) // filler neck
+  g.add(box(0.09, 0.42, 0.09, 0x33363d, 1.05, 1.0, 0)) // upright exhaust stack
+  g.add(exhaust(1.05, 1.24, 0, true))
   g.add(steers(wheel(0.32, 0.18, 0.6, 0.32, 0.42)), steers(wheel(0.32, 0.18, 0.6, 0.32, -0.42)))
 
   // handlebars, raked back to where the driver sits

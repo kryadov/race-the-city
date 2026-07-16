@@ -156,6 +156,8 @@ let lean = 0 // current bank angle (bikes only), eased toward the target
 const MAX_LEAN = 0.5 // rad (~29°) at full steer and speed
 let steerDir = 0 // sign of the currently-held steer
 let steerHold = 0 // seconds that direction has been held
+let steerVis = 0 // front-wheel angle, eased toward the input so it winds on with the hold
+const STEER_EASE = 7 // per second; ~full lock after a third of a second held
 let blinkClock = 0 // free-running clock for the indicator blink
 const CYCLE_SECONDS = 240 // full day/night cycle
 let timeOfDay = 0.35 // start mid-morning
@@ -388,7 +390,10 @@ async function loadCity(query: string): Promise<void> {
         // bikes bank into corners; everything else stays upright
         const leanTarget = LEANS[vehicle] ? input.steer * Math.min(1, Math.abs(fwd) / 12) * MAX_LEAN : 0
         lean += (leanTarget - lean) * (1 - Math.exp(-6 * dt))
-        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle], input.steer)
+        // Wheels wind on toward the lock rather than snapping to it, so the
+        // angle reflects how long you've held the turn.
+        steerVis += (input.steer - steerVis) * (1 - Math.exp(-STEER_EASE * dt))
+        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle], steerVis)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import {
-  box, wheel, steers, glass, light, lens, person, housingBar,
+  box, wheel, steers, exhaust, glass, light, lens, person, housingBar,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -34,6 +34,8 @@ export function buildTracked(): THREE.Group {
   g.add(box(2.0, 0.7, 1.5, body, -0.3, 1.95, 0)) // cabin
   g.add(glass(0.1, 0.5, 1.3, 0.72, 2.0, 0))
   g.add(box(0.5, 0.3, 1.6, body, 1.9, 1.1, 0)) // sloped nose
+  g.add(box(0.12, 0.6, 0.12, 0x33363d, 0.9, 2.0, 0.6)) // exhaust stack
+  g.add(exhaust(0.9, 2.32, 0.6, true))
   // track slabs down each side
   for (const z of [1.0, -1.0]) {
     g.add(box(4.0, 0.5, 0.42, 0x24242a, 0, 0.25, z)) // track run

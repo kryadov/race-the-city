@@ -41,6 +41,21 @@ export function wheel(radius: number, width: number, x: number, y: number, z: nu
 }
 
 /**
+ * Mark where a vehicle's exhaust actually is, for the nitro plume. Without one,
+ * the plume falls back to the middle of the mesh's rear face — right for a car,
+ * wrong for a tractor (its stack points at the sky) and wrong for the tiller
+ * (whose rear face is its trailer's tailboard).
+ *
+ * @param up true for a vertical stack, false for a tailpipe firing backwards
+ */
+export function exhaust(x: number, y: number, z: number, up = false): THREE.Object3D {
+  const o = new THREE.Object3D()
+  o.position.set(x, y, z)
+  o.userData.exhaust = up ? 'up' : 'back'
+  return o
+}
+
+/**
  * Mark a wheel as steered: the render loop yaws it with the steering input.
  * Which axle steers is the vehicle's business — a combine steers on its rear
  * wheels, a tracked hull steers on neither — so it is tagged, not inferred.
