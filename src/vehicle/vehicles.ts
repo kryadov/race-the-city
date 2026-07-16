@@ -31,7 +31,7 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
     turnSpeedRef: 8,
     maxSpeed: 42,
     maxReverse: 14,
-    radius: 2,
+    radius: 1.3,
   },
   truck: {
     key: 'truck',
@@ -43,7 +43,7 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
     turnSpeedRef: 11,
     maxSpeed: 30,
     maxReverse: 9,
-    radius: 3,
+    radius: 2,
   },
   sports: {
     key: 'sports',
@@ -55,6 +55,6 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
     turnSpeedRef: 7,
     maxSpeed: 55,
     maxReverse: 16,
-    radius: 1.9,
+    radius: 1.2,
   },
 }
