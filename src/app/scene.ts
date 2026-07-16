@@ -11,6 +11,8 @@ export interface Stage {
   ambient: THREE.AmbientLight
   /** Follow-camera distance multiplier (1 = default; smaller = closer). */
   camDist: number
+  /** Transient distance scale eased by gameplay (e.g. pulled in inside tunnels). */
+  camDistScale: number
 }
 
 export const CAM_DIST_MIN = 0.4
@@ -56,7 +58,7 @@ export function createStage(mount: HTMLElement): Stage {
     renderer.setSize(window.innerWidth, window.innerHeight)
   })
 
-  return { scene, camera, renderer, carMesh, sun, ambient, camDist: 1 }
+  return { scene, camera, renderer, carMesh, sun, ambient, camDist: 1, camDistScale: 1 }
 }
 
 /** Swap the vehicle mesh, disposing the old one's geometry/materials. */
@@ -107,7 +109,8 @@ export function syncCamera(stage: Stage, car: CarState, dt: number, provider: El
     if (r) o.rotation.z -= (forward / r) * dt
   })
 
-  const back = 14 * stage.camDist, up = 7 * stage.camDist
+  const d = stage.camDist * stage.camDistScale
+  const back = 14 * d, up = 7 * d
   camPos.set(car.x - Math.cos(car.heading) * back, car.y + up, car.z - Math.sin(car.heading) * back)
   // Exponential smoothing: equal easing per real second regardless of frame rate.
   const t = 1 - Math.exp(-CAM_SMOOTH_K * dt)

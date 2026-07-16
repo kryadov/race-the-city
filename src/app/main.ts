@@ -58,7 +58,7 @@ import { FlatProvider } from '../terrain/flat'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { buildBuildings } from '../world/buildings'
-import { buildRoads, buildRailways } from '../world/roads'
+import { buildRoads, buildRailways, roadWidth } from '../world/roads'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildWater } from '../world/water'
 import { buildGreenery } from '../world/greenery'
@@ -138,6 +138,7 @@ setVehicleMesh(stage, buildVehicleMesh(vehicle))
 
 let worldGroup: import('three').Object3D[] = []
 let roadDetailMesh: import('three').Object3D | null = null
+let tunnelSegs: { ax: number; az: number; bx: number; bz: number; r2: number }[] = []
 let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
@@ -216,6 +217,16 @@ async function loadCity(query: string): Promise<void> {
     theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
+    // collect tunnel segments so the camera can pull in when the car drives through one
+    tunnelSegs = []
+    for (const road of world.roads) {
+      if (!road.tunnel) continue
+      const r = roadWidth(road.kind) / 2 + 1
+      for (let i = 0; i < road.points.length - 1; i++) {
+        const a = road.points[i], b = road.points[i + 1]
+        tunnelSegs.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z, r2: r * r })
+      }
+    }
     // scatter nitro pickups over the road vertices (skip the very centre spawn)
     nitro.setSpots(
       world.roads.flatMap((r) => r.points).filter((p) => Math.hypot(p.x, p.z) > 20),
@@ -295,6 +306,9 @@ async function loadCity(query: string): Promise<void> {
           headlight.target.position.set(car.x + hx * 24, car.y, car.z + hz * 24)
           headlight.target.updateMatrixWorld()
         }
+        // pull the camera in when driving through a tunnel so the car stays visible
+        const target = inTunnel(car.x, car.z) ? 0.42 : 1
+        stage.camDistScale += (target - stage.camDistScale) * (1 - Math.exp(-4 * dt))
         syncCamera(stage, car, dt, provider)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
@@ -407,6 +421,19 @@ const menu = createSettingsMenu(
   },
 )
 theme.onChange = (mode) => menu.setViewMode(mode)
+
+/** Whether (x,z) is on a tunnel segment (car is under a roof). */
+function inTunnel(x: number, z: number): boolean {
+  for (const s of tunnelSegs) {
+    const dx = s.bx - s.ax, dz = s.bz - s.az
+    const l2 = dx * dx + dz * dz
+    let t = l2 > 0 ? ((x - s.ax) * dx + (z - s.az) * dz) / l2 : 0
+    t = Math.max(0, Math.min(1, t))
+    const ex = x - (s.ax + t * dx), ez = z - (s.az + t * dz)
+    if (ex * ex + ez * ez < s.r2) return true
+  }
+  return false
+}
 
 const clampCamDist = (d: number): number => Math.min(CAM_DIST_MAX, Math.max(CAM_DIST_MIN, d))
 stage.camDist = clampCamDist(getZoom()) // restore the saved zoom
