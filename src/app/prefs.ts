@@ -200,6 +200,25 @@ export function clearSession(): void {
   }
 }
 
+const TRIAL_KEY = 'rtc.trial'
+
+/** Whether the time trial is running (off by default). */
+export function getTrial(): boolean {
+  try {
+    return localStorage.getItem(TRIAL_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setTrial(on: boolean): void {
+  try {
+    localStorage.setItem(TRIAL_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const DEMO_KEY = 'rtc.demo'
 
 /** Whether the car drives itself (off by default — it's a demo, not the game). */

@@ -140,6 +140,8 @@ export class AudioEngine {
   private engine: EngineProfile = PETROL
   private ducked = false // music pulled down (pause), without touching the user's volume
   private idleFor = 0 // seconds the car has sat still, for the idle fade
+  private hornOsc: OscillatorNode | null = null
+  private hornOsc2: OscillatorNode | null = null
   private state: AudioState = loadState()
   private musicEl: HTMLAudioElement | null = null
   private musicSrc: MediaElementAudioSourceNode | null = null
@@ -252,6 +254,55 @@ export class AudioEngine {
   silenceEngine(): void {
     if (!this.ctx || !this.engineGain) return
     this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05)
+  }
+
+  /** A two-tone horn. */
+  horn(on: boolean): void {
+    if (!this.ctx || !this.sfxGain) return
+    if (!on) {
+      this.hornOsc?.stop()
+      this.hornOsc2?.stop()
+      this.hornOsc = null
+      this.hornOsc2 = null
+      return
+    }
+    if (this.hornOsc) return // already sounding; don't stack them
+    const ctx = this.ctx
+    const t = ctx.currentTime
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(0.18, t + 0.02)
+    g.connect(this.sfxGain)
+    const osc = ctx.createOscillator()
+    osc.type = 'square'
+    osc.frequency.value = 440
+    const osc2 = ctx.createOscillator()
+    osc2.type = 'square'
+    osc2.frequency.value = 554 // a third above: a car horn, not a test tone
+    osc.connect(g)
+    osc2.connect(g)
+    osc.start(t)
+    osc2.start(t)
+    this.hornOsc = osc
+    this.hornOsc2 = osc2
+  }
+
+  /** A bright ping for taking a checkpoint. */
+  chime(high = false): void {
+    if (!this.ctx || !this.sfxGain) return
+    const ctx = this.ctx
+    const t = ctx.currentTime
+    const osc = ctx.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(high ? 880 : 660, t)
+    osc.frequency.exponentialRampToValueAtTime(high ? 1320 : 990, t + 0.12)
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.22, t)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35)
+    osc.connect(g)
+    g.connect(this.sfxGain)
+    osc.start(t)
+    osc.stop(t + 0.36)
   }
 
   updateSkid(slipFraction: number): void {

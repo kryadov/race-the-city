@@ -61,7 +61,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🏁 Gameplay modes
 - [x] **Demo / autopilot mode** (menu toggle) — done in v0.72.0. Built the road graph it needed
       (`src/world/roadGraph.ts`), which traffic and pedestrians can now use too.
-- [ ] Time trial — checkpoints, timer, best time (localStorage)
+- [x] Time trial — gates, lap clock, best lap kept in localStorage — done in v0.77.0
 - [x] Free objectives — nitro speed-boost pickups scattered on roads — done in v0.45.0
       (drive-to-a-point / coins still open)
 - [x] Traffic — AI cars walking the road graph, kept around the player — done in v0.75.0
@@ -95,7 +95,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Fade the engine out after ~10s stationary**, back on the throttle — done in v0.61.0
 - [x] **Per-vehicle engine sound** — diesel / petrol / race / small / electric / turbine
       profiles — done in v0.61.0
-- [ ] Horn / indicator sounds, checkpoint chime
+- [x] Horn (hold H) and checkpoint chime — done in v0.77.0
+- [ ] Indicator tick
 - [ ] Positional audio (engine quieter as camera pulls back)
 
 ## 🖥 UI / UX

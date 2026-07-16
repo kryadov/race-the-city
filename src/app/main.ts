@@ -30,6 +30,8 @@ import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
 import { createPauseButton } from '../ui/pauseButton'
 import { createAutopilot } from './autopilot'
+import { createTimeTrial } from './timeTrial'
+import { createTrialHud } from '../ui/trialHud'
 import { createPlanes } from './planes'
 import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
@@ -57,6 +59,8 @@ import {
   setNitro,
   getDemo,
   setDemo,
+  getTrial,
+  setTrial,
   getQuality,
   setQuality,
   getUnits,
@@ -163,6 +167,10 @@ let boats: Boats | null = null
 let herds: Livestock | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
+const trial = createTimeTrial(stage.scene)
+const trialHud = createTrialHud(ui)
+trial.setEnabled(getTrial())
+trialHud.setVisible(getTrial())
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
 function showVehicle(type: VehicleType): void {
   const mesh = buildVehicleMesh(type)
@@ -179,12 +187,20 @@ let boostTimer = 0
 // the car, and losing it as abruptly felt like hitting a wall. Spooling up is
 // quicker than spooling down, the way a turbo behaves.
 let boost = 0 // 0..1
+let lastGate = 0 // to ring only on the frame a gate is taken
 const BOOST_SPOOL_UP = 5 // per second
 const BOOST_SPOOL_DOWN = 1.8
 const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
 window.addEventListener('keydown', resumeAudio, { once: true })
+// Horn on H, for as long as it's held.
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'h' || e.key === 'H') audio.horn(true)
+})
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'h' || e.key === 'H') audio.horn(false)
+})
 let vehicle: VehicleType = 'car'
 let prevForward = 0
 let lean = 0 // current bank angle (bikes only), eased toward the target
@@ -377,6 +393,7 @@ async function loadCity(query: string): Promise<void> {
     herds = createLivestock(stage.scene, world.fields, provider)
     lastRoads = world.roads
     autopilot.reset(world.roads, car)
+    trial.reset(world.roads, provider, car)
     currentCity = query
     driftFx.reset()
 
@@ -421,6 +438,13 @@ async function loadCity(query: string): Promise<void> {
               }
             : spec
         flame.update(boost > 0.05, dt)
+        if (trial.enabled()) {
+          const st = trial.update(dt, car.x, car.z)
+          trialHud.set(st)
+          if (st.justFinished) audio.chime(true) // a lap done rings higher than a gate
+          else if (st.taken !== lastGate) audio.chime(false)
+          lastGate = st.taken
+        }
         // The demo drives with the same three inputs a player has, through the
         // same physics — so it drifts, it hits things, and it sounds right. Any
         // touch of the controls hands the wheel straight back. It reads the
@@ -563,6 +587,7 @@ const menu = createSettingsMenu(
     roadDetail: getRoadDetail(),
     nitro: getNitro(),
     demo: getDemo(),
+    trial: getTrial(),
     quality: getQuality(),
     units: getUnits(),
     weather: getWeather(),
@@ -613,6 +638,12 @@ const menu = createSettingsMenu(
     onRoadDetail: (on) => {
       setRoadDetail(on)
       if (roadDetailMesh) roadDetailMesh.visible = on
+    },
+    onTrial: (on) => {
+      setTrial(on)
+      trial.setEnabled(on)
+      trialHud.setVisible(on)
+      if (on && car) trial.reset(lastRoads, provider, car)
     },
     onDemo: (on) => {
       setDemo(on)

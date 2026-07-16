@@ -53,6 +53,7 @@ export interface SettingsCallbacks {
   onRoadDetail: (on: boolean) => void
   onNitro: (on: boolean) => void
   onDemo: (on: boolean) => void
+  onTrial: (on: boolean) => void
   onQuality: (q: Quality) => void
   onUnits: (u: Units) => void
   onWeather: (w: WeatherSetting) => void
@@ -92,6 +93,7 @@ export function createSettingsMenu(
     roadDetail: boolean
     nitro: boolean
     demo: boolean
+    trial: boolean
     quality: Quality
     units: Units
     weather: WeatherSetting
@@ -110,6 +112,7 @@ export function createSettingsMenu(
   let roadDetail = initial.roadDetail
   let nitro = initial.nitro
   let demo = initial.demo
+  let trial = initial.trial
   let quality = initial.quality
   let units = initial.units
   let weather = initial.weather
@@ -416,6 +419,14 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(demoBtn)
+  const trialBtn = button()
+  trialBtn.style.cssText += ';width:100%;margin-top:4px'
+  trialBtn.addEventListener('click', () => {
+    trial = !trial
+    cb.onTrial(trial)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(trialBtn)
   function paintLabelsToggle(): void {
     labelsBtn.textContent = `${roadLabels ? '☑' : '☐'} ${t('menu.roadLabels')}`
     driftBtn.textContent = `${driftFx ? '☑' : '☐'} ${t('menu.driftFx')}`
@@ -425,6 +436,7 @@ export function createSettingsMenu(
     roadDetailBtn.textContent = `${roadDetail ? '☑' : '☐'} ${t('menu.roadDetail')}`
     nitroBtn.textContent = `${nitro ? '☑' : '☐'} ${t('menu.nitro')}`
     demoBtn.textContent = `${demo ? '☑' : '☐'} ${t('menu.demo')}`
+    trialBtn.textContent = `${trial ? '☑' : '☐'} ${t('menu.trial')}`
   }
 
   const weatherBtn = button()
