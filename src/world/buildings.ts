@@ -30,7 +30,7 @@ export function buildBuildings(
     geo.translate(0, base + b.height, 0)
 
     const color = COLORS[footprints.length % COLORS.length]
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, flatShading: true }))
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, flatShading: true, side: THREE.DoubleSide }))
     group.add(mesh)
     footprints.push(b.footprint)
   }

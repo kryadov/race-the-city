@@ -31,8 +31,11 @@ let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
 let stopLoop: (() => void) | null = null
+let loading_ = false
 
 async function loadCity(query: string): Promise<void> {
+  if (loading_) return
+  loading_ = true
   try {
     loading.show('Ищу город…')
     const center = await geocode(query)
@@ -91,6 +94,8 @@ async function loadCity(query: string): Promise<void> {
     }
   } catch (e) {
     loading.error(e instanceof Error ? e.message : 'Не удалось загрузить город')
+  } finally {
+    loading_ = false
   }
 }
 
