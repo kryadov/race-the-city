@@ -59,25 +59,61 @@ function collectTreeSpots(green: Vec2[][], trees: Vec2[]): Vec2[] {
   return spots
 }
 
+interface TreeVariant {
+  foliage: () => THREE.BufferGeometry
+  color: number
+  folY: number // foliage centre height factor (× scale) above ground
+}
+
+// Distinct crown shapes for variety; folY = 2 (trunk top) + half the crown height.
+const VARIANTS: TreeVariant[] = [
+  { foliage: () => new THREE.ConeGeometry(1.5, 3.4, 6), color: 0x3f7a3a, folY: 3.7 },
+  { foliage: () => new THREE.IcosahedronGeometry(1.6, 0), color: 0x4f8a3a, folY: 3.6 },
+  { foliage: () => new THREE.ConeGeometry(1.1, 4.8, 6), color: 0x5c8f47, folY: 4.4 },
+]
+
+const UP = new THREE.Vector3(0, 1, 0)
+
 function buildTrees(spots: Vec2[], provider: ElevationProvider): THREE.Object3D {
   const g = new THREE.Group()
-  const n = spots.length
+  const buckets: Vec2[][] = VARIANTS.map(() => [])
+  for (const s of spots) buckets[Math.floor(Math.random() * VARIANTS.length)].push(s)
 
   const trunkGeo = new THREE.CylinderGeometry(0.22, 0.3, 2, 5)
-  const trunk = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: 0x6b4a2b, flatShading: true }), n)
-  const folGeo = new THREE.ConeGeometry(1.5, 3.4, 6)
-  const foliage = new THREE.InstancedMesh(folGeo, new THREE.MeshStandardMaterial({ color: 0x3f7a3a, flatShading: true }), n)
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, flatShading: true })
 
   const m = new THREE.Matrix4()
-  for (let i = 0; i < n; i++) {
-    const y = provider.heightAt(spots[i].x, spots[i].z)
-    m.makeTranslation(spots[i].x, y + 1, spots[i].z) // trunk base on ground
-    trunk.setMatrixAt(i, m)
-    m.makeTranslation(spots[i].x, y + 3.7, spots[i].z) // foliage above trunk
-    foliage.setMatrixAt(i, m)
-  }
-  trunk.instanceMatrix.needsUpdate = true
-  foliage.instanceMatrix.needsUpdate = true
-  g.add(trunk, foliage)
+  const q = new THREE.Quaternion()
+  const pos = new THREE.Vector3()
+  const scl = new THREE.Vector3()
+  const col = new THREE.Color()
+
+  VARIANTS.forEach((v, vi) => {
+    const pts = buckets[vi]
+    if (!pts.length) return
+    const n = pts.length
+    const trunk = new THREE.InstancedMesh(trunkGeo, trunkMat, n)
+    const foliage = new THREE.InstancedMesh(
+      v.foliage(),
+      new THREE.MeshStandardMaterial({ color: v.color, flatShading: true }),
+      n,
+    )
+    for (let i = 0; i < n; i++) {
+      const s = 0.7 + Math.random() * 0.7 // size variety
+      const y = provider.heightAt(pts[i].x, pts[i].z)
+      q.setFromAxisAngle(UP, Math.random() * Math.PI * 2) // rotation variety
+      scl.set(s, s, s)
+      pos.set(pts[i].x, y + s, pts[i].z)
+      trunk.setMatrixAt(i, m.compose(pos, q, scl))
+      pos.set(pts[i].x, y + v.folY * s, pts[i].z)
+      foliage.setMatrixAt(i, m.compose(pos, q, scl))
+      col.setHex(v.color).offsetHSL((Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.1)
+      foliage.setColorAt(i, col) // shade variety
+    }
+    trunk.instanceMatrix.needsUpdate = true
+    foliage.instanceMatrix.needsUpdate = true
+    if (foliage.instanceColor) foliage.instanceColor.needsUpdate = true
+    g.add(trunk, foliage)
+  })
   return g
 }
