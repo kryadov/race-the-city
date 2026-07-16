@@ -23,11 +23,11 @@ export function buildBuildings(
     shape.closePath()
 
     const geo = new THREE.ExtrudeGeometry(shape, { depth: b.height, bevelEnabled: false })
-    geo.rotateX(-Math.PI / 2) // extrude along +Y
+    geo.rotateX(Math.PI / 2) // extrude along +Y without mirroring z
 
     // Sit the base on the ground at the footprint's average elevation.
     const base = averageGround(b.footprint, provider)
-    geo.translate(0, base, 0)
+    geo.translate(0, base + b.height, 0)
 
     const color = COLORS[footprints.length % COLORS.length]
     const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, flatShading: true }))
