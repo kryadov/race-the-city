@@ -1,6 +1,7 @@
 import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { roadWidth } from './roads'
+import { densify } from './polyline'
 
 /** Height one OSM `layer` step lifts a deck, in metres. */
 export const LAYER_H = 5
@@ -17,29 +18,6 @@ export interface Deck {
 
 /** The arch is sampled at the deck's points, so they must be close together. */
 export const DECK_STEP = 4
-
-/**
- * Split a polyline so no segment is longer than `step`.
- *
- * A bridge in OSM is often two or three nodes. The arch is a sine sampled at the
- * points, so three of them put the whole rise in a single vertex: a triangle
- * with a kink at the top that pitches the car into the air. Points every few
- * metres make it the curve it is meant to be.
- */
-export function densify(points: Vec2[], step = DECK_STEP): Vec2[] {
-  if (points.length < 2) return points.slice()
-  const out: Vec2[] = [points[0]]
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1]
-    const b = points[i]
-    const len = Math.hypot(b.x - a.x, b.z - a.z)
-    const n = Math.max(1, Math.ceil(len / step))
-    for (let k = 1; k <= n; k++) {
-      out.push({ x: a.x + ((b.x - a.x) * k) / n, z: a.z + ((b.z - a.z) * k) / n })
-    }
-  }
-  return out
-}
 
 /** Cumulative distance along a polyline, normalised to 0..1. */
 export function arcParams(points: Vec2[]): number[] {
@@ -92,7 +70,7 @@ export function buildDecks(roads: Road[], provider: ElevationProvider): Deck[] {
     .map((r) => {
       // Densified first: the deck it carries must be the one the profile was
       // built on, or the mesh and the drivable surface disagree.
-      const road: Road = { ...r, points: densify(r.points) }
+      const road: Road = { ...r, points: densify(r.points, DECK_STEP) }
       return { road, y: deckHeights(road, provider) }
     })
 }

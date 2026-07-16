@@ -1,11 +1,22 @@
 import * as THREE from 'three'
 import type { Railway, Road, RoadKind, Vec2 } from '../geo/types'
+import { densify } from './polyline'
 import type { ElevationProvider } from '../terrain/provider'
 
 const WIDTHS: Record<RoadKind, number> = {
   motorway: 12, primary: 9, secondary: 7, residential: 5, service: 3.5, path: 2, other: 4,
 }
 const ROAD_Y_OFFSET = 0.15 // lift slightly above ground to avoid z-fighting
+/**
+ * A ribbon vertex at least this often, in metres.
+ *
+ * The ribbon takes its height at its vertices and stretches flat between them.
+ * OSM's are as sparse as it can manage — 28% of Monaco's road segments are
+ * longer than the terrain grid's own cell, the longest 160m — so without this
+ * the road is a chord over the ground and the car, which follows the ground,
+ * ends up under its own road.
+ */
+const RIBBON_STEP = 5
 const MITER_LIMIT = 4 // cap the joint stretch so sharp turns don't spike
 
 export function roadWidth(kind: RoadKind): number {
@@ -77,7 +88,9 @@ export function buildRoads(roads: Road[], provider: ElevationProvider, style: Ro
   const lift = style.lift ?? 0
   const positions: number[] = []
   const y = (v: Vec2): number => provider.heightAt(v.x, v.z) + ROAD_Y_OFFSET + lift
-  for (const road of roads) emitRibbon(positions, offsetsForPolyline(road.points, roadWidth(road.kind) / 2), y)
+  for (const road of roads) {
+    emitRibbon(positions, offsetsForPolyline(densify(road.points, RIBBON_STEP), roadWidth(road.kind) / 2), y)
+  }
   return ribbonMesh(positions, style.color ?? 0x5b5c62) // tarmac grey, not a hole in the ground
 }
 
@@ -145,7 +158,7 @@ export function buildRailways(railways: Railway[], provider: ElevationProvider):
 
   for (const line of railways) {
     if (line.tunnel) continue
-    const pts = line.points
+    const pts = densify(line.points, RIBBON_STEP)
     emitRibbon(ballast, offsetsForPolyline(pts, BALLAST_W / 2), (v) => provider.heightAt(v.x, v.z) + BALLAST_Y)
     const railY = (v: Vec2): number => provider.heightAt(v.x, v.z) + RAILHEAD_Y
     emitRibbon(rails, bandBetween(pts, GAUGE / 2 - RAIL_W / 2, GAUGE / 2 + RAIL_W / 2), railY)
