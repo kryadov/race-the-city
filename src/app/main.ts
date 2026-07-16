@@ -10,6 +10,7 @@ import {
 } from './scene'
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
+import { applyDayNight } from './daynight'
 import { createLoading } from '../ui/loading'
 import { createVersionBadge } from '../ui/version'
 import { createSettingsMenu } from '../ui/settingsMenu'
@@ -53,6 +54,8 @@ window.addEventListener('pointerdown', resumeAudio, { once: true })
 window.addEventListener('keydown', resumeAudio, { once: true })
 let vehicle: VehicleType = 'car'
 let prevForward = 0
+const CYCLE_SECONDS = 240 // full day/night cycle
+let timeOfDay = 0.35 // start mid-morning
 setVehicleMesh(stage, buildVehicleMesh(vehicle))
 
 let worldGroup: import('three').Object3D[] = []
@@ -127,6 +130,9 @@ async function loadCity(query: string): Promise<void> {
         audio.updateSkid(Math.min(1, Math.abs(lat) / 8))
         if (Math.abs(fwd) - Math.abs(prevForward) < -6) audio.thud() // sudden drop ≈ impact
         prevForward = fwd
+        timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
+        applyDayNight(stage, timeOfDay, theme.current === 'neon')
+        menu.setTime(timeOfDay)
         syncCamera(stage, car, dt)
         minimap.update(car)
         roadLabels.update(stage.camera, car.x, car.z)
@@ -143,7 +149,14 @@ async function loadCity(query: string): Promise<void> {
 
 const menu = createSettingsMenu(
   ui,
-  { city: getDefaultCity(), view: theme.current, vehicle, audio: audio.getState(), roadLabels: getRoadLabels() },
+  {
+    city: getDefaultCity(),
+    view: theme.current,
+    vehicle,
+    audio: audio.getState(),
+    roadLabels: getRoadLabels(),
+    time: timeOfDay,
+  },
   {
     onLoadCity: (q) => void loadCity(q),
     onSetDefaultCity: (q) => setDefaultCity(q),
@@ -160,6 +173,9 @@ const menu = createSettingsMenu(
     onRoadLabels: (on) => {
       setRoadLabels(on)
       roadLabels.setEnabled(on)
+    },
+    onSetTime: (tt) => {
+      timeOfDay = tt
     },
   },
 )

@@ -6,6 +6,8 @@ export interface Stage {
   camera: THREE.PerspectiveCamera
   renderer: THREE.WebGLRenderer
   carMesh: THREE.Object3D
+  sun: THREE.DirectionalLight
+  ambient: THREE.AmbientLight
   /** Follow-camera distance multiplier (1 = default; smaller = closer). */
   camDist: number
 }
@@ -24,7 +26,8 @@ export function createStage(mount: HTMLElement): Stage {
   scene.background = new THREE.Color(0x9fc4e8)
   scene.fog = new THREE.Fog(0x9fc4e8, 300, 900)
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.7))
+  const ambient = new THREE.AmbientLight(0xffffff, 0.7)
+  scene.add(ambient)
   const sun = new THREE.DirectionalLight(0xffffff, 1.1)
   sun.position.set(100, 200, 80)
   scene.add(sun)
@@ -40,7 +43,7 @@ export function createStage(mount: HTMLElement): Stage {
     renderer.setSize(window.innerWidth, window.innerHeight)
   })
 
-  return { scene, camera, renderer, carMesh, camDist: 1 }
+  return { scene, camera, renderer, carMesh, sun, ambient, camDist: 1 }
 }
 
 /** Swap the vehicle mesh, disposing the old one's geometry/materials. */
