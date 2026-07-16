@@ -68,9 +68,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [ ] Pedestrians (ambience)
 - [ ] **Livestock in the fields** — cows, goats, pigs on `landuse=farmland` / `meadow`
       (OSM does tag `landuse=animal_keeping`, but rarely; scatter them like the trees)
-- [ ] **Planes crossing the sky** — occasional, high up, with a contrail
-- [ ] **Trains on the rails** — freight, intercity and commuter EMUs, running the OSM railway
-      polylines we already parse (`world.railways`, drawn as bare ribbons since v0.15.0)
+- [x] **Planes crossing the sky** — one at a time, 420m up, with a contrail — done in v0.74.0
+- [x] **Trains on the rails** — freight, intercity and commuter, running the OSM railway
+      polylines — done in v0.74.0
 - [ ] **Boats on the big water** — the odd ship, and people in a rowing boat. Needs an area
       test so they only appear on water wide enough to carry them, not on a pond.
 

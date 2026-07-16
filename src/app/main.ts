@@ -30,6 +30,8 @@ import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
 import { createPauseButton } from '../ui/pauseButton'
 import { createAutopilot } from './autopilot'
+import { createPlanes } from './planes'
+import { createTrains, type Trains } from './trains'
 import {
   getDefaultCity,
   setDefaultCity,
@@ -149,6 +151,8 @@ const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
 nitro.setEnabled(getNitro())
 const flame = createNitroFlame()
+const planes = createPlanes(stage.scene)
+let trains: Trains | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
@@ -349,6 +353,8 @@ async function loadCity(query: string): Promise<void> {
       car.z,
     )
     hud.setDistance(odometer)
+    trains?.dispose() // the outgoing city's trains ran on its railways
+    trains = createTrains(stage.scene, world.railways, provider)
     lastRoads = world.roads
     autopilot.reset(world.roads, car)
     currentCity = query
@@ -449,6 +455,8 @@ async function loadCity(query: string): Promise<void> {
         LAMP_MAT.emissiveIntensity = night * 1.6 // street lamps glow after dusk
         POOL_MAT.opacity = night * 0.5 // and throw a soft pool of light on the road
         facades?.setNight(night) // windows come on behind them
+        planes.update(dt, stage.camera.position.x, stage.camera.position.z, night)
+        trains?.update(dt, night)
         if (night > 0) {
           const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
           headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)
