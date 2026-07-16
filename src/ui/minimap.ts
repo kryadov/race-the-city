@@ -115,6 +115,29 @@ export function createMinimap(root: HTMLElement): Minimap {
       ctx.beginPath()
       ctx.arc(half, half, half - 1, 0, Math.PI * 2)
       ctx.stroke()
+
+      // compass letters rotating with the map (N in world is -z; east is +x)
+      const theta = -Math.PI / 2 - car.heading
+      const rr = half - 11
+      ctx.font = '700 12px system-ui, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const cardinals: Array<[string, number, number]> = [
+        ['N', 0, -1],
+        ['E', 1, 0],
+        ['S', 0, 1],
+        ['W', -1, 0],
+      ]
+      for (const [label, dx, dz] of cardinals) {
+        const a = Math.atan2(dz, dx) + theta
+        const px = half + Math.cos(a) * rr
+        const py = half + Math.sin(a) * rr
+        ctx.lineWidth = 3
+        ctx.strokeStyle = 'rgba(0,0,0,.6)'
+        ctx.strokeText(label, px, py)
+        ctx.fillStyle = label === 'N' ? '#ff6b6b' : '#fff'
+        ctx.fillText(label, px, py)
+      }
     },
   }
 }
