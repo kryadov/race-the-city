@@ -2,9 +2,9 @@ import { t, getLang, setLang, onLangChange, LANGS } from '../i18n/i18n'
 import { VEHICLE_TYPES, type VehicleType } from '../vehicle/vehicles'
 import type { ViewMode } from '../app/theme'
 import { type AudioState, TRACK_NAMES } from '../audio/audio'
-import { WEATHERS, type Weather } from '../app/weather'
+import { WEATHER_SETTINGS, type WeatherSetting } from '../app/weather'
 
-const WEATHER_EMOJI: Record<Weather, string> = { clear: '☀', rain: '🌧', snow: '❄', fog: '🌫' }
+const WEATHER_EMOJI: Record<WeatherSetting, string> = { auto: '🔄', clear: '☀', rain: '🌧', snow: '❄', fog: '🌫' }
 
 const VEHICLE_EMOJI: Record<VehicleType, string> = { car: '🚗', truck: '🚚', sports: '🏎' }
 const ACTIVE = '#e63946'
@@ -24,7 +24,7 @@ export interface SettingsCallbacks {
   onShadows: (on: boolean) => void
   onClouds: (on: boolean) => void
   onRoadDetail: (on: boolean) => void
-  onWeather: (w: Weather) => void
+  onWeather: (w: WeatherSetting) => void
   onZoom: (v: number) => void
   onReset: () => void
 }
@@ -57,7 +57,7 @@ export function createSettingsMenu(
     shadows: boolean
     clouds: boolean
     roadDetail: boolean
-    weather: Weather
+    weather: WeatherSetting
     zoom: number
   },
   cb: SettingsCallbacks,
@@ -288,7 +288,7 @@ export function createSettingsMenu(
   const weatherBtn = button()
   weatherBtn.style.cssText += ';width:100%;margin-top:4px'
   weatherBtn.addEventListener('click', () => {
-    weather = WEATHERS[(WEATHERS.indexOf(weather) + 1) % WEATHERS.length]
+    weather = WEATHER_SETTINGS[(WEATHER_SETTINGS.indexOf(weather) + 1) % WEATHER_SETTINGS.length]
     cb.onWeather(weather)
     paintWeather()
   })

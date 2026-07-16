@@ -3,6 +3,10 @@ import * as THREE from 'three'
 export type Weather = 'clear' | 'rain' | 'snow' | 'fog'
 export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'snow', 'fog']
 
+/** The menu setting: a fixed weather, or 'auto' to cycle through them over time. */
+export type WeatherSetting = Weather | 'auto'
+export const WEATHER_SETTINGS: readonly WeatherSetting[] = ['auto', 'clear', 'rain', 'snow', 'fog']
+
 const AREA = 55 // horizontal half-extent of the (camera-local) particle box
 const TOP = 42
 const BOT = -30

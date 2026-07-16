@@ -1,4 +1,4 @@
-import type { Weather } from './weather'
+import type { WeatherSetting } from './weather'
 
 const DEFAULT_CITY_KEY = 'rtc.defaultCity'
 const FALLBACK_CITY = 'Monte Carlo'
@@ -157,18 +157,18 @@ export function setRoadDetail(on: boolean): void {
 
 const WEATHER_KEY = 'rtc.weather'
 
-/** Persisted weather (clear by default). */
-export function getWeather(): Weather {
+/** Persisted weather setting ('auto' by default — cycles through the weathers). */
+export function getWeather(): WeatherSetting {
   try {
     const w = localStorage.getItem(WEATHER_KEY)
-    if (w === 'clear' || w === 'rain' || w === 'snow' || w === 'fog') return w
+    if (w === 'clear' || w === 'rain' || w === 'snow' || w === 'fog' || w === 'auto') return w
   } catch {
     /* ignore */
   }
-  return 'clear'
+  return 'auto'
 }
 
-export function setWeather(w: Weather): void {
+export function setWeather(w: WeatherSetting): void {
   try {
     localStorage.setItem(WEATHER_KEY, w)
   } catch {

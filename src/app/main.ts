@@ -12,7 +12,7 @@ import { startLoop } from './loop'
 import { ThemeController } from './theme'
 import { applyDayNight, sampleDayNight, sunElevation } from './daynight'
 import { createDriftFx } from './driftfx'
-import { createWeather } from './weather'
+import { createWeather, WEATHERS, type WeatherSetting } from './weather'
 import { createClouds } from './clouds'
 import { createSky } from './sky'
 import { createLoading } from '../ui/loading'
@@ -95,7 +95,22 @@ driftFx.setEnabled(getDriftFx())
 const headlight = new THREE.SpotLight(0xfff2c0, 0, 70, Math.PI / 5, 0.5, 1.2)
 stage.scene.add(headlight, headlight.target)
 const weather = createWeather(stage.scene, stage.scene.fog as THREE.Fog)
-weather.setWeather(getWeather())
+const AUTO_WEATHER_PERIOD = 45 // seconds each weather holds before auto-cycling
+let autoWeather = false
+let autoWeatherTimer = 0
+let autoWeatherIdx = 0
+function applyWeatherSetting(s: WeatherSetting): void {
+  if (s === 'auto') {
+    autoWeather = true
+    autoWeatherTimer = 0
+    autoWeatherIdx = 0
+    weather.setWeather(WEATHERS[0])
+  } else {
+    autoWeather = false
+    weather.setWeather(s)
+  }
+}
+applyWeatherSetting(getWeather())
 const clouds = createClouds(stage.scene)
 clouds.setEnabled(getClouds())
 const sky = createSky(stage.scene)
@@ -261,6 +276,14 @@ async function loadCity(query: string): Promise<void> {
           sunDir.copy(sunScratch).normalize()
           sky.update(stage.camera.position, s.sky, s.sun, sunDir, sunVis)
         }
+        if (autoWeather) {
+          autoWeatherTimer += dt
+          if (autoWeatherTimer > AUTO_WEATHER_PERIOD) {
+            autoWeatherTimer = 0
+            autoWeatherIdx = (autoWeatherIdx + 1) % WEATHERS.length
+            weather.setWeather(WEATHERS[autoWeatherIdx])
+          }
+        }
         weather.update(stage.camera.position, dt)
         clouds.update(stage.camera.position, dt)
         minimap.update(car)
@@ -336,7 +359,7 @@ const menu = createSettingsMenu(
     },
     onWeather: (w) => {
       setWeather(w)
-      weather.setWeather(w)
+      applyWeatherSetting(w)
     },
     onZoom: (v) => {
       stage.camDist = clampCamDist(v)
