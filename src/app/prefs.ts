@@ -75,6 +75,25 @@ export function setHud(on: boolean): void {
   }
 }
 
+const SHADOWS_KEY = 'rtc.shadows'
+
+/** Whether shadows are rendered (on by default). */
+export function getShadows(): boolean {
+  try {
+    return localStorage.getItem(SHADOWS_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setShadows(on: boolean): void {
+  try {
+    localStorage.setItem(SHADOWS_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Clear every persisted setting (rtc.* keys). */
 export function resetSettings(): void {
   try {

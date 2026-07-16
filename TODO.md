@@ -29,7 +29,7 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎨 Visuals & atmosphere
 - [ ] Weather — rain / snow / fog (tie into day/night)
 - [ ] Glowing windows / street lights at night
-- [ ] Shadows (directional shadow map)
+- [x] Shadows (sun shadow map, car-following frustum, menu toggle) — done in v0.23.0
 - [ ] Bloom / post-processing for neon mode
 - [ ] Water reflections, ripple animation
 - [ ] Rounder low-poly buildings, more colour variety

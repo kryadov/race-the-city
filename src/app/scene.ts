@@ -21,6 +21,8 @@ export function createStage(mount: HTMLElement): Stage {
   const renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
   mount.appendChild(renderer.domElement)
 
   const scene = new THREE.Scene()
@@ -31,7 +33,17 @@ export function createStage(mount: HTMLElement): Stage {
   scene.add(ambient)
   const sun = new THREE.DirectionalLight(0xffffff, 1.1)
   sun.position.set(100, 200, 80)
-  scene.add(sun)
+  sun.castShadow = true
+  sun.shadow.mapSize.set(2048, 2048)
+  const sc = sun.shadow.camera
+  sc.left = -90
+  sc.right = 90
+  sc.top = 90
+  sc.bottom = -90
+  sc.near = 1
+  sc.far = 600
+  sun.shadow.bias = -0.0004
+  scene.add(sun, sun.target)
 
   const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.5, 2000)
 
@@ -55,6 +67,9 @@ export function setVehicleMesh(stage: Stage, mesh: THREE.Object3D): void {
     if (m.geometry) m.geometry.dispose()
     const mat = m.material
     if (mat) (Array.isArray(mat) ? mat : [mat]).forEach((x) => x.dispose())
+  })
+  mesh.traverse((o) => {
+    o.castShadow = true
   })
   stage.carMesh = mesh
   stage.scene.add(mesh)
