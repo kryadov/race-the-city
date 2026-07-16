@@ -242,7 +242,7 @@ async function loadCity(query: string): Promise<void> {
     roadDetailMesh = buildRoadDetail(world.roads, provider)
     roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider)
-    const greenMesh = buildGreenery(world.green, world.trees, provider)
+    const greenMesh = buildGreenery(world.green, world.trees, provider, center.lat)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
     ground.receiveShadow = true
     roadsMesh.receiveShadow = true

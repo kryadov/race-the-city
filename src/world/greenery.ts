@@ -25,11 +25,12 @@ function makeRng(seed: number): () => number {
  * Low-poly instanced trees scattered in the green areas (the green ground tint
  * itself is painted onto the ground mesh in buildGround).
  */
-export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider): THREE.Object3D {
+/** @param lat the city's latitude — decides whether palms or conifers grow here. */
+export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number): THREE.Object3D {
   const group = new THREE.Group()
   const rng = makeRng(RNG_SEED)
   const spots = collectTreeSpots(green, trees, rng)
-  if (spots.length) group.add(buildTrees(spots, provider, rng))
+  if (spots.length) group.add(buildTrees(spots, provider, rng, lat))
   return group
 }
 
@@ -57,24 +58,51 @@ function collectTreeSpots(green: Vec2[][], trees: Vec2[], rng: () => number): Ve
 }
 
 interface TreeVariant {
+  name: string
   foliage: () => THREE.BufferGeometry
   color: number
   folY: number // foliage centre height factor (× scale) above ground
+  trunk?: () => THREE.BufferGeometry // defaults to the stubby temperate trunk
+}
+
+/** A palm's crown: a wide, flat splay of fronds rather than a conifer's spire. */
+function frondGeo(radius: number): THREE.BufferGeometry {
+  const g = new THREE.IcosahedronGeometry(radius, 0)
+  g.scale(1, 0.34, 1)
+  return g
+}
+const palmTrunk = (h: number) => (): THREE.BufferGeometry => {
+  const g = new THREE.CylinderGeometry(0.16, 0.26, h, 5)
+  g.translate(0, h / 2 - 1, 0) // the shared trunk is 2 tall and centred at y=1
+  return g
 }
 
 // Distinct crown shapes for variety; folY = 2 (trunk top) + half the crown height.
-const VARIANTS: TreeVariant[] = [
-  { foliage: () => new THREE.ConeGeometry(1.5, 3.4, 6), color: 0x3f7a3a, folY: 3.7 },
-  { foliage: () => new THREE.IcosahedronGeometry(1.6, 0), color: 0x4f8a3a, folY: 3.6 },
-  { foliage: () => new THREE.ConeGeometry(1.1, 4.8, 6), color: 0x5c8f47, folY: 4.4 },
-]
+const CONIFER: TreeVariant = { name: 'conifer', foliage: () => new THREE.ConeGeometry(1.5, 3.4, 6), color: 0x3f7a3a, folY: 3.7 }
+const BROADLEAF: TreeVariant = { name: 'broadleaf', foliage: () => new THREE.IcosahedronGeometry(1.6, 0), color: 0x4f8a3a, folY: 3.6 }
+const SPRUCE: TreeVariant = { name: 'spruce', foliage: () => new THREE.ConeGeometry(1.1, 4.8, 6), color: 0x5c8f47, folY: 4.4 }
+const PALM_TALL: TreeVariant = { name: 'palm', foliage: () => frondGeo(2.3), color: 0x4e8f42, folY: 5.2, trunk: palmTrunk(6.4) }
+const PALM_SHORT: TreeVariant = { name: 'palm', foliage: () => frondGeo(1.9), color: 0x5c9a48, folY: 3.9, trunk: palmTrunk(5.0) }
+
+/**
+ * Which trees grow here, by latitude. Conifers in Monaco read as wrong — but so
+ * would pure palms, since the Mediterranean has both, so the middle band mixes
+ * them and the picker's random bucketing does the rest.
+ */
+export function variantsFor(lat: number): TreeVariant[] {
+  const a = Math.abs(lat)
+  if (a <= 38) return [PALM_TALL, PALM_SHORT, BROADLEAF] // subtropics: palms dominate
+  if (a <= 48) return [PALM_TALL, BROADLEAF, CONIFER, PALM_SHORT] // Mediterranean: half and half
+  return [CONIFER, BROADLEAF, SPRUCE] // north: no palms
+}
 
 const UP = new THREE.Vector3(0, 1, 0)
 
-function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => number): THREE.Object3D {
+function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => number, lat: number): THREE.Object3D {
   const g = new THREE.Group()
-  const buckets: Vec2[][] = VARIANTS.map(() => [])
-  for (const s of spots) buckets[Math.floor(rng() * VARIANTS.length)].push(s)
+  const variants = variantsFor(lat)
+  const buckets: Vec2[][] = variants.map(() => [])
+  for (const s of spots) buckets[Math.floor(rng() * variants.length)].push(s)
 
   const trunkGeo = new THREE.CylinderGeometry(0.22, 0.3, 2, 5)
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, flatShading: true })
@@ -85,11 +113,12 @@ function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => numbe
   const scl = new THREE.Vector3()
   const col = new THREE.Color()
 
-  VARIANTS.forEach((v, vi) => {
+  variants.forEach((v, vi) => {
     const pts = buckets[vi]
     if (!pts.length) return
     const n = pts.length
-    const trunk = new THREE.InstancedMesh(trunkGeo, trunkMat, n)
+    // One instanced draw per variant either way — a palm just brings its own trunk.
+    const trunk = new THREE.InstancedMesh(v.trunk ? v.trunk() : trunkGeo, trunkMat, n)
     const foliage = new THREE.InstancedMesh(
       v.foliage(),
       new THREE.MeshStandardMaterial({ color: v.color, flatShading: true }),

@@ -6,8 +6,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🗺 World & map
 - [x] Sea / coastline (approximate flat-plane sea for coastal areas) — done in v0.14.0
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0
-- [ ] **Palms in southern cities, not firs** — tree shape should follow latitude (the projector
-      knows the centre lat); conifers in Monaco read as wrong
+- [x] **Palms in southern cities, not firs** — tree kind follows latitude; the Mediterranean band
+      mixes palms with broadleaf — done in v0.65.0
 - [ ] **Big rivers are missing entirely** — `overpassQuery` asks only for `way[...]`, never
       `relation[...]`, so any water mapped as a multipolygon relation (most large rivers — the
       Neva, the Moskva) never arrives. Needs relation members + outer-ring stitching by node id,
