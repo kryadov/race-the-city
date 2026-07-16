@@ -67,7 +67,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Traffic — AI cars walking the road graph, kept around the player — done in v0.75.0
 - [x] Pedestrians (ambience) — walking the pavements, incl. footways cars can't use — done in v0.75.0
 - [x] **Livestock in the fields** — cows, goats and pigs on farmland/meadow — done in v0.76.0
-- [x] **Planes crossing the sky** — one at a time, 420m up, with a contrail — done in v0.74.0
+- [x] **Aircraft crossing the sky** — airliner, bizjet, turboprop and helicopter, each with its
+      own height, speed and silhouette — v0.74.0, varied in v0.78.0
 - [x] **Trains on the rails** — freight, intercity and commuter, running the OSM railway
       polylines — done in v0.74.0
 - [x] **Boats on the big water** — a ship where there's room for one, a rowing boat where there

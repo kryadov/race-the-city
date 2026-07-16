@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { createTrains } from '../../src/app/trains'
-import { createPlanes } from '../../src/app/planes'
+import { createAircraft } from '../../src/app/aircraft'
 import type { Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
@@ -54,41 +54,78 @@ describe('trains', () => {
   })
 })
 
-describe('planes', () => {
+describe('aircraft', () => {
   it('stays out of the sky until its turn comes', () => {
     const scene = new THREE.Scene()
-    const p = createPlanes(scene, () => 0.5)
+    const p = createAircraft(scene, () => 0.5)
     p.update(0.1, 0, 0, 0)
-    expect((scene.children[0] as THREE.Group).visible).toBe(false)
+    const any = (scene.children[0] as THREE.Group).children.some((c) => c.visible)
+    expect(any).toBe(false)
   })
 
-  it('flies one over eventually, then clears off', () => {
+  it('flies them over, and the sky is not permanently busy', () => {
     const scene = new THREE.Scene()
-    const p = createPlanes(scene, () => 0.5)
+    const p = createAircraft(scene, () => 0.5)
     const group = scene.children[0] as THREE.Group
-    // step in real-ish frames: one 60s step would both launch and land it
-    const run = (secs: number): void => {
-      for (let i = 0; i < secs * 10; i++) p.update(0.1, 0, 0, 0)
+    const flying = (): boolean => group.children.some((c) => c.visible)
+
+    let sawFlying = false
+    let sawEmpty = false
+    // real-ish frames: one 60s step would launch and land it in a single tick
+    for (let i = 0; i < 4000; i++) {
+      p.update(0.1, 0, 0, 0)
+      if (flying()) sawFlying = true
+      else sawEmpty = true
     }
-    run(50) // waits ~47s before the first one
-    expect(group.visible, 'a plane should have come over by now').toBe(true)
-    run(45) // SPAN/SPEED is ~31s, so it has crossed and gone
-    expect(group.visible).toBe(false)
+    expect(sawFlying, 'nothing ever came over').toBe(true)
+    expect(sawEmpty, 'they should be occasional, not a conveyor').toBe(true)
+  })
+
+  it('flies one kind at a time, not a formation', () => {
+    const scene = new THREE.Scene()
+    const p = createAircraft(scene, Math.random)
+    const group = scene.children[0] as THREE.Group
+    for (let i = 0; i < 3000; i++) {
+      p.update(0.1, 0, 0, 0)
+      expect(group.children.filter((c) => c.visible).length).toBeLessThanOrEqual(1)
+    }
   })
 
   it('goes away when switched off', () => {
     const scene = new THREE.Scene()
-    const p = createPlanes(scene, () => 0.5)
+    const p = createAircraft(scene, () => 0.5)
     for (let i = 0; i < 500; i++) p.update(0.1, 0, 0, 0)
     p.setEnabled(false)
-    expect((scene.children[0] as THREE.Group).visible).toBe(false)
+    expect((scene.children[0] as THREE.Group).children.some((c) => c.visible)).toBe(false)
   })
 
-  it('flies at a believable height, not through the rooftops', () => {
+  it('flies everything at a believable height, not through the rooftops', () => {
     const scene = new THREE.Scene()
-    const p = createPlanes(scene, () => 0.5)
-    for (let i = 0; i < 500; i++) p.update(0.1, 0, 0, 0)
-    const plane = (scene.children[0] as THREE.Group).children[0]
-    expect(plane.position.y).toBeGreaterThan(100)
+    const p = createAircraft(scene, Math.random)
+    for (let i = 0; i < 4000; i++) {
+      p.update(0.1, 0, 0, 0)
+      for (const f of (scene.children[0] as THREE.Group).children) {
+        if (f.visible) expect(f.position.y).toBeGreaterThan(100)
+      }
+    }
+  })
+
+  it('flies more than one kind of thing', () => {
+    // airliners, bizjets, turboprops and helicopters — different heights and shapes
+    const scene = new THREE.Scene()
+    createAircraft(scene, Math.random)
+    expect((scene.children[0] as THREE.Group).children.length).toBeGreaterThan(3)
+  })
+
+  it('spins the helicopter rotors — still blades read as a crash', () => {
+    const scene = new THREE.Scene()
+    const p = createAircraft(scene, Math.random)
+    const heli = (scene.children[0] as THREE.Group).children.find((c) =>
+      c.children.some((x) => x.userData.rotor === 'main'),
+    )!
+    const rotor = heli.children.find((x) => x.userData.rotor === 'main')!
+    const before = rotor.rotation.y
+    for (let i = 0; i < 4000; i++) p.update(0.1, 0, 0, 0)
+    expect(rotor.rotation.y).not.toBe(before)
   })
 })

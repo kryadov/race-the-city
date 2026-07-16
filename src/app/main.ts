@@ -32,7 +32,7 @@ import { createPauseButton } from '../ui/pauseButton'
 import { createAutopilot } from './autopilot'
 import { createTimeTrial } from './timeTrial'
 import { createTrialHud } from '../ui/trialHud'
-import { createPlanes } from './planes'
+import { createAircraft } from './aircraft'
 import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
 import { createPedestrians, type Pedestrians } from './pedestrians'
@@ -159,7 +159,7 @@ const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
 nitro.setEnabled(getNitro())
 const flame = createNitroFlame()
-const planes = createPlanes(stage.scene)
+const sky2 = createAircraft(stage.scene)
 let trains: Trains | null = null
 let traffic: Traffic | null = null
 let people: Pedestrians | null = null
@@ -518,7 +518,7 @@ async function loadCity(query: string): Promise<void> {
         LAMP_MAT.emissiveIntensity = night * 1.6 // street lamps glow after dusk
         POOL_MAT.opacity = night * 0.5 // and throw a soft pool of light on the road
         facades?.setNight(night) // windows come on behind them
-        planes.update(dt, stage.camera.position.x, stage.camera.position.z, night)
+        sky2.update(dt, stage.camera.position.x, stage.camera.position.z, night)
         trains?.update(dt, night)
         traffic?.update(dt, car.x, car.z, night)
         people?.update(dt, car.x, car.z)
