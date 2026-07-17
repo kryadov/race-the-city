@@ -38,8 +38,8 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Fly over anything you are above** — the physics grid carries each obstacle's roof
       height now, so a jump clears a bungalow, a fountain or a statue instead of being
       cancelled in mid-air by ground the car is nowhere near — v0.86.0
-- [ ] **Land ON a roof and drive along it** — needs roof surfaces the way bridges have decks
-      (`surfaceUnder` in `bridge.ts` is the pattern); today you fly over and land beside it
+- [x] **Land on a roof and drive along it** — the roof is ground when you are above it, the
+      same rule bridges have used all along — v0.87.0
 - [ ] **Girls in skirts** among the pedestrians
 - [ ] **Map radius ×1.5** (1000m → 1500m) if it does not cost performance — measure first:
       buildings are merged per class, so nothing is culled and 2.25× the area is 2.25× the

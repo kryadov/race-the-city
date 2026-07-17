@@ -20,6 +20,13 @@ const SPEED_MIN = 1.1 // m/s: a walk
 const SPEED_MAX = 1.8
 
 const SHIRTS = [0xd0453f, 0x3a6ea5, 0x3f8f5e, 0xd8b23a, 0x8a4f9e, 0xdedad2, 0x39424d]
+// Its own palette, not SHIRTS: skirts read as separate garments, but pulled
+// from the same muted, low-saturation family so a mixed crowd doesn't look
+// like two unrelated colour schemes standing next to each other.
+const SKIRTS = [0xa8324f, 0x2e4d7a, 0x3a6b4a, 0xc27a2e, 0x5c3a75, 0x36404a]
+const HAIR = [0x1c1712, 0x3b2a1e, 0x6b4423, 0xd9c27a, 0x8a4b32]
+// Roughly a third to a half of the crowd, per the brief.
+const GIRL_CHANCE = 0.42
 
 export interface Pedestrians {
   update(dt: number, camX: number, camZ: number): void
@@ -114,6 +121,18 @@ export function createPedestrians(
   legGeo.translate(0, -0.4, 0)
   const armGeo = new THREE.BoxGeometry(0.12, 0.55, 0.13)
   armGeo.translate(0, -0.28, 0)
+  // A truncated cone at the hip: narrower at the waist, flared at the hem.
+  // It's rigid with the torso (not the legs), so it doesn't swing when walking
+  // — real skirts don't swing with the stride, they hang from the waist.
+  // Sized to fully enclose the legs' hip pivot (0.72) at both extremes of the
+  // walk-cycle swing, so no thigh pokes out from under it; only at the far end
+  // of a stride does a shin show below the hem, same as a real skirt.
+  const skirtGeo = new THREE.CylinderGeometry(0.19, 0.27, 0.4, 8)
+  skirtGeo.translate(0, 0.75, 0)
+  // A ponytail: the one shape cue that reads as "hair" rather than "bald head"
+  // at 30m in a moving car, which is the whole point of adding it.
+  const hairGeo = new THREE.CylinderGeometry(0.05, 0.11, 0.34, 6)
+  hairGeo.translate(-0.13, 1.42, 0)
 
   const n = walkers.length || 1
   // Instance colours only — see the note by the traffic's materials: vertexColors
@@ -126,7 +145,19 @@ export function createPedestrians(
   )
   const legs = new THREE.InstancedMesh(legGeo, new THREE.MeshStandardMaterial({ color: 0x33363d, flatShading: true }), n * 2)
   const arms = new THREE.InstancedMesh(armGeo, new THREE.MeshStandardMaterial({ flatShading: true }), n * 2)
-  group.add(bodies, heads, legs, arms)
+  // Only girls get a skirt or hair, but everyone gets an instance slot in both
+  // meshes regardless — one InstancedMesh per part for the whole crowd, always,
+  // so draw calls stay fixed. The walkers who don't have the part just get an
+  // instance collapsed to nothing (see `hidden` in the walk loop below).
+  const skirts = new THREE.InstancedMesh(skirtGeo, new THREE.MeshStandardMaterial({ flatShading: true }), n)
+  const hair = new THREE.InstancedMesh(hairGeo, new THREE.MeshStandardMaterial({ flatShading: true }), n)
+  group.add(bodies, heads, legs, arms, skirts, hair)
+  // Who's a girl is fixed per crowd slot from a dedicated seed, not drawn from
+  // `rand` (Math.random in production) — the same way world/greenery.ts seeds
+  // its RNG, so the split can't reshuffle between reloads, browsers, or when a
+  // walker respawns off in the distance and a new one takes its slot.
+  const lookRng = makeRng(0x51a1c5)
+  const isGirl: boolean[] = Array.from({ length: n }, () => lookRng() < GIRL_CHANCE)
   // three computes an InstancedMesh's bounding sphere on first use and never
   // again, so once these drive away from it the whole batch gets frustum-culled
   // as one — they blink in and out depending on where you look. They are always
@@ -139,9 +170,17 @@ export function createPedestrians(
     bodies.setColorAt(i, col)
     arms.setColorAt(i * 2, col) // sleeves match the shirt
     arms.setColorAt(i * 2 + 1, col)
+    if (isGirl[i]) {
+      col.setHex(SKIRTS[Math.floor(rand() * SKIRTS.length)])
+      skirts.setColorAt(i, col)
+      col.setHex(HAIR[Math.floor(rand() * HAIR.length)])
+      hair.setColorAt(i, col)
+    }
   })
   if (bodies.instanceColor) bodies.instanceColor.needsUpdate = true
   if (arms.instanceColor) arms.instanceColor.needsUpdate = true
+  if (skirts.instanceColor) skirts.instanceColor.needsUpdate = true
+  if (hair.instanceColor) hair.instanceColor.needsUpdate = true
 
   const m = new THREE.Matrix4()
   const q = new THREE.Quaternion()
@@ -153,6 +192,11 @@ export function createPedestrians(
   const mLimb = new THREE.Matrix4()
   const off = new THREE.Matrix4()
   const hip = new THREE.Vector3()
+  // Collapses an instance to a zero-size point: how a walker who hasn't got a
+  // given part — a boy with no skirt, no ponytail — gets hidden without a
+  // second InstancedMesh or a per-instance visibility flag, neither of which
+  // exist on InstancedMesh.
+  const hidden = new THREE.Matrix4().makeScale(0, 0, 0)
   let clock = 0
 
   const solidAt: Circle[] = []
@@ -220,6 +264,11 @@ export function createPedestrians(
         m.compose(pos, q, one)
         bodies.setMatrixAt(i, m)
         heads.setMatrixAt(i, m)
+        // Skirt and hair are rigid with the torso, not the legs, so they reuse
+        // `m` unchanged — the same matrix as the body and head — rather than
+        // the per-limb swing offset below.
+        skirts.setMatrixAt(i, isGirl[i] ? m : hidden)
+        hair.setMatrixAt(i, isGirl[i] ? m : hidden)
 
         // Legs and arms swing opposite each other, the way people walk.
         const swing = Math.sin(stride) * 0.5
@@ -240,6 +289,8 @@ export function createPedestrians(
       heads.instanceMatrix.needsUpdate = true
       legs.instanceMatrix.needsUpdate = true
       arms.instanceMatrix.needsUpdate = true
+      skirts.instanceMatrix.needsUpdate = true
+      hair.instanceMatrix.needsUpdate = true
     },
   }
 }

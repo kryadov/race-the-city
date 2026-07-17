@@ -112,6 +112,80 @@ describe('pedestrians', () => {
   })
 })
 
+describe('girls in skirts', () => {
+  /**
+   * A walker who doesn't have a part (a boy with no skirt) isn't removed from
+   * the InstancedMesh — that would mean a variable instance count, and a
+   * variable draw-call footprint with it. Instead their slot is collapsed to a
+   * zero-size point (see `hidden` in pedestrians.ts), so "does this instance
+   * actually show" has to be read back from its scale, not its presence.
+   */
+  function visible(mesh: THREE.InstancedMesh, i: number): boolean {
+    const m = new THREE.Matrix4()
+    const scale = new THREE.Vector3()
+    mesh.getMatrixAt(i, m)
+    m.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale)
+    return scale.length() > 0.01
+  }
+
+  it('puts both plain walkers and girls in skirts on the street', () => {
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, grid, flat, () => 0.5, 40)
+    p.update(0.016, 0, 0)
+    const skirts = (scene.children[0] as THREE.Group).children[4] as THREE.InstancedMesh
+    const girls = Array.from({ length: skirts.count }, (_, i) => visible(skirts, i)).filter(Boolean).length
+    expect(girls, 'nobody was in a skirt').toBeGreaterThan(0)
+    expect(girls, 'everybody was in a skirt').toBeLessThan(skirts.count)
+    // roughly a third to a half, per the brief, with slack for a small sample
+    expect(girls / skirts.count).toBeGreaterThan(0.2)
+    expect(girls / skirts.count).toBeLessThan(0.65)
+  })
+
+  it('keeps the split fixed rather than reshuffling it from the passed-in randomness', () => {
+    // Math.random would give a different split on every reload; the whole
+    // point of a dedicated seed (see RNG_SEED in world/greenery.ts) is a city
+    // that looks the same regardless of what `rand` the caller passes in.
+    const sceneA = new THREE.Scene()
+    createPedestrians(sceneA, grid, flat, Math.random, 30).update(0.016, 0, 0)
+    const skirtsA = (sceneA.children[0] as THREE.Group).children[4] as THREE.InstancedMesh
+
+    const sceneB = new THREE.Scene()
+    createPedestrians(sceneB, grid, flat, () => 0.9, 30).update(0.016, 0, 0)
+    const skirtsB = (sceneB.children[0] as THREE.Group).children[4] as THREE.InstancedMesh
+
+    expect(skirtsA.count).toBe(skirtsB.count)
+    for (let i = 0; i < skirtsA.count; i++) {
+      expect(visible(skirtsA, i)).toBe(visible(skirtsB, i))
+    }
+  })
+
+  it('does not add a draw call per walker: the same number of parts at any crowd size', () => {
+    const small = new THREE.Scene()
+    createPedestrians(small, grid, flat, () => 0.5, 3)
+    const big = new THREE.Scene()
+    createPedestrians(big, grid, flat, () => 0.5, 60)
+    const partsSmall = (small.children[0] as THREE.Group).children.length
+    const partsBig = (big.children[0] as THREE.Group).children.length
+    expect(partsBig).toBe(partsSmall)
+  })
+
+  it('sizes the skirt to bracket the legs’ hip pivot, not float above or below it', () => {
+    // the legs swing from local y=0.72 (see the hip offset in pedestrians.ts);
+    // a skirt that doesn't span that height would leave a gap or float free
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, grid, flat, () => 0.5, 10)
+    p.update(0.016, 0, 0)
+    const skirts = (scene.children[0] as THREE.Group).children[4] as THREE.InstancedMesh
+    skirts.geometry.computeBoundingBox()
+    const box = skirts.geometry.boundingBox!
+    expect(box.min.y).toBeLessThan(0.72)
+    expect(box.max.y).toBeGreaterThan(0.72)
+    // and wide enough sideways to cover a leg offset ±0.11 from the centreline
+    // plus its own half-width, so no thigh shows past the hem
+    expect(box.max.x).toBeGreaterThan(0.19)
+  })
+})
+
 describe('recycling out of sight', () => {
   /** The scene's fog: nothing is visible past this, so nothing may pop inside it. */
   const FOG_FULL = 900

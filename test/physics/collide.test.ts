@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pointInPolygon, resolveCircle } from '../../src/physics/collide'
+import { pointInPolygon, resolveCircle, roofUnder } from '../../src/physics/collide'
 import { SpatialGrid } from '../../src/physics/grid'
 import type { Vec2 } from '../../src/geo/types'
 
@@ -69,5 +69,37 @@ describe('flying over an obstacle', () => {
 
   it('collides as it always did when the caller says nothing about height', () => {
     expect(resolveCircle(0, 0, 2, grid)).not.toEqual({ x: 0, z: 0 })
+  })
+})
+
+describe('roofUnder', () => {
+  const low: Vec2[] = [
+    { x: -10, z: -10 },
+    { x: 10, z: -10 },
+    { x: 10, z: 10 },
+    { x: -10, z: 10 },
+  ]
+  // A tower overlapping the low block's eastern half.
+  const tall: Vec2[] = [
+    { x: 0, z: -10 },
+    { x: 20, z: -10 },
+    { x: 20, z: 10 },
+    { x: 0, z: 10 },
+  ]
+
+  it('is the roof you are over', () => {
+    expect(roofUnder(-5, 0, new SpatialGrid([low], 25, [8]))).toBe(8)
+  })
+
+  it('is nothing at all over open ground', () => {
+    expect(roofUnder(50, 50, new SpatialGrid([low], 25, [8]))).toBeNull()
+  })
+
+  it('is the highest one where they overlap — you land on the tower, not through it', () => {
+    expect(roofUnder(5, 0, new SpatialGrid([low, tall], 25, [8, 30]))).toBe(30)
+  })
+
+  it('will not land you on something of unstated height', () => {
+    expect(roofUnder(-5, 0, new SpatialGrid([low], 25))).toBeNull()
   })
 })

@@ -136,3 +136,22 @@ export function bounce(
   const k = (1 + restitution) * into
   return { vx: vx - k * nx, vz: vz - k * nz }
 }
+
+/**
+ * The height of the highest roof directly under (x, z), or null over open ground.
+ *
+ * The grid already knows where every building stands and how tall it is; this
+ * asks the other question about it — not "may I be here", but "what is beneath
+ * me". A car that clears a roof and lands on it needs the roof to be ground,
+ * exactly as a bridge deck is.
+ */
+export function roofUnder(x: number, z: number, grid: SpatialGrid): number | null {
+  let best: number | null = null
+  for (const poly of grid.near(x, z)) {
+    const top = grid.topOf(poly)
+    if (!Number.isFinite(top)) continue // height unknown: not something to land on
+    if (best !== null && top <= best) continue
+    if (pointInPolygon(x, z, poly)) best = top
+  }
+  return best
+}

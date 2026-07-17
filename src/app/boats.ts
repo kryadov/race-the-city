@@ -80,26 +80,52 @@ const LOOK = 900
 const LOOK_STEP = 40
 
 /**
- * The widest spot in this water that is actually within sight of the city.
+ * The widest spot in this water that is within sight of the city AND actually
+ * wet.
  *
- * Not the widest spot outright: for a sea running along the edge of the map
- * that is a mile offshore, and the ship was out there — afloat, correct and
- * completely invisible. Not the nearest spot with any room either: that is
- * always hard against the near bank, where only a rowboat fits, so a lake with
- * a ship's worth of water in the middle of it got a dinghy at the shoreline.
- * The widest water you can see from the city is the one you want.
+ * Three things have each put a ship somewhere absurd. The widest spot outright
+ * is a mile offshore for a sea along the map's edge — afloat, correct, and
+ * invisible. The nearest spot with any room is hard against the near bank,
+ * where only a rowboat fits. And a spot that is inside the water polygon can
+ * still be dry land: the water sits at the LOWEST ground around its rim, so on
+ * a lake in a valley the terrain in the middle can stand above that plane. The
+ * water is then buried under the hill and the ship sails across the grass on
+ * top of it, which is exactly what it did.
+ *
+ * @param level the height the water sits at, from `waterLevel`
  */
-export function spotNearMiddle(ring: Vec2[]): { x: number; z: number; r: number } | null {
+export function spotNearMiddle(
+  ring: Vec2[],
+  provider: ElevationProvider,
+  level: number,
+): { x: number; z: number; r: number } | null {
   let best: { x: number; z: number; r: number } | null = null
   for (let x = -LOOK; x <= LOOK; x += LOOK_STEP) {
     for (let z = -LOOK; z <= LOOK; z += LOOK_STEP) {
       if (Math.hypot(x, z) > LOOK) continue
       const r = roomAt(ring, x, z)
       if (r < ROWBOAT_ROOM || (best && r <= best.r)) continue
+      if (provider.heightAt(x, z) > level) continue // dry land inside the outline
       best = { x, z, r }
     }
   }
   return best
+}
+
+/** Is the whole circle a boat would go round under water, not over a hill in it? */
+function circleIsWet(
+  cx: number,
+  cz: number,
+  radius: number,
+  provider: ElevationProvider,
+  level: number,
+): boolean {
+  const STEPS = 12
+  for (let i = 0; i < STEPS; i++) {
+    const a = (i / STEPS) * Math.PI * 2
+    if (provider.heightAt(cx + Math.cos(a) * radius, cz + Math.sin(a) * radius) > level) return false
+  }
+  return true
 }
 
 /** A small cargo ship, pointing +x. */
@@ -168,8 +194,9 @@ export function createBoats(
   for (const ring of water) {
     if (afloat.length >= maxBoats) break
     if (ring.length < 3) continue
-    const fit = spotNearMiddle(ring)
-    if (!fit) continue // a puddle, or nothing but open water miles off the map
+    const level = waterLevel(ring, provider)
+    const fit = spotNearMiddle(ring, provider, level)
+    if (!fit) continue // a puddle, dry inside, or open water miles off the map
     const big = fit.r >= SHIP_ROOM
     // Not every stretch of water has a boat on it — but the first one that can
     // take one does. A city often has a single river or lake, and rolling the
@@ -187,6 +214,9 @@ export function createBoats(
     // out of the data misshapen can put that circle somewhere silly — and a ship
     // on a field is worse than no ship.
     if (!circleFits(ring, fit.x, fit.z, radius, half)) continue
+    // And that the water is really there: the outline says where it would be,
+    // the ground says whether it is.
+    if (!circleIsWet(fit.x, fit.z, radius, provider, level)) continue
 
     const mesh = big ? ship() : rowboat()
     group.add(mesh)
@@ -199,7 +229,6 @@ export function createBoats(
       speed: big ? SHIP_SPEED : ROW_SPEED,
       turn: rng() < 0.5 ? 1 : -1,
     })
-    const level = waterLevel(ring, provider)
     mesh.position.y = level
   }
 

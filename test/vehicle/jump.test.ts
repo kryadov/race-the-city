@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { createCar, stepCar, GRAVITY, TAKEOFF_VY, type CarState } from '../../src/vehicle/car'
 import { VEHICLES } from '../../src/vehicle/vehicles'
 import { SpatialGrid } from '../../src/physics/grid'
+import { roofUnder } from '../../src/physics/collide'
+import type { Vec2 } from '../../src/geo/types'
 import type { ElevationProvider } from '../../src/terrain/provider'
 
 const grid = new SpatialGrid([], 25)
@@ -145,5 +147,62 @@ describe('smooth crests do not throw the car', () => {
       air = Math.max(air, c.y - jumpRamp.heightAt(c.x, c.z))
     }
     expect(air, 'a real ramp should still launch it').toBeGreaterThan(0.5)
+  })
+})
+
+describe('landing on a roof', () => {
+  // An 8m building, 40m square, that the car flies onto from the west.
+  const roof: Vec2[] = [
+    { x: 0, z: -20 },
+    { x: 40, z: -20 },
+    { x: 40, z: 20 },
+    { x: 0, z: 20 },
+  ]
+  const TOP = 8
+  const city = new SpatialGrid([roof], 25, [TOP])
+
+  /** The ground rule main.ts composes: a roof you are above is ground. */
+  const surfaceFor = (prevY: number): ElevationProvider => ({
+    heightAt: (x, z) => {
+      const r = roofUnder(x, z, city)
+      return r !== null && prevY >= r - 2 ? r : 0
+    },
+  })
+
+  it('lands on the roof and stays on it instead of falling through', () => {
+    // Over the roof, above it, coming down: exactly the case the user hit.
+    let c: CarState = { ...createCar(-4, 0), vx: 20, y: TOP + 4, vy: -6 }
+    for (let i = 0; i < 240; i++) {
+      const prevY = c.y
+      c = stepCar(c, coast, DT, city, surfaceFor(prevY), { ...car, dragForward: 0 })
+      c.vx = 20
+      if (c.x > 36) break
+    }
+    expect(c.x, 'it should have driven across the roof').toBeGreaterThan(20)
+    expect(c.y, 'it fell through the roof').toBeCloseTo(TOP, 1)
+  })
+
+  it('drops off the far edge rather than walking on air', () => {
+    let c: CarState = { ...createCar(30, 0), vx: 20, y: TOP }
+    for (let i = 0; i < 400; i++) {
+      const prevY = c.y
+      c = stepCar(c, coast, DT, city, surfaceFor(prevY), { ...car, dragForward: 0 })
+      c.vx = 20
+    }
+    expect(c.x, 'it should be past the building').toBeGreaterThan(40)
+    expect(c.y, 'it should have come down to the street').toBeCloseTo(0, 1)
+  })
+
+  it('does not hoist a car off the street onto a passing roof', () => {
+    // Driving along the ground beside it: the roof is not yours to have.
+    let c: CarState = { ...createCar(-4, 0), vx: 20, y: 0 }
+    let highest = 0
+    for (let i = 0; i < 120; i++) {
+      const prevY = c.y
+      c = stepCar(c, coast, DT, city, surfaceFor(prevY), { ...car, dragForward: 0 })
+      c.vx = 20
+      highest = Math.max(highest, c.y)
+    }
+    expect(highest, 'the street-level car was lifted onto the roof').toBeLessThan(1)
   })
 })

@@ -103,6 +103,7 @@ import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
 import { SpatialGrid } from '../physics/grid'
+import { roofUnder } from '../physics/collide'
 import { pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
@@ -202,6 +203,12 @@ function showVehicle(type: VehicleType): void {
   driftFx.setPrint(wheelPrint(mesh)) // marks as wide as the tyres that lay them
   setVehicleMesh(stage, mesh)
 }
+/**
+ * How far below a roof still counts as landing on it, in metres. A frame at
+ * speed covers ground; without a little slack the car falls past the roofline
+ * between two frames and lands in the street through the building.
+ */
+const ROOF_SNAP = 2.0
 /** How lively a shunt is: enough to stop you, not enough to launch you. */
 const HIT_BOUNCE = 0.3
 const HIT_BLEED = 0.55
@@ -532,7 +539,15 @@ async function loadCity(query: string): Promise<void> {
         // reads this, so gravity and jumps work off decks too.
         const prevY = car.y
         const surface: ElevationProvider = {
-          heightAt: (x, z) => surfaceUnder(x, z, prevY, provider.heightAt(x, z), decks),
+          heightAt: (x, z) => {
+            const below = surfaceUnder(x, z, prevY, provider.heightAt(x, z), decks)
+            // A roof you are above is ground, the same way a deck is: you flew
+            // over it, you may land on it. Judged from last frame's height, so
+            // driving past a tower at street level does not hoist the car onto
+            // it — you have to have got up there yourself.
+            const roof = roofUnder(x, z, grid)
+            return roof !== null && prevY >= roof - ROOF_SNAP ? Math.max(below, roof) : below
+          },
         }
         car = stepCar(car, input, dt, grid, surface, activeSpec)
         // Traffic and people are solid. They move, so they can't live in the

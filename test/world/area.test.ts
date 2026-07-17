@@ -73,6 +73,9 @@ describe('circleFits', () => {
   })
 })
 
+/** Flat ground at sea level: everything inside an outline is genuinely wet. */
+const sea_level_flat = { heightAt: () => 0 }
+
 describe('where a boat goes', () => {
   /** A sea filling everything east of x = 200, running well off the map. */
   const sea: Vec2[] = [
@@ -86,7 +89,7 @@ describe('where a boat goes', () => {
     // The widest part of a sea that runs off the edge of the map is a mile
     // offshore. The ship was out there: afloat, correct, and invisible.
     const { spotNearMiddle } = await import('../../src/app/boats')
-    const spot = spotNearMiddle(sea)
+    const spot = spotNearMiddle(sea, sea_level_flat, 0)
     expect(spot).not.toBeNull()
     expect(Math.hypot(spot!.x, spot!.z), 'beyond the fog is nowhere').toBeLessThan(900)
     expect(spot!.r).toBeGreaterThan(14)
@@ -103,7 +106,7 @@ describe('where a boat goes', () => {
       { x: 400, z: 400 },
       { x: -400, z: 400 },
     ]
-    const spot = spotNearMiddle(lake)!
+    const spot = spotNearMiddle(lake, sea_level_flat, 0)!
     expect(spot.r, 'should find the middle of a 800m lake, not its rim').toBeGreaterThan(300)
   })
 
@@ -115,7 +118,7 @@ describe('where a boat goes', () => {
       { x: 8, z: 8 },
       { x: 0, z: 8 },
     ]
-    expect(spotNearMiddle(puddle)).toBeNull()
+    expect(spotNearMiddle(puddle, sea_level_flat, 0)).toBeNull()
   })
 })
 
@@ -135,5 +138,39 @@ describe('a lake with a ship on it', () => {
     // rand() = 0.99: every random gate in the module says no.
     createBoats(scene, [lake], { heightAt: () => 0 }, () => 0.99, 4)
     expect((scene.children[0] as InstanceType<typeof THREE.Group>).children.length).toBeGreaterThan(0)
+  })
+})
+
+describe('water that is not there', () => {
+  it('puts no ship on a lake whose middle stands above the water', async () => {
+    // The water sits at the LOWEST ground around its rim, so a lake mapped over
+    // a valley in the DEM can have terrain in the middle standing above that
+    // plane. The water is buried under the hill; the ship sailed over the grass
+    // on top of it.
+    const { spotNearMiddle } = await import('../../src/app/boats')
+    const lake: Vec2[] = [
+      { x: -150, z: -150 },
+      { x: 150, z: -150 },
+      { x: 150, z: 150 },
+      { x: -150, z: 150 },
+    ]
+    // Ground standing above the water plane across the whole of it: only the
+    // corners dip under, and no boat fits in a corner.
+    const hilly = { heightAt: (x: number, z: number) => 20 - Math.hypot(x, z) / 10 }
+    expect(spotNearMiddle(lake, hilly, 0)).toBeNull()
+  })
+
+  it('still floats one on the part that is under water', async () => {
+    const { spotNearMiddle } = await import('../../src/app/boats')
+    const lake: Vec2[] = [
+      { x: -600, z: -600 },
+      { x: 600, z: -600 },
+      { x: 600, z: 600 },
+      { x: -600, z: 600 },
+    ]
+    // Dry in the east, wet in the west.
+    const half = { heightAt: (x: number) => (x > 0 ? 5 : -3) }
+    const spot = spotNearMiddle(lake, half, 0)!
+    expect(spot.x, 'it should be on the wet side').toBeLessThanOrEqual(0)
   })
 })
