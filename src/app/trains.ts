@@ -242,14 +242,19 @@ function tramCar(k: Kind, first: boolean): THREE.Group {
       g.add(l)
     }
   }
-  // Pantograph: the one thing that says 'electric tram' at a glance.
+  // Pantograph: the one thing that says 'electric tram' at a glance. It trails —
+  // the arm rises TOWARD THE BACK, away from the way the tram is going, which is
+  // how a single-arm pantograph is run so the wire cannot catch under the knuckle.
+  // The model's nose is its local +x and the leading car always leads, whichever
+  // end of the line it is running to, so this is right in both directions.
   const pan = new THREE.Group()
   const armA = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.07, 0.07), mat(0x33363d))
-  armA.rotation.z = 0.5
+  armA.rotation.z = -0.5
   armA.position.y = 0.35
   pan.add(armA)
   const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.07, 1.6), mat(0x33363d))
-  bar.position.set(0.62, 0.7, 0)
+  bar.position.set(-0.62, 0.7, 0)
+  bar.userData.pantographBar = true
   pan.add(bar)
   pan.position.set(-k.len * 0.2, FLOOR + H + 0.16, 0)
   g.add(pan)

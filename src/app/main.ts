@@ -17,7 +17,9 @@ import { createDriftFx } from './driftfx'
 import { createWeather, WEATHERS, type WeatherSetting } from './weather'
 import { createClouds } from './clouds'
 import { createSky } from './sky'
+import { burn, speedFactor, CAN_WORTH } from '../vehicle/fuel'
 import { createNitro } from './nitro'
+import { createCans } from './cans'
 import { createFireworks } from './fireworks'
 import { createNitroFlame } from './nitroFlame'
 import { withRetry, LOAD_ATTEMPTS } from './retry'
@@ -182,6 +184,8 @@ const sky = createSky(stage.scene)
 const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
 nitro.setEnabled(getNitro())
+const cans = createCans(stage.scene)
+let fuel = 1
 const flame = createNitroFlame()
 let density: Density = getDensity()
 const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
@@ -437,8 +441,11 @@ async function loadCity(query: string): Promise<void> {
     }
     // scatter nitro pickups on road vertices around the car — must run after the
     // pose above is settled, so a resumed session gets bottles where it left off
+    const scatterOn = normalRoads.flatMap((r) => r.points) // skip bridges: their points are the deck's, not the ground's
+    cans.setSpots(scatterOn, provider, car.x, car.z)
+    fuel = 1 // a new city starts with a full tank
     nitro.setSpots(
-      normalRoads.flatMap((r) => r.points), // skip bridges: their points are the deck's, not the ground's
+      scatterOn,
       provider,
       car.x,
       car.z,
@@ -490,19 +497,31 @@ async function loadCity(query: string): Promise<void> {
         const handsOn = input.throttle !== 0 || input.steer !== 0 || input.brake
         // nitro: collecting a bottle boosts the top speed for a short window
         if (nitro.update(car.x, car.z, dt)) boostTimer = BOOST_TIME
+        // petrol: a can fills a third of the tank, the throttle empties it
+        if (cans.update(car.x, car.z, dt)) {
+          fuel = Math.min(1, fuel + CAN_WORTH)
+          audio.chime(false)
+        }
+        fuel = burn(fuel, input.throttle, dt)
+        hud.setFuel(fuel)
         if (boostTimer > 0) boostTimer -= dt
         const boostTarget = boostTimer > 0 ? 1 : 0
         const spool = boostTarget > boost ? BOOST_SPOOL_UP : BOOST_SPOOL_DOWN
         boost += (boostTarget - boost) * (1 - Math.exp(-spool * dt))
         if (boost < 0.002) boost = 0
+        // A dry tank takes the legs off the car; a boost puts them back and
+        // then some, which is what a bottle of nitrous is for.
+        const dry = speedFactor(fuel)
         const activeSpec =
           boost > 0
             ? {
                 ...spec,
-                maxSpeed: spec.maxSpeed * (1 + (BOOST_MULT - 1) * boost),
-                accel: spec.accel * (1 + 2 * boost),
+                maxSpeed: spec.maxSpeed * (1 + (BOOST_MULT - 1) * boost) * dry,
+                accel: spec.accel * (1 + 2 * boost) * dry,
               }
-            : spec
+            : dry < 1
+              ? { ...spec, maxSpeed: spec.maxSpeed * dry, accel: spec.accel * dry }
+              : spec
         flame.update(boost > 0.05, dt)
         if (trial.enabled()) {
           const st = trial.update(dt, car.x, car.z)
@@ -830,12 +849,9 @@ const menu = createSettingsMenu(
       boostTimer = 0
       boost = 0
       // Everything that was arranged around the old spot follows the car back.
-      nitro.setSpots(
-        lastRoads.filter((r) => !r.bridge && !r.tunnel).flatMap((r) => r.points),
-        provider,
-        car.x,
-        car.z,
-      )
+      const spots = lastRoads.filter((r) => !r.bridge && !r.tunnel).flatMap((r) => r.points)
+      nitro.setSpots(spots, provider, car.x, car.z)
+      cans.setSpots(spots, provider, car.x, car.z)
       autopilot.reset(lastRoads, car)
       if (trial.enabled()) {
         trial.reset(lastRoads, provider, car)

@@ -160,6 +160,21 @@ describe('trains', () => {
     expect(carsOf(scene).some((c) => c.visible), 'it never came back').toBe(true)
   })
 
+  it('trails the tram pantograph behind the cab, not ahead of it', () => {
+    // A single-arm pantograph leans AWAY from the direction of travel: the wire
+    // must not catch under the knuckle. It was leaning into it.
+    const scene = new THREE.Scene()
+    createTrains(scene, [tramLine], flat, () => 0.5)
+    const lead = carsOf(scene)[0]
+    let bar: THREE.Object3D | null = null
+    lead.traverse((o) => {
+      if (o.userData.pantographBar) bar = o
+    })
+    expect(bar, 'the tram has no pantograph').not.toBeNull()
+    // The model's nose is its local +x, so behind it is negative.
+    expect(bar!.position.x, 'the contact bar is ahead of its own arm').toBeLessThan(0)
+  })
+
   it('takes itself off the scene when the city changes', () => {
     const scene = new THREE.Scene()
     const t = createTrains(scene, [mainLine], flat, () => 0.5)

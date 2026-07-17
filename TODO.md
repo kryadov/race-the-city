@@ -39,7 +39,10 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       clamped onto its first metre, so they stop piling up and driving out of each other, and
       each line ends in a mouth instead of in mid-air — v0.88.0
 - [ ] **Birds** in the sky
-- [ ] **Petrol cans** to pick up, in the nitro's style; run low on fuel and the car slows
+- [ ] **A jeep** — an off-roader, as a new vehicle type (goes in the 'road' group's neighbours;
+      see VEHICLE_GROUPS in `src/vehicle/vehicles.ts`)
+- [x] **Petrol cans** to pick up, in the nitro's style; run low on fuel and the car slows — the
+      pickup engine is shared with the nitro rather than copied — v0.89.0
 - [ ] **People walk through trains** — they should wait at the crossing and let them pass
 - [ ] **Benches, empty and with people sitting on them; bus stops**
 - [x] **Fly over anything you are above** — the physics grid carries each obstacle's roof
