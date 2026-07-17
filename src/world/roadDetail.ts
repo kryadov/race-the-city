@@ -27,6 +27,8 @@ interface Lamp {
   z: number
   dx: number
   dz: number
+  /** Which road put it here — the one whose surface it stands on. */
+  road: number
 }
 
 /** A sign: post position + unit road direction (the sign faces along it). */
@@ -35,6 +37,8 @@ interface Sign {
   z: number
   ux: number
   uz: number
+  /** Which road put it here — the one whose surface it stands beside. */
+  road: number
 }
 
 /** A road centre-line segment with its half-width, for the mid-road rejection test. */
@@ -78,7 +82,19 @@ const SIGN_PANEL_MAT = new THREE.MeshStandardMaterial({ color: 0x2f7d3b, flatSha
 const SIGN_ARROW_MAT = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, flatShading: true })
 
 /** Lightweight road dressing: dashed centre lines + street lamps + arrow signs. */
-export function buildRoadDetail(roads: Road[], provider: ElevationProvider): THREE.Object3D {
+/** The ground under a road's own markings, lamps and signs. */
+export type DetailGround = ElevationProvider | ((roadIndex: number) => ElevationProvider)
+
+/**
+ * @param provider the ground, or — where each road sits on a surface of its own
+ *   — a function from the road's index to it. A bridge's markings belong on ITS
+ *   deck: asking one index of every deck for "the height here" hands a bridge
+ *   running under a flyover the flyover's height, and its markings are then
+ *   painted ten metres above the road they belong to, with the car underneath.
+ */
+export function buildRoadDetail(roads: Road[], provider: DetailGround): THREE.Object3D {
+  const groundOf = (r: number): ElevationProvider =>
+    typeof provider === 'function' ? provider(r) : provider
   const group = new THREE.Group()
   const dash: number[] = []
   const lamps: Lamp[] = []
@@ -116,7 +132,7 @@ export function buildRoadDetail(roads: Road[], provider: ElevationProvider): THR
         let d = carryDash
         for (; d < len && dashes < MAX_DASHES; d += DASH_SPACING) {
           const e = Math.min(d + DASH_LEN, len)
-          emitDash(dash, a.x + ux * d, a.z + uz * d, a.x + ux * e, a.z + uz * e, nx, nz, provider)
+          emitDash(dash, a.x + ux * d, a.z + uz * d, a.x + ux * e, a.z + uz * e, nx, nz, groundOf(r))
           dashes++
         }
         carryDash = d - len
@@ -131,6 +147,7 @@ export function buildRoadDetail(roads: Road[], provider: ElevationProvider): THR
             z: a.z + uz * d + nz * side * (hw + POLE_OFFSET),
             dx: -side * nx,
             dz: -side * nz,
+            road: r,
           })
         }
         carryLamp = d - len
@@ -139,7 +156,7 @@ export function buildRoadDetail(roads: Road[], provider: ElevationProvider): THR
 
     if (signed && roadLen >= SIGN_MIN_LEN && signs.length < MAX_SIGNS) {
       const p = pointAlong(road.points, roadLen * 0.35)
-      if (p) signs.push({ x: p.x - p.nx * side * (hw + 1.0), z: p.z - p.nz * side * (hw + 1.0), ux: p.ux, uz: p.uz })
+      if (p) signs.push({ x: p.x - p.nx * side * (hw + 1.0), z: p.z - p.nz * side * (hw + 1.0), ux: p.ux, uz: p.uz, road: r })
     }
   }
 
@@ -155,8 +172,8 @@ export function buildRoadDetail(roads: Road[], provider: ElevationProvider): THR
   const spread = subsample(lamps, WORKING_LAMPS)
   const offRoad = spread.filter((l) => !onAnyRoad(l.x, l.z, segs))
   const kept = subsample(offRoad, MAX_LAMPS)
-  if (kept.length) group.add(...buildLamps(kept, provider))
-  if (signs.length) group.add(...buildSigns(signs, provider))
+  if (kept.length) group.add(...buildLamps(kept, groundOf))
+  if (signs.length) group.add(...buildSigns(signs, groundOf))
   return group
 }
 
@@ -245,7 +262,7 @@ const UP = new THREE.Vector3(0, 1, 0)
  * Street lamps: pole + arm over the road + a warm luminaire with a glowing lens,
  * plus a soft ground light-pool. Five instanced draw calls total.
  */
-function buildLamps(lamps: Lamp[], provider: ElevationProvider): THREE.Object3D[] {
+function buildLamps(lamps: Lamp[], groundOf: (roadIndex: number) => ElevationProvider): THREE.Object3D[] {
   const n = lamps.length
   const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.12, POLE_H, 6), POLE_MAT, n)
   const arms = new THREE.InstancedMesh(new THREE.BoxGeometry(ARM_LEN, 0.09, 0.09), POLE_MAT, n)
@@ -260,7 +277,7 @@ function buildLamps(lamps: Lamp[], provider: ElevationProvider): THREE.Object3D[
   const noRot = new THREE.Quaternion()
   for (let i = 0; i < n; i++) {
     const L = lamps[i]
-    const g = provider.heightAt(L.x, L.z)
+    const g = groundOf(L.road).heightAt(L.x, L.z)
     // pole
     poles.setMatrixAt(i, m.compose(pos.set(L.x, g + POLE_H / 2, L.z), noRot, one))
     const q = yawToX(L.dx, L.dz)
@@ -274,7 +291,7 @@ function buildLamps(lamps: Lamp[], provider: ElevationProvider): THREE.Object3D[
     heads.setMatrixAt(i, m.compose(pos.set(hx, g + POLE_H - 0.12, hz), q, one))
     lenses.setMatrixAt(i, m.compose(pos.set(hx, g + POLE_H - 0.24, hz), q, one))
     // light pool on the ground under the luminaire
-    pools.setMatrixAt(i, m.compose(pos.set(hx, provider.heightAt(hx, hz) + 0.06, hz), noRot, one))
+    pools.setMatrixAt(i, m.compose(pos.set(hx, groundOf(L.road).heightAt(hx, hz) + 0.06, hz), noRot, one))
   }
   for (const im of [poles, arms, heads, lenses, pools]) im.instanceMatrix.needsUpdate = true
   return [poles, arms, heads, lenses, pools]
@@ -300,7 +317,7 @@ function softDisc(radius: number): THREE.BufferGeometry {
 }
 
 /** Sparse roadside signs facing the road: post + green panel + white arrow. */
-function buildSigns(signs: Sign[], provider: ElevationProvider): THREE.Object3D[] {
+function buildSigns(signs: Sign[], groundOf: (roadIndex: number) => ElevationProvider): THREE.Object3D[] {
   const n = signs.length
   const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.06, 3.0, 6), SIGN_POST_MAT, n)
   const panels = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, 0.9, 0.08), SIGN_PANEL_MAT, n)
@@ -312,7 +329,7 @@ function buildSigns(signs: Sign[], provider: ElevationProvider): THREE.Object3D[
   const noRot = new THREE.Quaternion()
   for (let i = 0; i < n; i++) {
     const s = signs[i]
-    const g = provider.heightAt(s.x, s.z)
+    const g = groundOf(s.road).heightAt(s.x, s.z)
     posts.setMatrixAt(i, m.compose(pos.set(s.x, g + 1.5, s.z), noRot, one))
     // face the panel along the road: local +z → road direction (ux,uz)
     const q = new THREE.Quaternion().setFromAxisAngle(UP, Math.atan2(s.ux, s.uz))

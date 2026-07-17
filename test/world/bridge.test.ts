@@ -116,3 +116,34 @@ describe('surfaceUnder', () => {
     expect(surfaceUnder(300, 0, deckY, 3, idx)).toBe(3)
   })
 })
+
+describe('a bridge running under a flyover', () => {
+  /** A low bridge heading east, and a high one crossing it on layer 2. */
+  const low: Road = { kind: 'residential', points: [v(-100, 0), v(100, 0)], bridge: true }
+  const high: Road = { kind: 'residential', points: [v(0, -100), v(0, 100)], bridge: true, layer: 2 }
+  const decks = buildDecks([low, high], flat)
+  const both = createDeckIndex(decks, 5)
+  const lowOnly = createDeckIndex([decks[0]], 5)
+
+  it('tells a car on the low deck about the low deck, not the one overhead', () => {
+    // It used to answer with the highest deck there was: the low bridge was told
+    // its own surface was ten metres up. The car then found that unreachable,
+    // fell through to the ground, and drove along under its own markings.
+    const mine = lowOnly.heightAt(0, 0)!
+    expect(both.heightAt(0, 0, mine)).toBeCloseTo(mine, 5)
+  })
+
+  it('keeps the car on the low deck instead of dropping it to the ground', () => {
+    const mine = lowOnly.heightAt(0, 0)!
+    expect(surfaceUnder(0, 0, mine, 0, both)).toBeCloseTo(mine, 5)
+  })
+
+  it('still says what is overhead when nobody says where they are asking from', () => {
+    // No `near` answers a different question — is there anything above this spot.
+    expect(both.heightAt(0, 0)!).toBeGreaterThan(lowOnly.heightAt(0, 0)!)
+  })
+
+  it('does not hoist a car on the ground onto the flyover it drives under', () => {
+    expect(surfaceUnder(0, 0, 0, 0, both)).toBe(0)
+  })
+})

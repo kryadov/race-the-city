@@ -54,11 +54,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       same rule bridges have used all along — v0.87.0
 - [x] **Girls in skirts** among the pedestrians — shipped inside v0.87.0 (its message does not
       mention them: they were swept into that commit by mistake)
-- [ ] **Markings float above the car on a bridge** — reported with a screenshot, not yet
-      reproduced. Mechanism to check first: `createDeckIndex(deckList, 5)` feeds the markings
-      and returns the HIGHEST deck within 5m, while the car rides `createDeckIndex(deckList)`
-      with no margin. Where two decks run close, the markings can take the higher one. The 5m
-      margin is there for lamps beside the carriageway, so the two may want splitting
+- [x] **Markings float above the car on a bridge** — a bridge running under a flyover was told
+      its own deck was the flyover's: the deck index answered with the highest deck there was,
+      so the markings went up there and the car fell through to the ground — v0.90.1
 - [ ] **Map radius ×1.5** (1000m → 1500m) if it does not cost performance — measure first:
       buildings are merged per class, so nothing is culled and 2.25× the area is 2.25× the
       vertices, whatever the fog hides

@@ -367,13 +367,18 @@ async function loadCity(query: string): Promise<void> {
     // reads the terrain, so the road running *under* an overpass keeps its own.
     // Generous margin: lamps stand beside the carriageway and markings run to
     // its very edge, so a deck query at exactly the road's width misses them.
-    const decksWide = createDeckIndex(deckList, 5)
-    const deckProvider: ElevationProvider = {
-      heightAt: (x, z) => decksWide.heightAt(x, z) ?? provider.heightAt(x, z),
-    }
+    // One index per bridge, not one of all of them: a road's markings and lamps
+    // belong on ITS deck. Asking a single index hands a bridge running under a
+    // flyover the flyover's height, and paints its markings ten metres above the
+    // road they belong to — which is what you saw from underneath them.
+    // `deckList` is built from `bridgeRoads` in order, so the indices line up.
+    const ownDeck = deckList.map((d): ElevationProvider => {
+      const only = createDeckIndex([d], 5)
+      return { heightAt: (x, z) => only.heightAt(x, z) ?? provider.heightAt(x, z) }
+    })
     const detail = new THREE.Group()
     detail.add(buildRoadDetail(normalRoads, provider))
-    if (bridgeRoads.length) detail.add(buildRoadDetail(bridgeRoads, deckProvider))
+    if (bridgeRoads.length) detail.add(buildRoadDetail(bridgeRoads, (r) => ownDeck[r] ?? provider))
     roadDetailMesh = detail
     roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider)

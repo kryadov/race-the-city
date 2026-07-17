@@ -86,8 +86,18 @@ interface Seg {
 }
 
 export interface DeckIndex {
-  /** The deck height over this spot, or null if no bridge covers it. */
-  heightAt(x: number, z: number): number | null
+  /**
+   * The deck height over this spot, or null if no bridge covers it.
+   *
+   * @param near the height the caller is asking FROM: the answer is the highest
+   *   deck it could actually be on, rather than the highest deck there is. A low
+   *   bridge running under a flyover was told its own deck was ten metres up —
+   *   the flyover's — so the car fell through to the ground while its markings
+   *   stayed up there, and you drove along underneath them. Omit it and the
+   *   answer is the highest deck, which answers a different question: is there
+   *   anything above this spot at all.
+   */
+  heightAt(x: number, z: number, near?: number): number | null
 }
 
 /** Distance² from a point to a segment, plus how far along it that lands. */
@@ -123,17 +133,25 @@ export function createDeckIndex(decks: Deck[], margin = 0): DeckIndex {
     }
   }
   return {
-    heightAt(x, z) {
+    heightAt(x, z, near) {
+      // The highest deck within reach of `near`, and failing that the lowest
+      // deck above it — which the caller will reject as out of reach, and should.
+      // Not simply the nearest: one bridge's own segments overlap near its
+      // abutment and differ by half a metre, so nearest-wins has the car ride
+      // its own ramp permanently half a metre low.
       let best: number | null = null
+      let lowestAbove: number | null = null
       for (const s of segs) {
         const { d2, t } = closest(x, z, s)
         if (d2 > s.r2) continue
         const y = s.ay + (s.by - s.ay) * t
-        // Stacked crossings: the highest deck wins, and the car picks between
-        // that and the ground by where it already was.
+        if (near !== undefined && y > near + DECK_SNAP) {
+          if (lowestAbove === null || y < lowestAbove) lowestAbove = y
+          continue
+        }
         if (best === null || y > best) best = y
       }
-      return best
+      return best ?? lowestAbove
     },
   }
 }
@@ -157,7 +175,9 @@ export function surfaceUnder(
   terrainY: number,
   decks: DeckIndex,
 ): number {
-  const deckY = decks.heightAt(x, z)
+  // Ask about the deck we are near, not the highest one there is: driving under
+  // a flyover on a bridge of your own, the highest is not yours.
+  const deckY = decks.heightAt(x, z, prevY)
   if (deckY === null) return terrainY
   return Math.abs(prevY - deckY) < DECK_SNAP ? deckY : terrainY
 }
