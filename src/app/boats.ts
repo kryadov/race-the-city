@@ -73,10 +73,15 @@ export function circleFits(
 }
 
 /**
- * How far out to look for water, and how finely — metres. The scene's fog closes
- * at 900m, so a boat beyond that is a boat nobody will ever see.
+ * How far out to look for water, and how finely — metres.
+ *
+ * The whole map, and not a metre less: this is RADIUS in `main.ts`, the ground
+ * mesh's half-size, and you can drive to any of it. It was 900m on a fog
+ * argument, which was simply wrong — the fog hides what is far from the CAMERA,
+ * not from the city centre, and the map's corners are 1414m out. Two lakes near
+ * the edge of it therefore got nothing.
  */
-const LOOK = 900
+const LOOK = 1000
 const LOOK_STEP = 40
 
 /**
@@ -84,8 +89,8 @@ const LOOK_STEP = 40
  * wet.
  *
  * Three things have each put a ship somewhere absurd. The widest spot outright
- * is a mile offshore for a sea along the map's edge — afloat, correct, and
- * invisible. The nearest spot with any room is hard against the near bank,
+ * is a mile offshore for a sea running past the map — afloat, correct, and
+ * nowhere you can drive to. The nearest spot with any room is hard against the near bank,
  * where only a rowboat fits. And a spot that is inside the water polygon can
  * still be dry land: the water sits at the LOWEST ground around its rim, so on
  * a lake in a valley the terrain in the middle can stand above that plane. The
@@ -100,9 +105,10 @@ export function spotNearMiddle(
   level: number,
 ): { x: number; z: number; r: number } | null {
   let best: { x: number; z: number; r: number } | null = null
+  // The map is a square, so this is too: a circle of it would drop the corners,
+  // which is where the last lake went missing.
   for (let x = -LOOK; x <= LOOK; x += LOOK_STEP) {
     for (let z = -LOOK; z <= LOOK; z += LOOK_STEP) {
-      if (Math.hypot(x, z) > LOOK) continue
       const r = roomAt(ring, x, z)
       if (r < ROWBOAT_ROOM || (best && r <= best.r)) continue
       if (provider.heightAt(x, z) > level) continue // dry land inside the outline

@@ -85,13 +85,13 @@ describe('where a boat goes', () => {
     { x: 200, z: 6000 },
   ]
 
-  it('puts a ship in sight of the city, not out in the open sea', async () => {
-    // The widest part of a sea that runs off the edge of the map is a mile
-    // offshore. The ship was out there: afloat, correct, and invisible.
+  it('puts a ship where you could drive to it, not out in the open sea', async () => {
+    // The widest part of a sea that runs past the map is a mile offshore. The
+    // ship was out there: afloat, correct, and nowhere you can reach.
     const { spotNearMiddle } = await import('../../src/app/boats')
     const spot = spotNearMiddle(sea, sea_level_flat, 0)
     expect(spot).not.toBeNull()
-    expect(Math.hypot(spot!.x, spot!.z), 'beyond the fog is nowhere').toBeLessThan(900)
+    expect(Math.max(Math.abs(spot!.x), Math.abs(spot!.z)), 'off the map is nowhere').toBeLessThanOrEqual(1000)
     expect(spot!.r).toBeGreaterThan(14)
   })
 
@@ -172,5 +172,35 @@ describe('water that is not there', () => {
     const half = { heightAt: (x: number) => (x > 0 ? 5 : -3) }
     const spot = spotNearMiddle(lake, half, 0)!
     expect(spot.x, 'it should be on the wet side').toBeLessThanOrEqual(0)
+  })
+})
+
+describe('a lake out at the edge of the map', () => {
+  it('gets a boat: you can drive there, so it is not out of sight', async () => {
+    // The search was a 900m circle round the city centre, on the grounds that
+    // the fog closes at 900m. The fog hides what is far from the CAMERA, and the
+    // camera goes where you drive — to the map's corners, 1414m out. Two big
+    // lakes near the edge came up empty.
+    const { spotNearMiddle } = await import('../../src/app/boats')
+    const corner: Vec2[] = [
+      { x: 600, z: 600 },
+      { x: 980, z: 600 },
+      { x: 980, z: 980 },
+      { x: 600, z: 980 },
+    ]
+    const spot = spotNearMiddle(corner, { heightAt: () => -1 }, 0)
+    expect(spot, 'a lake at the edge of the map is still on the map').not.toBeNull()
+    expect(spot!.r).toBeGreaterThan(14)
+  })
+
+  it('still ignores open water that runs off the map entirely', async () => {
+    const { spotNearMiddle } = await import('../../src/app/boats')
+    const offMap: Vec2[] = [
+      { x: 3000, z: -6000 },
+      { x: 9000, z: -6000 },
+      { x: 9000, z: 6000 },
+      { x: 3000, z: 6000 },
+    ]
+    expect(spotNearMiddle(offMap, { heightAt: () => -1 }, 0)).toBeNull()
   })
 })
