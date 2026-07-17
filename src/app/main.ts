@@ -92,6 +92,7 @@ import { FlatProvider } from '../terrain/flat'
 import { griddedProvider } from '../terrain/gridded'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
+import { startPose } from '../world/start'
 import { buildBuildings } from '../world/buildings'
 import { buildRoads, buildRailways, roadWidth } from '../world/roads'
 import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../world/bridge'
@@ -418,8 +419,12 @@ async function loadCity(query: string): Promise<void> {
       25,
       tops.concat(propTops(world.props, provider)),
     )
-    car = createCar(0, 0)
-    car.y = provider.heightAt(0, 0) + (HOVERS[vehicle] ? HOVER_H : 0)
+    // On the nearest road, not on the spot the geocoder named: a geocoder names
+    // a place, and Tokyo's is a building — you started inside it, against a wall.
+    const start = startPose(normalRoads)
+    car = createCar(start?.x ?? 0, start?.z ?? 0)
+    car.heading = start?.heading ?? 0
+    car.y = provider.heightAt(car.x, car.z) + (HOVERS[vehicle] ? HOVER_H : 0)
     // resume the saved pose if we're re-loading the same city
     const sess = getSession()
     odometer = 0
