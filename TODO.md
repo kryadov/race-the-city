@@ -47,6 +47,14 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       opposite the sun in `sky.ts`, `smoothstep(0.9975, 0.9987)` wide with a `pow(md, 900)`
       glow. Asked for again, so it is not landing — probably too small, too dim, or lost to
       the fog. Wants a look before any code
+- [ ] **Elevation is exaggerated in some cities** — Helsinki, St Petersburg and Tokyo have far
+      bigger swings than they should (Helsinki and SPb are flat in life); other cities look
+      right. First suspect, to be MEASURED not assumed: Terrarium tiles are Web Mercator, so a
+      tile covers `cos(lat)` fewer ground metres — at 60°N that is half. If the local x/z →
+      pixel mapping misses that factor, every slope comes out twice as steep, and the error
+      grows with latitude. Tokyo at 35°N would be off by ~20%, which fits it being merely
+      wrong rather than absurd. Probe it with the headless-Chrome harness (see AGENTS.md):
+      compare `dem.heightAt` against known ground truth at several latitudes
 - [ ] **More cities** — the random list repeats too often (85 across 10 regions today; a
       region is drawn first, so small regions come up disproportionately)
 - [x] **Trains come out of a tunnel and go into one** — carriages off the line are no longer
