@@ -35,6 +35,21 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Street lamps, signs & road markings — done in v0.31.0, reworked in v0.37.0
 
 ## 📥 Asked for, not done yet
+- [ ] **Birds are still wrong, and the model is worse than the motion** (reported after
+      v0.91.1 — check the user was on it before diagnosing):
+      - "висят неподвижно на уровне деревьев" — a perched bird is motionless at TREE_PERCH_H
+        over a tree's ground position, but the trees it perches on are scaled 0.7-1.4, so the
+        height is a guess and the bird reads as hanging in the air beside one, not sitting in
+        it. Perches need the tree's actual crown, or to stop pretending: `world.trees` gives
+        positions only, and `buildTrees` scales each one after the fact
+      - "отвесно падают вниз на землю и исчезают" — something still drops vertically. The
+        landing flies a glide slope now, so suspect the takeoff→perch path or the FAR recycle
+        (`b.state = 'perched'` snaps a bird to a fresh perch with no transition at all —
+        that IS a teleport, and next to the player it would be seen)
+      - **"выглядят они плоско, это отвратительно"** — they ARE flat: two triangles hinged at
+        a shared vertex, no body at all. A bird needs volume: a body, and wings that read as
+        wings from the side. This is the part to fix first — the motion is closer than the
+        model is
 - [ ] **Coming off a height reads as falling through it** — off a roof, and off the end of a
       high bridge, the car reaches the edge and drops rather than launching off it. The
       surface stops being ground the instant it ends, so there is no lip and no carry
