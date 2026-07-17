@@ -34,6 +34,8 @@ const RAIL_TOP = RAILHEAD_Y
 const RAIL_Y = RAIL_TOP + 0.45 // axle height above the railhead
 const MIN_LINE = 260 // metres of track needed before a train is worth running
 const MIN_TRAM_LINE = 120 // a tram works a shorter run than an intercity
+/** Height of a tunnel mouth's opening, in metres — clears the tallest carriage. */
+const PORTAL_MOUTH = 5
 
 export interface Trains {
   update(dt: number, night: number): void
@@ -85,6 +87,43 @@ function middleGap(rail: { points: Vec2[] }): number {
   let best = Infinity
   for (const p of rail.points) best = Math.min(best, Math.hypot(p.x, p.z))
   return best
+}
+
+/**
+ * A tunnel mouth, for the ends of a line.
+ *
+ * OSM lines stop at the edge of the map, or wherever the mapper stopped, so a
+ * train reaching the end had nowhere to be. Giving it a portal to come out of
+ * and go into is the cheap honest answer: the line ends somewhere either way,
+ * and a tunnel is somewhere.
+ *
+ * @param angle the bearing of the track here, radians
+ */
+function portal(angle: number): THREE.Group {
+  const g = new THREE.Group()
+  const W = 8
+  const H = 6.5
+  // The face, with the hole in it built as four blocks rather than a hole: a
+  // low-poly wall with a gap costs four boxes and no CSG.
+  const stone = mat(0x6d6a63)
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2, W), stone)
+  lintel.position.set(0, PORTAL_MOUTH + 1, 0)
+  g.add(lintel)
+  for (const side of [1, -1]) {
+    const pier = new THREE.Mesh(new THREE.BoxGeometry(1.2, PORTAL_MOUTH, 2.4), stone)
+    pier.position.set(0, PORTAL_MOUTH / 2, side * 2.8)
+    g.add(pier)
+  }
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, W + 0.8), mat(0x5a5750))
+  cap.position.set(0, H, 0)
+  g.add(cap)
+  // The dark behind the mouth: a train that has gone in has gone somewhere.
+  const dark = new THREE.Mesh(new THREE.BoxGeometry(3, PORTAL_MOUTH, 5.2), mat(0x0a0a0c))
+  dark.position.set(-1.6, PORTAL_MOUTH / 2, 0)
+  g.add(dark)
+  g.rotation.y = -angle
+  g.userData.portal = true // not a carriage: the tests count what moves
+  return g
 }
 
 const mat = (c: number): THREE.MeshStandardMaterial =>
@@ -316,6 +355,24 @@ export function createTrains(
       cars.push(c)
     }
     running.push({ line, cum, k, cars, s: rand() * total, dir: rand() < 0.5 ? 1 : -1 })
+
+    // A mouth at each end for it to come out of and go into. The bearing is the
+    // track's own at that end, and the far one faces back down the line.
+    const ends: [Vec2, number][] = [
+      [line[0], Math.atan2(line[1].z - line[0].z, line[1].x - line[0].x) + Math.PI],
+      [
+        line[line.length - 1],
+        Math.atan2(
+          line[line.length - 1].z - line[line.length - 2].z,
+          line[line.length - 1].x - line[line.length - 2].x,
+        ),
+      ],
+    ]
+    for (const [at, angle] of ends) {
+      const p = portal(angle)
+      p.position.set(at.x, provider.heightAt(at.x, at.z), at.z)
+      group.add(p)
+    }
   }
 
   const solidAt: Circle[] = []
@@ -345,12 +402,15 @@ export function createTrains(
         // Run to the end of the line and come back, rather than jumping to the
         // start: the jump is visible, and a line that leaves the map has to end
         // somewhere anyway.
+        // Run right out of the line and come back. The train may sit entirely
+        // beyond either end: that is the tunnel, and the carriages out there are
+        // simply not drawn.
         const rake = (tr.k.cars - 1) * (tr.k.len + 1.2)
-        if (tr.dir > 0 && tr.s > total) {
-          tr.s = total
+        if (tr.dir > 0 && tr.s > total + rake) {
+          tr.s = total + rake
           tr.dir = -1
-        } else if (tr.dir < 0 && tr.s < rake) {
-          tr.s = rake
+        } else if (tr.dir < 0 && tr.s < -rake) {
+          tr.s = -rake
           tr.dir = 1
         }
         tr.cars.forEach((car, i) => {
@@ -358,6 +418,12 @@ export function createTrains(
           // whole train follows the curve instead of pivoting as one stick —
           // and 'back' is whichever way it happens to be running.
           const centre = tr.s - tr.dir * i * (tr.k.len + 1.2)
+          // Off the end of the line is inside the tunnel. `at` CLAMPS, so
+          // without this every carriage that has not emerged yet is piled on the
+          // first point of the track — and they drive out of one another one by
+          // one, which is exactly what it looked like.
+          car.visible = centre >= 0 && centre <= total
+          if (!car.visible) return
           const p = at(tr.line, tr.cum, centre)
           // Pitch to the grade: sample the track a half-carriage either side and
           // sit on the line between them, the way a bogie at each end would. A

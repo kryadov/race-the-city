@@ -11,8 +11,10 @@ const mainLine: Railway = { points: [v(0, 0), v(500, 0), v(1000, 0)], tram: fals
 const siding: Railway = { points: [v(0, 50), v(40, 50)], tram: false, tunnel: false } // 40m: not worth one
 const tramLine: Railway = { points: [v(0, 90), v(600, 90)], tram: true, tunnel: false }
 
-const countCars = (scene: THREE.Scene): number =>
-  (scene.children[0] as THREE.Group).children.length
+/** The carriages, without the tunnel mouths standing at the ends of the line. */
+const carsOf = (scene: THREE.Scene): THREE.Object3D[] =>
+  (scene.children[0] as THREE.Group).children.filter((c) => !c.userData.portal)
+const countCars = (scene: THREE.Scene): number => carsOf(scene).length
 
 describe('trains', () => {
   it('runs no train down a tunnel — it would drive through the city above it', () => {
@@ -107,6 +109,55 @@ describe('trains', () => {
     const scene = new THREE.Scene()
     createTrains(scene, [{ points: [v(0, 0), v(150, 0)], tram: true, tunnel: false }], flat, () => 0.5)
     expect(countCars(scene)).toBeGreaterThan(0)
+  })
+
+  it('never piles the carriages on the first point of the track', () => {
+    // `at` clamps, so a carriage that has not reached the line yet used to sit
+    // on its first metre — all of them at once, driving out of one another one
+    // by one as the train started. That was the standing wagon.
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0)
+    // s starts at 0 with rand() = 0: the whole rake is behind the line.
+    t.update(0.016, 0)
+    const shown = carsOf(scene).filter((c) => c.visible)
+    const seen = new Set(shown.map((c) => `${Math.round(c.position.x)},${Math.round(c.position.z)}`))
+    expect(seen.size, 'two carriages are standing in the same place').toBe(shown.length)
+  })
+
+  it('keeps a carriage out of sight until it has left the tunnel', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0)
+    t.update(0.016, 0)
+    const cars = carsOf(scene)
+    expect(cars.some((c) => !c.visible), 'the rake should still be inside the tunnel').toBe(true)
+    // Long enough for the whole train to be out on the line.
+    t.update(20, 0)
+    expect(carsOf(scene).every((c) => c.visible)).toBe(true)
+  })
+
+  it('is not solid while it is inside the tunnel', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0)
+    t.update(0.016, 0)
+    const hidden = carsOf(scene).filter((c) => !c.visible).length
+    // One circle pair per visible carriage: nothing you cannot see is in the way.
+    expect(t.obstacles().length).toBe((carsOf(scene).length - hidden) * 2)
+  })
+
+  it('stands a tunnel mouth at each end of the line', () => {
+    const scene = new THREE.Scene()
+    createTrains(scene, [mainLine], flat, () => 0.5)
+    const mouths = (scene.children[0] as THREE.Group).children.filter((c) => c.userData.portal)
+    expect(mouths.length).toBe(2)
+    const at = mouths.map((m) => Math.round(m.position.x)).sort((a, b) => a - b)
+    expect(at).toEqual([0, 1000]) // the two ends of the track, not somewhere in it
+  })
+
+  it('turns the train round rather than losing it out of the tunnel forever', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0)
+    for (let i = 0; i < 400; i++) t.update(0.5, 0)
+    expect(carsOf(scene).some((c) => c.visible), 'it never came back').toBe(true)
   })
 
   it('takes itself off the scene when the city changes', () => {

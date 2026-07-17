@@ -35,10 +35,11 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Street lamps, signs & road markings — done in v0.31.0, reworked in v0.37.0
 
 ## 📥 Asked for, not done yet
-- [ ] **Trains stack up at the end of the line** — `at()` clamps the distance instead of hiding
-      the carriage, so every carriage is piled on the first point and they drive out of each
-      other one by one. Wanted: a tunnel mouth at each end of the line, so a train comes out of
-      one and goes into the other instead of ending in mid-air (Tokyo shows it plainly)
+- [x] **Trains come out of a tunnel and go into one** — carriages off the line are no longer
+      clamped onto its first metre, so they stop piling up and driving out of each other, and
+      each line ends in a mouth instead of in mid-air — v0.88.0
+- [ ] **Birds** in the sky
+- [ ] **Petrol cans** to pick up, in the nitro's style; run low on fuel and the car slows
 - [ ] **People walk through trains** — they should wait at the crossing and let them pass
 - [ ] **Benches, empty and with people sitting on them; bus stops**
 - [x] **Fly over anything you are above** — the physics grid carries each obstacle's roof
