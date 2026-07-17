@@ -23,6 +23,7 @@ export const TRACKS: readonly Track[] = [
   { name: 'Memory Disk', file: 'audio/memory-disk.mp3' },
   { name: 'Pixels Deflate', file: 'audio/pixels-deflate.mp3' },
   { name: 'Slow Error', file: 'audio/slow-error.mp3' },
+  { name: 'Level 0', file: 'audio/level-0.mp3' },
 ]
 export const TRACK_NAMES: readonly string[] = TRACKS.map((t) => t.name)
 

@@ -93,6 +93,7 @@ import { Projector } from '../geo/project'
 import { loadTerrarium } from '../terrain/terrarium'
 import { FlatProvider } from '../terrain/flat'
 import { griddedProvider } from '../terrain/gridded'
+import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { startPose } from '../world/start'
@@ -190,7 +191,12 @@ let fuel = 1
 const flame = createNitroFlame()
 let density: Density = getDensity()
 const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
-let birds = createBirds(stage.scene, Math.random, countFor(density, 8))
+let lastTrees: Vec2[] = []
+/** Where a bird may land: the ground, a tree, or a roof — all of which move city to city. */
+const makeBirds = (): ReturnType<typeof createBirds> =>
+  createBirds(stage.scene, Math.random, countFor(density, 8), provider, lastTrees, (x, z) =>
+    roofUnder(x, z, grid),
+  )
 let trains: Trains | null = null
 let traffic: Traffic | null = null
 let people: Pedestrians | null = null
@@ -216,6 +222,13 @@ function showVehicle(type: VehicleType): void {
  * between two frames and lands in the street through the building.
  */
 const ROOF_SNAP = 2.0
+/**
+ * How far the sight line must pass under a roof before the camera counts it as
+ * blocked, and over one before it counts as clear again — metres.
+ */
+const CAM_GRAZE = 0.8
+/** Whether the camera thought it was blocked last frame; hysteresis needs it. */
+let camBlocked = false
 /** How lively a shunt is: enough to stop you, not enough to launch you. */
 const HIT_BOUNCE = 0.3
 const HIT_BLEED = 0.55
@@ -255,7 +268,11 @@ let steerHold = 0 // seconds that direction has been held
 let steerVis = 0 // front-wheel angle, eased toward the input so it winds on with the hold
 const STEER_EASE = 7 // per second; ~full lock after a third of a second held
 let blinkClock = 0 // free-running clock for the indicator blink
-const CYCLE_SECONDS = 240 // full day/night cycle
+/**
+ * A full day and night, in seconds. Eight minutes: at four, you could not drive
+ * across a city without the sun setting on you.
+ */
+const CYCLE_SECONDS = 480
 let timeOfDay = 0.35 // start mid-morning
 showVehicle(vehicle)
 audio.setVehicle(vehicle)
@@ -277,6 +294,11 @@ const occHeight = new Map<import('../geo/types').Vec2[], number>()
 let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
 let provider: ElevationProvider = new FlatProvider()
+// After grid and provider, never above them: this reads both, and a `let`
+// declared further down is still in its temporal dead zone at module scope. The
+// boot check caught exactly this — the same trap that took the app down in
+// v0.82.0, and the reason that check exists.
+let birds = makeBirds()
 const rivals = createRivals(stage.scene)
 // Rivals race the trial's gates. Racing with the trial off would put three cars
 // on a course that does not exist, so the switch only bites once both are on.
@@ -470,6 +492,9 @@ async function loadCity(query: string): Promise<void> {
     herds = createLivestock(stage.scene, world.fields, provider)
     lastRoads = world.roads
     lastRailways = world.railways
+    lastTrees = world.trees
+    birds.dispose() // the outgoing city's trees and roofs were its perches
+    birds = makeBirds()
     lastWater = world.water
     autopilot.reset(world.roads, car)
     trial.reset(world.roads, provider, car)
@@ -651,7 +676,8 @@ async function loadCity(query: string): Promise<void> {
           headlight.target.updateMatrixWorld()
         }
         // pull the camera in through tunnels, and when a building blocks the car
-        const blocked = viewBlocked(car.x, car.z, car.y + 1.5, stage.camera.position)
+        camBlocked = viewBlocked(car.x, car.z, car.y + 1.5, stage.camera.position, camBlocked)
+        const blocked = camBlocked
         const target = inTunnel(car.x, car.z) ? 0.42 : blocked ? 0.45 : 1
         // snap in quickly when blocked, ease back out gently once clear
         stage.camDistScale += (target - stage.camDistScale) * (1 - Math.exp(-(blocked ? 9 : 4) * dt))
@@ -796,7 +822,7 @@ const menu = createSettingsMenu(
       boats?.dispose()
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
       birds.dispose()
-      birds = createBirds(stage.scene, Math.random, countFor(density, 8))
+      birds = makeBirds()
     },
     onTrial: (on) => applyTrial(on),
     onRace: (on) => {
@@ -881,17 +907,23 @@ theme.onChange = (mode) => menu.setViewMode(mode)
  * and tests nearby footprints against the ray's height — far cheaper than
  * raycasting the merged city mesh every frame.
  */
-function viewBlocked(cx: number, cz: number, cy: number, cam: THREE.Vector3): boolean {
+function viewBlocked(cx: number, cz: number, cy: number, cam: THREE.Vector3, wasBlocked: boolean): boolean {
   const dx = cam.x - cx, dz = cam.z - cz, dy = cam.y - cy
   const len = Math.hypot(dx, dz)
   if (len < 1) return false
+  // Hysteresis: it takes CAM_GRAZE metres under a roof to call the view blocked,
+  // and CAM_GRAZE over it to call it clear again. On a bridge the car rides at
+  // roof height, so the sight line grazes the rooftops and a bare comparison
+  // flips every frame — the camera then snaps in and eases out over and over,
+  // and that was the shake. The car was never moving.
+  const margin = wasBlocked ? -CAM_GRAZE : CAM_GRAZE
   const steps = Math.min(14, Math.max(3, Math.ceil(len / 2)))
   for (let i = 1; i <= steps; i++) {
     const t = i / steps
     const x = cx + dx * t, z = cz + dz * t, y = cy + dy * t
     for (const fp of occGrid.near(x, z)) {
       const roof = provider.heightAt(x, z) + (occHeight.get(fp) ?? 0)
-      if (y < roof && pointInPolygon(x, z, fp)) return true
+      if (y + margin < roof && pointInPolygon(x, z, fp)) return true
     }
   }
   return false

@@ -7,10 +7,25 @@ import { pointInPolygon } from '../physics/collide'
 
 /** A ship needs this much clear water around it, in metres. */
 const SHIP_ROOM = 55
+/**
+ * A motor yacht is a third the cargo ship's length and turns inside its own
+ * hull rather than needing a wide bend to come about in — most of what it
+ * wants is turning room, not a harbour's worth of open water.
+ */
+const YACHT_ROOM = 38
+/**
+ * A sailing boat wants more than a rowboat's puddle — the boom swings out
+ * past the hull — but nothing like a yacht's turning circle, since it pivots
+ * about its own length rather than motoring wide.
+ */
+const SAIL_ROOM = 24
 /** A rowing boat is happy on anything from a pond up. */
 const ROWBOAT_ROOM = 14
 /** Half the length of each hull — what has to stay wet, not just its centre. */
 const SHIP_HALF = 19
+const YACHT_HALF = 8
+const SAIL_HALF = 4.5
+const ROWBOAT_HALF = 2.4
 /**
  * The biggest circle a boat will patrol, in metres.
  *
@@ -21,8 +36,18 @@ const SHIP_HALF = 19
  * into the scenery.
  */
 const MAX_CIRCLE = 60
-const ROWBOAT_HALF = 2.4
+/**
+ * Clear water two patrol circles must keep between them, in metres.
+ *
+ * `spots()` ranks candidates by room and hands back up to CANDIDATES of them,
+ * which on a wide harbour are often the same bend measured forty metres apart
+ * on the sampling grid. Without a gap every one of those qualifies and a
+ * harbour fills up with boats stacked on the same stretch of water.
+ */
+const BOAT_GAP = 25
 const SHIP_SPEED = 4.5
+const YACHT_SPEED = 6.5 // the fastest thing on the water — it's under power and built for it
+const SAIL_SPEED = 2.2 // ambling: a sailing boat is not in a hurry
 const ROW_SPEED = 1.2
 
 export interface Boats {
@@ -93,8 +118,59 @@ export function circleFits(
  */
 const LOOK = 1000
 const LOOK_STEP = 40
-/** How many of the roomiest spots to try before giving this water up. */
-const CANDIDATES = 40
+/**
+ * How many of the roomiest spots to try before giving this water up.
+ *
+ * Also what makes a big harbour hold more than one boat: candidates are
+ * ranked nearest-the-middle within their tier, so on a wide open body the
+ * first several dozen are all clustered within one ship's 145m separation
+ * gap (2 x MAX_CIRCLE + BOAT_GAP) of each other and get rejected. Cut short
+ * at 40, a harbour the size of a small sea reads exactly like a pond — one
+ * boat, because nothing further out was ever offered. 300 reaches far enough
+ * past that cluster for a genuinely big body of water to actually place more
+ * than one.
+ */
+const CANDIDATES = 300
+
+/** What a vessel needs, and how it moves once it has it. */
+interface Kind {
+  name: 'rowboat' | 'sail' | 'yacht' | 'ship'
+  room: number // minimum clear water to qualify, in metres
+  half: number // half-length: what has to stay wet round the whole patrol circle
+  speed: number
+  /**
+   * Chance a qualifying spot actually gets one, once the map already has a
+   * boat afloat somewhere. Bigger vessels need rarer water to qualify at all,
+   * so once one is found it is shown more often — a ship-sized gap in a city
+   * is not a thing to then also roll dice on.
+   */
+  showChance: number
+  build: () => THREE.Group
+}
+
+/**
+ * Every vessel, ascending by room needed. `kindFor` walks this to find the
+ * biggest one a given spot qualifies for, the same order `spots()` ranks
+ * candidates in — biggest-capable first.
+ */
+const KINDS: Kind[] = [
+  { name: 'rowboat', room: ROWBOAT_ROOM, half: ROWBOAT_HALF, speed: ROW_SPEED, showChance: 0.4, build: rowboat },
+  { name: 'sail', room: SAIL_ROOM, half: SAIL_HALF, speed: SAIL_SPEED, showChance: 0.5, build: sailboat },
+  { name: 'yacht', room: YACHT_ROOM, half: YACHT_HALF, speed: YACHT_SPEED, showChance: 0.65, build: yacht },
+  { name: 'ship', room: SHIP_ROOM, half: SHIP_HALF, speed: SHIP_SPEED, showChance: 0.75, build: ship },
+]
+
+/** Index into KINDS of the biggest vessel that fits in this much room. */
+function tierOf(room: number): number {
+  let tier = 0
+  for (let i = 0; i < KINDS.length; i++) if (room >= KINDS[i].room) tier = i
+  return tier
+}
+
+/** The biggest vessel a spot with this much clear water around it qualifies for. */
+function kindFor(room: number): Kind {
+  return KINDS[tierOf(room)]
+}
 
 /**
  * Every spot on the map with room for a boat in this water, widest first.
@@ -130,11 +206,12 @@ export function spots(
       found.push({ x, z, r })
     }
   }
-  // Roomy enough for a ship first, and among those the nearest to the middle —
-  // not simply the roomiest, which on a river is always its widest bend out at
-  // the map's corner, where a ship is technically afloat and practically absent.
+  // Roomy enough for the biggest vessel first, and among those the nearest to
+  // the middle — not simply the roomiest, which on a river is always its
+  // widest bend out at the map's corner, where a ship is technically afloat
+  // and practically absent.
   const rank = (p: { x: number; z: number; r: number }): number =>
-    (p.r >= SHIP_ROOM ? 0 : 1e6) + Math.hypot(p.x, p.z)
+    (KINDS.length - 1 - tierOf(p.r)) * 1e6 + Math.hypot(p.x, p.z)
   found.sort((a, b) => rank(a) - rank(b))
   return found.slice(0, CANDIDATES)
 }
@@ -199,6 +276,74 @@ function rowboat(): THREE.Group {
 }
 
 /**
+ * A mainsail: luff up the mast, foot along the boom, leech bellied out to
+ * leeward. Three vertices and one face — the cheapest shape that still reads
+ * as a sail rather than a flag, the same trick `birds.ts` uses for a wing.
+ * Flat in the hull's XY plane, so it stands upright on the mast instead of
+ * lying flat on the deck.
+ */
+function sailGeometry(): THREE.BufferGeometry {
+  const geo = new THREE.BufferGeometry()
+  const verts = [0, 0, 0, 0, 5.6, 0, -3.2, 0.6, 0]
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3))
+  geo.computeVertexNormals()
+  return geo
+}
+
+/**
+ * A small sailing boat: hull, mast, and the sail that does the work of
+ * reading as one at a distance — a hull this size is barely a pixel, the
+ * sail is what stands out above the water.
+ */
+function sailboat(): THREE.Group {
+  const g = new THREE.Group()
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.9, 2), mat(0xdedad2))
+  hull.position.y = 0.5
+  g.add(hull)
+  const bow = new THREE.Mesh(new THREE.ConeGeometry(1, 1.6, 4), mat(0xdedad2))
+  bow.rotation.z = -Math.PI / 2
+  bow.position.set(3.6, 0.5, 0)
+  g.add(bow)
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 6, 6), mat(0x5c4630))
+  mast.position.set(-0.5, 3.95, 0)
+  g.add(mast)
+  const sail = new THREE.Mesh(sailGeometry(), mat(0xf2efe6))
+  sail.position.set(-0.5, 0.95, 0)
+  g.add(sail)
+  return g
+}
+
+/**
+ * A motor yacht: white hull, a raised cabin, and a flying bridge above it —
+ * a third the cargo ship's length, and read from the same distance by height
+ * rather than bulk.
+ */
+function yacht(): THREE.Group {
+  const g = new THREE.Group()
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(13, 1.6, 3.6), mat(0xe8e6df))
+  hull.position.y = 0.8
+  g.add(hull)
+  const bow = new THREE.Mesh(new THREE.ConeGeometry(1.8, 3.2, 4), mat(0xe8e6df))
+  bow.rotation.z = -Math.PI / 2
+  bow.position.set(7.2, 0.8, 0)
+  g.add(bow)
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(9, 0.3, 3.2), mat(0xcfd3d8))
+  deck.position.y = 1.75
+  g.add(deck)
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(5, 1.8, 2.8), mat(0xf5f3ee))
+  cabin.position.set(-0.5, 2.8, 0)
+  g.add(cabin)
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.1, 2.2), mat(0xdfe4e8))
+  bridge.position.set(-0.5, 4.2, 0)
+  g.add(bridge)
+  const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 4.2, 6), mat(0x8a6a4a))
+  rail.rotation.z = Math.PI / 2
+  rail.position.set(-0.5, 3.65, 0)
+  g.add(rail)
+  return g
+}
+
+/**
  * The odd boat on the water.
  *
  * Each is placed at the widest point of a water body and circles there, which
@@ -218,44 +363,81 @@ export function createBoats(
   const rng = makeRng(0x5ea)
   const afloat: Afloat[] = []
 
-  for (const ring of water) {
-    if (afloat.length >= maxBoats) break
-    if (ring.length < 3) continue
-    const level = waterLevel(ring, provider)
-
-    // Take the roomiest spot whose circuit is genuinely afloat all the way
-    // round — the hull's ends included, since a 38m ship turning about its
-    // middle reaches 19m out before it has gone anywhere.
-    let put: { x: number; z: number; radius: number; big: boolean } | null = null
-    for (const spot of spots(ring, provider, level)) {
-      const big = spot.r >= SHIP_ROOM
-      const half = big ? SHIP_HALF : ROWBOAT_HALF
-      const radius = Math.min((spot.r - half) * 0.5, MAX_CIRCLE)
+  /**
+   * Try to put one boat on this water, at the best spot it has left.
+   *
+   * @returns whether it managed it
+   */
+  const placeOne = (
+    ring: Vec2[],
+    level: number,
+    ranked: { x: number; z: number; r: number }[],
+    guaranteed: boolean,
+  ): boolean => {
+    // `spots()` already ranks them biggest-capable-first and nearest-the-middle
+    // second, so working down the list fills the roomiest, most reachable water
+    // first and thins out towards the map's edges only once the ceiling allows.
+    while (ranked.length) {
+      const spot = ranked.shift() as { x: number; z: number; r: number }
+      const kind = kindFor(spot.r)
+      // Checked at the hull's ends, over the whole patrol circuit — a 38m ship
+      // turning about its middle reaches 19m out before it has gone anywhere.
+      const radius = Math.min((spot.r - kind.half) * 0.5, MAX_CIRCLE)
       if (radius <= 1) continue
-      if (!circleFits(ring, spot.x, spot.z, radius, half)) continue
+      if (!circleFits(ring, spot.x, spot.z, radius, kind.half)) continue
       if (!circleIsWet(spot.x, spot.z, radius, provider, level)) continue
-      put = { x: spot.x, z: spot.z, radius, big }
-      break
+      // Keep patrol circles apart — see BOAT_GAP — or a wide harbour's ranked
+      // candidates, which cluster on its widest bend, stack several boats on
+      // the same water.
+      if (afloat.some((b) => Math.hypot(b.cx - spot.x, b.cz - spot.z) < b.radius + radius + BOAT_GAP)) continue
+
+      // Not every spot that can take a boat gets one — but the FIRST one on each
+      // stretch of water does. A city often has a single river or lake, and
+      // rolling the dice on it meant the water was simply empty, which is what
+      // it looked like. Only the extras are left to chance.
+      if (!guaranteed && rand() > kind.showChance) continue
+
+      const mesh = kind.build()
+      mesh.userData.boatKind = kind.name
+      group.add(mesh)
+      afloat.push({
+        mesh,
+        cx: spot.x,
+        cz: spot.z,
+        radius,
+        angle: rng() * Math.PI * 2,
+        speed: kind.speed,
+        turn: rng() < 0.5 ? 1 : -1,
+      })
+      mesh.position.y = level
+      return true
     }
-    if (!put) continue
+    return false
+  }
 
-    // Not every stretch of water has a boat on it — but the first one that can
-    // take one does. A city often has a single river or lake, and rolling the
-    // dice on it meant the water was simply empty, which is what it looked like.
-    if (afloat.length && rand() > (put.big ? 0.75 : 0.4)) continue
-
-    const mesh = put.big ? ship() : rowboat()
-    group.add(mesh)
-    afloat.push({
-      mesh,
-      cx: put.x,
-      cz: put.z,
-      radius: put.radius,
-      angle: rng() * Math.PI * 2,
-      speed: put.big ? SHIP_SPEED : ROW_SPEED,
-      turn: rng() < 0.5 ? 1 : -1,
+  // One boat on each stretch of water before any stretch gets a second.
+  //
+  // Working a body dry before moving on lets one harbour eat the whole budget —
+  // four boats on the river and none at all on the lake beside it, which is the
+  // very complaint this started from. Round-robin instead: every water gets a
+  // boat, then the leftovers go wherever there is still room. More water still
+  // means more boats, since a canal runs out of spots after one and a harbour
+  // does not.
+  const bodies = water
+    .filter((ring) => ring.length >= 3)
+    .map((ring) => {
+      const level = waterLevel(ring, provider)
+      return { ring, level, ranked: spots(ring, provider, level) }
     })
-    mesh.position.y = level
+    .filter((b) => b.ranked.length > 0)
+
+  for (let pass = 0; afloat.length < maxBoats && bodies.length; pass++) {
+    let placedAny = false
+    for (const b of bodies) {
+      if (afloat.length >= maxBoats) break
+      if (placeOne(b.ring, b.level, b.ranked, pass === 0)) placedAny = true
+    }
+    if (!placedAny) break // every water is full or has nothing left to offer
   }
 
   let clock = 0

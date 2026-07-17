@@ -1,6 +1,6 @@
 export type VehicleType =
   | 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
-  | 'retro' | 'ev' | 'minivan' | 'tanker'
+  | 'retro' | 'ev' | 'minivan' | 'jeep' | 'tanker'
   | 'crane' | 'roller' | 'combine' | 'tiller'
   | 'tracked' | 'hover'
 
@@ -13,6 +13,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'retro',
   'ev',
   'minivan',
+  'jeep',
   'truck',
   'lorry',
   'tanker',
@@ -31,7 +32,7 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
  * never names a vehicle itself, so adding a type is one line here.
  */
 export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType[] }[] = [
-  { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan'] },
+  { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan', 'jeep'] },
   { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus', 'tanker'] },
   { key: 'vehGroup.special', types: ['tractor', 'crane', 'roller', 'combine', 'tiller'] },
   { key: 'vehGroup.exotic', types: ['motorbike', 'tracked', 'hover'] },
@@ -193,6 +194,13 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
   minivan: {
     key: 'minivan', accel: 62, brakeAccel: 60, dragForward: 1.9, gripLateral: 5.5,
     turnRate: 2.0, turnSpeedRef: 9, maxSpeed: 36, maxReverse: 12, radius: 1.6,
+  },
+  // An off-roader: heavier and less eager than the car (accel/radius between car
+  // and truck), but 4x4 grip close to the car's and a top speed that stays high
+  // instead of falling off like the truck/minivan — it just gets there unhurried.
+  jeep: {
+    key: 'jeep', accel: 58, brakeAccel: 62, dragForward: 1.8, gripLateral: 6.3,
+    turnRate: 2.0, turnSpeedRef: 8.5, maxSpeed: 40, maxReverse: 13, radius: 1.5,
   },
   // A fuel tanker: the sloshing load makes it the loosest heavy thing here.
   tanker: {

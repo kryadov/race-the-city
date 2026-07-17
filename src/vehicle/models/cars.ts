@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import {
-  box, fourWheels, light, lens, housingBar, glass, person, repeater, mirror,
+  box, wheel, fourWheels, exhaust, light, lens, housingBar, glass, person, repeater, mirror,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -124,6 +124,48 @@ export function buildEv(): THREE.Group {
   g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.6, 0.84, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.6, -0.84, 1))
   g.add(repeater(TURN_RIGHT_MAT, 1.3, 0.9, 0.94), repeater(TURN_LEFT_MAT, 1.3, 0.9, -0.94))
   g.add(mirror(0.8, 1.24, 0.94, 1), mirror(0.8, 1.24, -0.94, -1))
+  return g
+}
+
+/**
+ * A boxy off-roader: raised stance (the body sits well clear of the axle line,
+ * unlike the low-slung car), chunky tyres, a spare on the tailgate and a roof
+ * rack — the cues that read as "jeep" from behind even at low poly.
+ */
+export function buildJeep(): THREE.Group {
+  const g = new THREE.Group()
+  const body = 0x4a5d3a // khaki-green
+  const trim = 0x24261f
+  g.add(box(3.7, 0.85, 1.85, body, 0, 1.15, 0)) // boxy flat-sided body (x ∈ [-1.85, 1.85])
+  g.add(box(2.0, 0.6, 1.8, trim, -0.25, 1.85, 0)) // flat cab roof
+  g.add(glass(0.08, 0.5, 1.6, 0.72, 1.85, 0), glass(0.08, 0.44, 1.6, -1.22, 1.82, 0)) // windscreen, rear glass
+  g.add(glass(1.7, 0.42, 0.06, -0.25, 1.85, 0.92), glass(1.7, 0.42, 0.06, -0.25, 1.85, -0.92)) // side glass
+  // short struts bridging the raised body down to each hub — the suspension
+  // travel that the ground clearance implies, so the gap doesn't look accidental
+  for (const sz of [0.98, -0.98]) {
+    g.add(box(0.12, 0.32, 0.12, trim, 1.35, 0.68, sz), box(0.12, 0.32, 0.12, trim, -1.35, 0.68, sz))
+  }
+  g.add(...fourWheels(0.62, 0.5, 1.35, 0.98, 0.62)) // chunky off-road tyres, tall axle for the ride height
+  // spare on the tailgate: wheel() reused for its tyre/rim look, turned to face
+  // aft and stripped of its roll/steer tags so wheelPrint() doesn't mistake it
+  // for the (rearmost) axle that actually lays the skid marks
+  const spare = wheel(0.42, 0.3, -1.95, 1.35, 0)
+  spare.rotation.y = Math.PI / 2
+  delete spare.userData.wheelRadius
+  delete spare.userData.wheelWidth
+  g.add(spare)
+  // roof rack: a flat platform between two rails
+  g.add(box(1.8, 0.06, 1.6, trim, -0.25, 2.19, 0))
+  g.add(box(1.8, 0.12, 0.06, trim, -0.25, 2.16, 0.78), box(1.8, 0.12, 0.06, trim, -0.25, 2.16, -0.78))
+  g.add(exhaust(-1.9, 0.55, 0.7)) // tailpipe, low under the raised rear
+  g.add(light(1.93, 1.2, 0.68), light(1.93, 1.2, -0.68)) // round headlights, slightly proud
+  const rx = -1.85, fx = 1.85
+  g.add(housingBar(1.7, 0.5, rx, 1.25, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.4, 0.34, rx, 1.25, 0.55, -1), lens(REAR_LIGHT_MAT, 0.4, 0.34, rx, 1.25, -0.55, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.24, 0.24, rx, 1.25, 0.85, -1), lens(TURN_LEFT_MAT, 0.24, 0.24, rx, 1.25, -0.85, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 1.15, 0.78, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 1.15, -0.78, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.2, 1.3, 0.94), repeater(TURN_LEFT_MAT, 1.2, 1.3, -0.94))
+  g.add(mirror(0.75, 1.95, 0.92, 1), mirror(0.75, 1.95, -0.92, -1))
   return g
 }
 

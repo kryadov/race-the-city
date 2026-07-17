@@ -3,6 +3,15 @@ import * as THREE from 'three'
 import { buildVehicleMesh } from '../../src/vehicle/model'
 import { VEHICLE_TYPES, HOVERS } from '../../src/vehicle/vehicles'
 
+/** World-space y of a model's wheel axle (all four sit at the same height here). */
+function axleHeight(type: (typeof VEHICLE_TYPES)[number]): number {
+  let y = 0
+  buildVehicleMesh(type).traverse((o) => {
+    if (typeof (o.userData as { wheelRadius?: number }).wheelRadius === 'number') y = o.position.y
+  })
+  return y
+}
+
 describe('buildVehicleMesh', () => {
   it('builds a non-empty group for every vehicle type', () => {
     for (const type of VEHICLE_TYPES) {
@@ -73,5 +82,23 @@ describe('buildVehicleMesh', () => {
       if ((o.userData as { wheelRadius?: number }).wheelRadius) wheels++
     })
     expect(wheels).toBe(0)
+  })
+
+  it('gives the jeep exactly four wheels, the front pair steering', () => {
+    // the tailgate spare reuses wheel() for its look but is stripped of the
+    // wheelRadius tag, so it must not be counted as a fifth wheel here
+    const wheels: THREE.Object3D[] = []
+    buildVehicleMesh('jeep').traverse((o) => {
+      if ((o.userData as { wheelRadius?: number }).wheelRadius) wheels.push(o)
+    })
+    expect(wheels).toHaveLength(4)
+    const steering = wheels.filter((w) => (w.userData as { steers?: boolean }).steers)
+    expect(steering).toHaveLength(2)
+  })
+
+  it('sits the jeep higher off the ground than the plain car', () => {
+    // the off-roader's whole point is a raised stance with a visible suspension
+    // gap under the body — that starts with a taller wheel axle than the car's
+    expect(axleHeight('jeep')).toBeGreaterThan(axleHeight('car'))
   })
 })

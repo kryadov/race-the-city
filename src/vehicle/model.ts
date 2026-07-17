@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { VehicleType } from './vehicles'
-import { buildCar, buildSports, buildRaceCar, buildCabrio, buildRetro, buildEv, buildMinivan } from './models/cars'
+import { buildCar, buildSports, buildRaceCar, buildCabrio, buildRetro, buildEv, buildMinivan, buildJeep } from './models/cars'
 import { buildTruck, buildBus, buildLorry, buildTanker } from './models/trucks'
 import { buildTractor, buildCrane, buildRoller, buildCombine, buildTiller } from './models/special'
 import { buildMotorbike, buildTracked, buildHover } from './models/exotic'
@@ -24,6 +24,7 @@ const STOP_STYLE: Record<VehicleType, { color: number; emissive: number }> = {
   retro: { color: 0x5a0e00, emissive: 0xff3c00 }, // warm orange-red
   ev: { color: 0x3a0030, emissive: 0xff2eb0 }, // pink LED bar
   minivan: { color: 0x5a0018, emissive: 0xff1a3c },
+  jeep: { color: 0x4a2400, emissive: 0xff8a1e }, // amber, off-road-yellow tail lamps
   tanker: { color: 0x5a1e00, emissive: 0xff5a00 },
   crane: { color: 0x5a2400, emissive: 0xff6a00 },
   roller: { color: 0x5a2400, emissive: 0xff6a00 },
@@ -46,6 +47,7 @@ const BUILDERS: Record<VehicleType, () => THREE.Group> = {
   retro: buildRetro,
   ev: buildEv,
   minivan: buildMinivan,
+  jeep: buildJeep,
   tanker: buildTanker,
   crane: buildCrane,
   roller: buildRoller,

@@ -35,14 +35,31 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] Street lamps, signs & road markings — done in v0.31.0, reworked in v0.37.0
 
 ## 📥 Asked for, not done yet
+- [ ] **Coming off a height reads as falling through it** — off a roof, and off the end of a
+      high bridge, the car reaches the edge and drops rather than launching off it. The
+      surface stops being ground the instant it ends, so there is no lip and no carry
+- [ ] **Trees want more variety in height** — today every tree is scaled 0.7-1.4 of one
+      model per variant, which reads as uniform; the variants themselves are all much of a
+      size (conifer 3.7, broadleaf 3.6, spruce 4.4)
+- [ ] **Keep the car on the map** — nothing stops you driving off the ground mesh (RADIUS
+      1000m from the middle) into empty space
+- [ ] **The moon does not read at night** — one exists (v0.68.2): a shader disc riding
+      opposite the sun in `sky.ts`, `smoothstep(0.9975, 0.9987)` wide with a `pow(md, 900)`
+      glow. Asked for again, so it is not landing — probably too small, too dim, or lost to
+      the fog. Wants a look before any code
+- [ ] **More cities** — the random list repeats too often (85 across 10 regions today; a
+      region is drawn first, so small regions come up disproportionately)
 - [x] **Trains come out of a tunnel and go into one** — carriages off the line are no longer
       clamped onto its first metre, so they stop piling up and driving out of each other, and
       each line ends in a mouth instead of in mid-air — v0.88.0
 - [x] **Birds** in the sky — a flock wheeling round a centre that follows you — v0.90.0
-- [ ] **Yachts and sailing boats** as new kinds of vessel, and more boats where a city has
-      plenty of water (today it is a ship or a rowboat, and the count is fixed)
-- [ ] **A jeep** — an off-roader, as a new vehicle type (goes in the 'road' group's neighbours;
-      see VEHICLE_GROUPS in `src/vehicle/vehicles.ts`)
+- [x] **Yachts and sailing boats**, and more boats where a city has plenty of water — the
+      vessel follows the room available, and every stretch of water gets one before any gets
+      a second — v0.91.0
+- [ ] **Emergency vehicles** — a fire engine, a police car and an ambulance (livery, light bar;
+      the shared light materials in `models/parts.ts` are driven per frame, see AGENTS.md)
+- [x] **A jeep** — an off-roader: heavier and less eager than the car, 4x4 grip, and a top
+      speed that stays high instead of falling off like the truck's — v0.91.0
 - [x] **Petrol cans** to pick up, in the nitro's style; run low on fuel and the car slows — the
       pickup engine is shared with the nitro rather than copied — v0.89.0
 - [ ] **People walk through trains** — they should wait at the crossing and let them pass
