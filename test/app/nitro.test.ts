@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createNitro, NEAR_MIN, NEAR_MAX, FAR } from '../../src/app/nitro'
+import { createNitro, NEAR_MIN, NEAR_MAX, FAR, APART } from '../../src/app/nitro'
 import type { Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
@@ -80,5 +80,49 @@ describe('nitro', () => {
     const nitro = createNitro(scene)
     nitro.setSpots([], flat, 0, 0)
     expect(bottles(scene).filter((b) => b.visible).length).toBe(0)
+  })
+})
+
+describe('bottles keep their distance', () => {
+  it('does not drop two of them on top of each other', () => {
+    // Four bottles filled one view, two of them touching: a spot was drawn from
+    // the road's vertices with nothing said about where the others had gone.
+    const scene = new THREE.Scene()
+    const n = createNitro(scene)
+    n.setSpots(citySpots(), flat, 0, 0)
+    const out = (scene.children[0] as THREE.Group).children.filter((c) => c.visible)
+    let closest = Infinity
+    for (let i = 0; i < out.length; i++) {
+      for (let j = i + 1; j < out.length; j++) {
+        closest = Math.min(closest, out[i].position.distanceTo(out[j].position))
+      }
+    }
+    expect(out.length, 'nothing was placed at all').toBeGreaterThan(1)
+    expect(closest, 'two bottles are standing in the same spot').toBeGreaterThanOrEqual(APART - 0.01)
+  })
+
+  it('keeps them apart even where it cannot keep them far apart', () => {
+    // A cramped network: nowhere is APART clear, but nothing may share a spot.
+    const cramped: Vec2[] = Array.from({ length: 60 }, (_, i) => ({ x: 60 + i * 3, z: 0 }))
+    const scene = new THREE.Scene()
+    const n = createNitro(scene)
+    n.setSpots(cramped, flat, 0, 0)
+    const out = (scene.children[0] as THREE.Group).children.filter((c) => c.visible)
+    let closest = Infinity
+    for (let i = 0; i < out.length; i++) {
+      for (let j = i + 1; j < out.length; j++) {
+        closest = Math.min(closest, out[i].position.distanceTo(out[j].position))
+      }
+    }
+    expect(closest, 'two bottles ended up in the same place').toBeGreaterThan(0)
+  })
+
+  it('still places them when the roads are too small to keep them apart', () => {
+    // A stub with nowhere far enough to go: a bottle you can reach beats a gap.
+    const scene = new THREE.Scene()
+    const n = createNitro(scene)
+    n.setSpots([{ x: 60, z: 0 }, { x: 65, z: 0 }], flat, 0, 0)
+    const out = (scene.children[0] as THREE.Group).children.filter((c) => c.visible)
+    expect(out.length).toBeGreaterThan(0)
   })
 })

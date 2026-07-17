@@ -11,8 +11,27 @@ const FLOAT_Y = 1.4 // hover height above the road
 // 1000m-radius city (~3 km²) put them outside the ~150m the player can see, so
 // most cities looked like they had no nitro at all.
 export const NEAR_MIN = 40 // don't drop one in the player's lap
-export const NEAR_MAX = 250 // ...but keep it findable
+export const NEAR_MAX = 350 // ...but keep it findable. Wide enough to spread COUNT of them out
 export const FAR = 400 // past this the car has driven off; recycle the bottle
+/**
+ * How far apart two bottles must stand, in metres.
+ *
+ * Road vertices are five metres apart after densifying, and a spot was drawn
+ * from them with nothing said about the others — so two bottles could land
+ * touching, and four could fill one view. A pickup you have to go and find is
+ * the point of them.
+ */
+export const APART = 60
+/**
+ * The gap that is never given up, in metres.
+ *
+ * A cramped road network may have nowhere APART metres clear, and a bottle you
+ * can reach beats a perfect spread. Two bottles in the same spot is not a
+ * compromise, though — it is one bottle you cannot see and one you can.
+ */
+export const APART_MIN = 14
+/** How many spots to try at each gap before settling for less. */
+const TRIES = 30
 
 export interface Nitro {
   /** Scatter the pickups over a set of candidate points (road vertices) around the car. */
@@ -84,8 +103,46 @@ export function createNitro(scene: THREE.Scene): Nitro {
     return spots.length ? spots[Math.floor(Math.random() * spots.length)] : null
   }
 
+  /** Is this spot at least `gap` from every other bottle that is out? */
+  const clearOfOthers = (s: Vec2, self: Bottle, gap: number): boolean =>
+    bottles.every((o) => o === self || !o.active || Math.hypot(o.x - s.x, o.z - s.z) >= gap)
+
+  /** How far the nearest other bottle is from a spot. */
+  const lonelinessOf = (s: Vec2, self: Bottle): number => {
+    let near = Infinity
+    for (const o of bottles) {
+      if (o === self || !o.active) continue
+      near = Math.min(near, Math.hypot(o.x - s.x, o.z - s.z))
+    }
+    return near
+  }
+
+  /** A spot away from the other bottles: nicely so if it can, as far as it can if not. */
+  const pickApart = (b: Bottle): Vec2 | null => {
+    let best: Vec2 | null = null
+    let bestGap = -1
+    for (const gap of [APART, APART_MIN]) {
+      for (let i = 0; i < TRIES; i++) {
+        const s = pickSpot()
+        if (!s) return best
+        if (clearOfOthers(s, b, gap)) return s
+        // Not clear, but remember the roomiest thing we saw: a cramped network
+        // may have nowhere clear at all, and then the emptiest spot going is the
+        // answer. Taking the last random one instead put two in the same place,
+        // which is not a compromise — it is one bottle you can see and one you
+        // cannot.
+        const room = lonelinessOf(s, b)
+        if (room > bestGap) {
+          bestGap = room
+          best = s
+        }
+      }
+    }
+    return best
+  }
+
   const place = (b: Bottle): void => {
-    const s = provider ? pickSpot() : null
+    const s = provider ? pickApart(b) : null
     if (!s || !provider) {
       b.active = false
       b.mesh.visible = false
