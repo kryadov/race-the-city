@@ -11,6 +11,16 @@ const SHIP_ROOM = 55
 const ROWBOAT_ROOM = 14
 /** Half the length of each hull — what has to stay wet, not just its centre. */
 const SHIP_HALF = 19
+/**
+ * The biggest circle a boat will patrol, in metres.
+ *
+ * Without a cap this is half the clear water it found, which on the Nile came
+ * out at 161m — a 320m circuit in a river a few hundred metres wide, most of
+ * it over the bank. A boat going round something you can see the whole of reads
+ * as a boat; a boat on a circuit bigger than the view reads as a boat driving
+ * into the scenery.
+ */
+const MAX_CIRCLE = 60
 const ROWBOAT_HALF = 2.4
 const SHIP_SPEED = 4.5
 const ROW_SPEED = 1.2
@@ -83,42 +93,53 @@ export function circleFits(
  */
 const LOOK = 1000
 const LOOK_STEP = 40
+/** How many of the roomiest spots to try before giving this water up. */
+const CANDIDATES = 40
 
 /**
- * The widest spot in this water that is within sight of the city AND actually
- * wet.
+ * Every spot on the map with room for a boat in this water, widest first.
  *
- * Three things have each put a ship somewhere absurd. The widest spot outright
- * is a mile offshore for a sea running past the map — afloat, correct, and
- * nowhere you can drive to. The nearest spot with any room is hard against the near bank,
- * where only a rowboat fits. And a spot that is inside the water polygon can
- * still be dry land: the water sits at the LOWEST ground around its rim, so on
- * a lake in a valley the terrain in the middle can stand above that plane. The
- * water is then buried under the hill and the ship sails across the grass on
- * top of it, which is exactly what it did.
+ * Room alone is not enough and never was. The outline says where water would
+ * be; only the ground says whether it is. The Nile's outline is 73 square
+ * kilometres of which a good deal is dry: its islands are inner rings, and we
+ * do not read inner rings, so Gezira is "water" as far as the polygon knows.
+ * Hence the widest point of it — measured — sits 340m from any edge with a
+ * quarter of the circle round it standing above the river.
+ *
+ * So the caller walks these in order and takes the first whose whole circuit is
+ * actually wet, rather than taking the widest and being told afterwards that it
+ * is a park.
  *
  * @param level the height the water sits at, from `waterLevel`
  */
-export function spotNearMiddle(
+export function spots(
   ring: Vec2[],
   provider: ElevationProvider,
   level: number,
-): { x: number; z: number; r: number } | null {
-  let best: { x: number; z: number; r: number } | null = null
-  // The map is a square, so this is too: a circle of it would drop the corners,
-  // which is where the last lake went missing.
+): { x: number; z: number; r: number }[] {
+  const found: { x: number; z: number; r: number }[] = []
+  // The whole map, and not a metre less: this is RADIUS in `main.ts`, the ground
+  // mesh's half-size, and you can drive to any of it. It was a 900m circle round
+  // the middle on a fog argument, which was simply wrong — the fog hides what is
+  // far from the CAMERA, and the map's corners are 1414m out.
   for (let x = -LOOK; x <= LOOK; x += LOOK_STEP) {
     for (let z = -LOOK; z <= LOOK; z += LOOK_STEP) {
       const r = roomAt(ring, x, z)
-      if (r < ROWBOAT_ROOM || (best && r <= best.r)) continue
+      if (r < ROWBOAT_ROOM) continue
       if (provider.heightAt(x, z) > level) continue // dry land inside the outline
-      best = { x, z, r }
+      found.push({ x, z, r })
     }
   }
-  return best
+  // Roomy enough for a ship first, and among those the nearest to the middle —
+  // not simply the roomiest, which on a river is always its widest bend out at
+  // the map's corner, where a ship is technically afloat and practically absent.
+  const rank = (p: { x: number; z: number; r: number }): number =>
+    (p.r >= SHIP_ROOM ? 0 : 1e6) + Math.hypot(p.x, p.z)
+  found.sort((a, b) => rank(a) - rank(b))
+  return found.slice(0, CANDIDATES)
 }
 
-/** Is the whole circle a boat would go round under water, not over a hill in it? */
+/** Is the whole circle a boat would go round under water, not over a bank in it? */
 function circleIsWet(
   cx: number,
   cz: number,
@@ -201,38 +222,37 @@ export function createBoats(
     if (afloat.length >= maxBoats) break
     if (ring.length < 3) continue
     const level = waterLevel(ring, provider)
-    const fit = spotNearMiddle(ring, provider, level)
-    if (!fit) continue // a puddle, dry inside, or open water miles off the map
-    const big = fit.r >= SHIP_ROOM
+
+    // Take the roomiest spot whose circuit is genuinely afloat all the way
+    // round — the hull's ends included, since a 38m ship turning about its
+    // middle reaches 19m out before it has gone anywhere.
+    let put: { x: number; z: number; radius: number; big: boolean } | null = null
+    for (const spot of spots(ring, provider, level)) {
+      const big = spot.r >= SHIP_ROOM
+      const half = big ? SHIP_HALF : ROWBOAT_HALF
+      const radius = Math.min((spot.r - half) * 0.5, MAX_CIRCLE)
+      if (radius <= 1) continue
+      if (!circleFits(ring, spot.x, spot.z, radius, half)) continue
+      if (!circleIsWet(spot.x, spot.z, radius, provider, level)) continue
+      put = { x: spot.x, z: spot.z, radius, big }
+      break
+    }
+    if (!put) continue
+
     // Not every stretch of water has a boat on it — but the first one that can
     // take one does. A city often has a single river or lake, and rolling the
     // dice on it meant the water was simply empty, which is what it looked like.
-    if (afloat.length && rand() > (big ? 0.75 : 0.4)) continue
+    if (afloat.length && rand() > (put.big ? 0.75 : 0.4)) continue
 
-    // The hull has to stay wet, not just the point it turns about: a 38m ship
-    // spinning about its middle reaches 19m out before it has gone anywhere.
-    const half = big ? SHIP_HALF : ROWBOAT_HALF
-    const radius = (fit.r - half) * 0.5
-    if (radius <= 1) continue
-
-    // And prove it: walk the circle and check the hull's ends are still in the
-    // water. inradius fits the biggest circle it can find, but a ring that came
-    // out of the data misshapen can put that circle somewhere silly — and a ship
-    // on a field is worse than no ship.
-    if (!circleFits(ring, fit.x, fit.z, radius, half)) continue
-    // And that the water is really there: the outline says where it would be,
-    // the ground says whether it is.
-    if (!circleIsWet(fit.x, fit.z, radius, provider, level)) continue
-
-    const mesh = big ? ship() : rowboat()
+    const mesh = put.big ? ship() : rowboat()
     group.add(mesh)
     afloat.push({
       mesh,
-      cx: fit.x,
-      cz: fit.z,
-      radius,
+      cx: put.x,
+      cz: put.z,
+      radius: put.radius,
       angle: rng() * Math.PI * 2,
-      speed: big ? SHIP_SPEED : ROW_SPEED,
+      speed: put.big ? SHIP_SPEED : ROW_SPEED,
       turn: rng() < 0.5 ? 1 : -1,
     })
     mesh.position.y = level
