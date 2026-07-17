@@ -38,7 +38,9 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 - [x] **Trains come out of a tunnel and go into one** — carriages off the line are no longer
       clamped onto its first metre, so they stop piling up and driving out of each other, and
       each line ends in a mouth instead of in mid-air — v0.88.0
-- [ ] **Birds** in the sky
+- [x] **Birds** in the sky — a flock wheeling round a centre that follows you — v0.90.0
+- [ ] **Yachts and sailing boats** as new kinds of vessel, and more boats where a city has
+      plenty of water (today it is a ship or a rowboat, and the count is fixed)
 - [ ] **A jeep** — an off-roader, as a new vehicle type (goes in the 'road' group's neighbours;
       see VEHICLE_GROUPS in `src/vehicle/vehicles.ts`)
 - [x] **Petrol cans** to pick up, in the nitro's style; run low on fuel and the car slows — the

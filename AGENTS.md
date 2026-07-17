@@ -18,10 +18,15 @@ npm test             # unit tests, single run  — run before committing
 npx tsc --noEmit     # type-check (strict)      — run before committing
 npm run build        # production build to dist/
 npm run preview      # serve the build locally
+npm run boot-check   # after a build: does the app actually START? (headless Chrome)
 ```
 
 Before committing any change, `npm test` and `npx tsc --noEmit` must both pass, and
 `npm run build` must succeed and leave no stray files (`git status --short` clean).
+
+If you touched `src/app/main.ts` or anything it imports at module scope, run
+`npm run boot-check` too. Clean types, green tests and a clean build once shipped a black
+screen: none of them load `main.ts` (see the temporal-dead-zone gotcha below).
 
 ## Architecture
 
@@ -31,18 +36,23 @@ the **world layer knows nothing about the network**. Keep it that way.
 ```
 src/
   geo/       lat/lon↔meter projection, OSM parse, Overpass, Nominatim geocode, IndexedDB cache
-  terrain/   ElevationProvider interface; Terrarium tile decode; FlatProvider fallback
-  world/     mesh builders: ground (displaced plane), buildings (extruded), roads (ribbons)
-  physics/   SpatialGrid + circle-vs-polygon collision (resolveCircle)
-  vehicle/   arcade car step (pure) + Keyboard input
-  app/       scene/camera/loop, theme (day/neon view), main.ts wiring
-  ui/        city input, loading overlay
+  terrain/   ElevationProvider interface; Terrarium tile decode; FlatProvider; slope (groundQuat)
+  world/     mesh builders: ground, buildings, roads, bridges+decks, railways, water, greenery,
+             props, parking, road detail (markings/lamps/signs), start pose, roadGraph, route (A*)
+  physics/   SpatialGrid (footprints + their roof heights) + circle-vs-polygon collision
+  vehicle/   arcade car step (pure), gravity/jumps, vehicle specs, models/ per family, fuel
+  app/       scene/camera/loop, theme, weather, sky, day/night, clouds, traffic, pedestrians,
+             trains, boats, aircraft, birds, livestock, nitro/cans (over a shared pickup
+             engine), autopilot, rivals, timeTrial, fireworks, density, prefs, main.ts wiring
+  ui/        settings menu, HUD, minimap, trial HUD, road labels, help, pause, update notice
 test/        unit tests mirror src/ for pure functions
+scripts/     boot-check.mjs — the built app in headless Chrome
 ```
 
 Data flow: `geocode → bbox(1km) → Overpass (cache) → parseOsm → Projector → loadTerrarium
-(→ FlatProvider on failure) → build ground/buildings/roads → SpatialGrid(footprints) →
-createCar → startLoop(stepCar + syncCamera + render)`. All wired in `src/app/main.ts`.
+(→ FlatProvider on failure) → build ground/buildings/roads → SpatialGrid(footprints, tops) →
+startPose(roads) → createCar → startLoop(stepCar + syncCamera + render)`. All wired in
+`src/app/main.ts`.
 
 ## Conventions that MUST hold
 
@@ -75,7 +85,55 @@ building height, spatial grid, collision, car step). Rendering and driving feel 
 manually / with a headless smoke — a subagent cannot see a browser, so for rendering changes
 verify `tsc` + `build` + existing tests and defer the visual check to a human.
 
+**Test the behaviour, not the shape.** A test that asserts a vertex count tells you nothing
+when the bug is that two carriages are in the same place. Assert what a player would report:
+that no two pickups share a spot, that a car on a 1-in-4 hill is not level, that a crowd
+contains both kinds of walker.
+
+**Measure before you fix anything about a real city.** Three fixes to boats in a row were
+wrong because they were reasoned about instead of measured. The DEM decoder needs a canvas,
+so put a scratch page in the repo root, serve it with `npx vite`, and drive it with headless
+Chrome `--dump-dom`: you can then run the real pipeline — real Overpass, real terrain — and
+print what it actually did. Delete the page afterwards.
+
 ## Gotchas (learned the hard way)
+
+- **Module-scope temporal dead zone.** `main.ts` runs at module scope, so calling a function
+  above a `const` it reads is a ReferenceError at startup — and TypeScript cannot see it
+  through the function call. It shipped a black screen (v0.82.0) past clean types, 362 green
+  tests and a clean build. `npm run boot-check` exists because of this; it looks for the gear
+  button, built near main.ts's LAST line, since the canvas comes from its first and proves
+  nothing.
+- **InstancedMesh + `vertexColors: true` = black.** three's shader does `vColor *= color`,
+  reading the geometry's colour attribute; a BoxGeometry hasn't got one, so WebGL feeds it
+  zeroes and every instance is black before `instanceColor` is ever applied. Use `setColorAt`
+  only — `USE_INSTANCING_COLOR` is defined the moment you do.
+- **InstancedMesh culling.** three computes an InstancedMesh's bounding sphere once and never
+  again, so a batch that moves gets frustum-culled as one and blinks in and out. Anything
+  that moves: `frustumCulled = false`.
+- **The OSM cache key must include the query.** It was the bbox alone, and every tag added to
+  the Overpass query since was invisible in any city already cached — no railways, no trams,
+  no rivers, for good. It hashes the query text now, so this cannot recur silently.
+- **Water level is a LOCAL question.** `waterLevel` samples the bed inside the outline AND
+  inside the map, and takes a low quantile. The lowest point of the outline is not local: the
+  Nile's polygon is 73 km² and runs far past the map, so its lowest rim point is miles
+  downstream and below the river beside Cairo — the water then sits under the ground for the
+  whole city and boats sail over the grass. Measured: level 8.28 against a bed of 9.4–41.7.
+- **An outline is not water.** Inner rings (islands) are not read, so Gezira is inside the
+  Nile's polygon. Ask the ground, not the polygon, whether a spot is wet — and ask it about
+  the whole circle a boat will travel, while CHOOSING the spot, not as a veto afterwards.
+- **A step in the surface is not a slope.** Where the road meets a bridge deck the ground
+  gains metres between two frames; read as a slope that is a climb of 100m/s, and the frame
+  after it the car is fired twenty metres into the air. Compare the rise against the distance
+  actually travelled: past what that could have climbed, it is a step, and you cannot ramp
+  off a kerb.
+- **`at()` on a polyline clamps.** So anything positioned off the end of a line piles onto its
+  first point. Every train carriage sat on the first metre of track and drove out of the
+  others one at a time. Hide what is off the line instead.
+- **Put things where the player is, not where the data starts.** Trains ran on whichever lines
+  OSM listed first, boats at the widest water anywhere in the body, cars on any node at all.
+  All three read as 'the feature is missing'. Sort by distance to the middle, and check a spawn
+  point can be driven out of (`roomToDrive`) before using it.
 
 - **Building extrusion.** `buildBuildings` builds a `THREE.Shape` from `(x, z)`, extrudes,
   then `rotateX(+π/2)` + `translate(0, base + height, 0)`. Using `−π/2` mirrors world Z vs.

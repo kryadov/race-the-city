@@ -38,6 +38,7 @@ import { createTimeTrial } from './timeTrial'
 import { createRivals } from './rivals'
 import { createTrialHud } from '../ui/trialHud'
 import { createAircraft } from './aircraft'
+import { createBirds } from './birds'
 import { countFor, crowdFor, gapFor, type Density } from './density'
 import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
@@ -189,6 +190,7 @@ let fuel = 1
 const flame = createNitroFlame()
 let density: Density = getDensity()
 const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
+let birds = createBirds(stage.scene, Math.random, countFor(density, 8))
 let trains: Trains | null = null
 let traffic: Traffic | null = null
 let people: Pedestrians | null = null
@@ -631,6 +633,7 @@ async function loadCity(query: string): Promise<void> {
         POOL_MAT.opacity = night * 0.5 // and throw a soft pool of light on the road
         facades?.setNight(night) // windows come on behind them
         sky2.update(dt, stage.camera.position.x, stage.camera.position.z, night)
+        birds.update(dt, stage.camera.position.x, stage.camera.position.z)
         trains?.update(dt, night)
         traffic?.update(dt, car.x, car.z, night, trains?.obstacles())
         people?.update(dt, car.x, car.z)
@@ -787,6 +790,8 @@ const menu = createSettingsMenu(
       people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22))
       boats?.dispose()
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
+      birds.dispose()
+      birds = createBirds(stage.scene, Math.random, countFor(density, 8))
     },
     onTrial: (on) => applyTrial(on),
     onRace: (on) => {
