@@ -40,11 +40,20 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
       cancelled in mid-air by ground the car is nowhere near — v0.86.0
 - [x] **Land on a roof and drive along it** — the roof is ground when you are above it, the
       same rule bridges have used all along — v0.87.0
-- [ ] **Girls in skirts** among the pedestrians
+- [x] **Girls in skirts** among the pedestrians — shipped inside v0.87.0 (its message does not
+      mention them: they were swept into that commit by mistake)
+- [ ] **Markings float above the car on a bridge** — reported with a screenshot, not yet
+      reproduced. Mechanism to check first: `createDeckIndex(deckList, 5)` feeds the markings
+      and returns the HIGHEST deck within 5m, while the car rides `createDeckIndex(deckList)`
+      with no margin. Where two decks run close, the markings can take the higher one. The 5m
+      margin is there for lamps beside the carriageway, so the two may want splitting
 - [ ] **Map radius ×1.5** (1000m → 1500m) if it does not cost performance — measure first:
       buildings are merged per class, so nothing is culled and 2.25× the area is 2.25× the
       vertices, whatever the fog hides
-- [ ] **Sandy ground in southern cities** — green reads wrong for Cairo or Marrakesh
+- [ ] **Sandy ground in southern cities** — green reads wrong for Cairo or Marrakesh. Latitude
+      alone cannot decide it: Bangkok and Hong Kong are hotter and lush. Green share does not
+      either — measured live, Cairo is 5.8% green and Barcelona 4.8%. Needs a real signal
+      (`natural=sand|desert|bare_rock` from OSM is the obvious one)
 
 ## 🚗 Vehicles & physics
 - [x] More vehicles — six more incl. a leaning motorbike — done in v0.51.0 (custom colours still open)
