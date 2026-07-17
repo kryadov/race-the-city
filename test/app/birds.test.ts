@@ -69,18 +69,24 @@ describe('birds', () => {
     const b = createBirds(scene, () => 0.5, 1)
     const wing = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
 
+    // 70s: one whole cycle with room to spare. The approach flies a glide slope
+    // now rather than lerping down from wherever it was, so a landing takes
+    // longer than it did — the bird holds its height until the run-in.
     const ys: number[] = []
-    for (let i = 0; i < 450; i++) {
+    for (let i = 0; i < 700; i++) {
       b.update(0.1, 0, 0)
       ys.push(positions(wing)[0].y)
     }
 
     // Starts down (perched) rather than already airborne.
     for (const y of ys.slice(0, 40)) expect(y).toBeLessThan(6)
-    // At some point during the run it actually flies, well above rooftop height.
-    expect(Math.max(...ys), 'the bird never left its perch').toBeGreaterThan(12)
-    // And by the end it has come back down and settled again.
-    for (const y of ys.slice(-20)) expect(y).toBeLessThan(6)
+    // It flies, well above rooftop height...
+    const up = ys.findIndex((y) => y > 12)
+    expect(up, 'the bird never left its perch').toBeGreaterThan(0)
+    // ...and it comes back down afterwards. Asserted as 'later it is down again'
+    // rather than 'it is down at second 70': by then it is off on its next leg,
+    // which is the whole point of the thing.
+    expect(ys.slice(up).some((y) => y < 6), 'it never landed again').toBe(true)
   })
 
   it('crosses the map on a leg, rather than orbiting one point overhead', () => {
@@ -313,5 +319,23 @@ describe('birds', () => {
     expect(() => {
       for (let i = 0; i < 100; i++) b.update(0.1, 0, 0)
     }).not.toThrow()
+  })
+
+  it('is still around after you have driven off at speed', () => {
+    // A bird flies at 9m/s; you drive at four times that. It only ever consulted
+    // the player's position when it landed, which is a cycle away — so the flock
+    // was behind you within seconds and stayed there, and you saw a bird for
+    // less than a second, once, if at all.
+    const scene = new THREE.Scene()
+    const b = createBirds(scene, () => 0.5, 6)
+    const wing = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    let camX = 0
+    for (let i = 0; i < 600; i++) {
+      camX += 30 * 0.1 // 30 m/s, a brisk drive: 1.8km in all
+      b.update(0.1, camX, 0)
+    }
+    const near = positions(wing).filter((p) => Math.abs(p.x - camX) < 400)
+    expect(near.length, 'the whole flock was left behind').toBeGreaterThan(0)
   })
 })

@@ -35,6 +35,22 @@ const CLIMB_EXTRA_LEN = 60 // a climbing leg also runs longer, to give the arc r
 const LEG_LEN_MIN = 110
 const LEG_LEN_MAX = 220
 const CRUISE_SPEED = 9 // m/s
+/**
+ * How far a bird climbs out along its heading while it leaves the perch, and
+ * how far it glides in while it lands — metres.
+ *
+ * Nothing alive goes straight up or straight down. It rose like a lift and its
+ * landing was a lerp to a point, so it dropped: "как будто падают на землю как
+ * листья". A bird trades height for distance at both ends.
+ */
+const CLIMB_OUT = 22
+const GLIDE_IN = 34
+/**
+ * How far a leg bends, in radians of heading across the whole cruise. A bird
+ * does not fly a ruled line — a lazy arc is the difference between a flight path
+ * and a projectile.
+ */
+const LEG_BEND = 0.9
 
 /** Vertical liftoff from a perch, and the touchdown that follows a leg. */
 const TAKEOFF_DUR = 3 // seconds, perch to cruising altitude
@@ -51,6 +67,8 @@ const PERCH_MAX = 20
  * line doesn't string them out across the sky one by one. Flock, not queue.
  */
 const STAGGER_MAX = 2.5
+/** How wide to scatter a recycled bird's fresh perch around the player, metres. */
+const RESEED_SPREAD = 160
 
 /**
  * The flock's shared anchor wanders its own slow circle while chasing the
@@ -65,6 +83,17 @@ const DRIFT_SPEED = 0.08 // rad/s
 const FOLLOW_RATE = 1.0 // how eagerly the anchor closes on the camera, per second
 /** Hard cap on anchor-to-camera distance, however far or fast the camera jumps. */
 const LEASH_MAX = 90
+/**
+ * Past this from the camera a bird is recycled to a fresh perch near the player,
+ * in metres — whatever it was doing.
+ *
+ * You drive at 20-40m/s and a bird flies at 9. Without this you outrun the whole
+ * flock within seconds and never see one again: the anchor kept up, but the
+ * birds only consult it when they land, which is a cycle away. Traffic and
+ * pedestrians have recycled around the player from the start; birds were the
+ * odd ones out.
+ */
+const FAR = 260
 
 /** How far from the shared flight line each bird sits — a formation, not a stack. */
 const FORMATION_SPREAD = 3.5
@@ -163,6 +192,8 @@ interface Bird {
   // shared plan at takeoff so a later bird replanning mid-flight can't reach
   // back and change a leg already underway.
   legHeading: number
+  /** How far this leg's heading swings across the cruise, radians. */
+  legBend: number
   legClimb: boolean
   legLen: number
   cruiseDur: number
@@ -246,6 +277,7 @@ export function createBirds(
       perchY: 0,
       perchZ: 0,
       legHeading: rand() * Math.PI * 2,
+      legBend: 0,
       legClimb: false,
       legLen: 0,
       cruiseDur: 1,
@@ -275,7 +307,7 @@ export function createBirds(
    * direction at a time instead of eight. Cleared once nothing is left
    * flying it, so the next bird to leave its perch rolls a fresh one.
    */
-  let plan: { heading: number; climb: boolean; legLen: number; cruiseDur: number } | null = null
+  let plan: { heading: number; climb: boolean; legLen: number; cruiseDur: number; bend: number } | null = null
   /**
    * How long the flock rests before its next flight, shared by the whole
    * wave (each bird adds its own small stagger on top) — rolled fresh once
@@ -373,17 +405,44 @@ export function createBirds(
         const b = birds[i]
         b.stateT += dt
 
+        // Outrun: put it back where it can be seen. A bird flies at 9m/s and you
+        // drive at four times that, so without this the flock is behind you
+        // within seconds and stays there — it only ever consults the anchor when
+        // it lands, and that is a cycle away.
+        if (b.state !== 'perched' || b.stateT < restDur) {
+          const away = Math.hypot(b.perchX - camX, b.perchZ - camZ)
+          if (away > FAR) {
+            const spot = pickLanding(
+              camX + (rand() - 0.5) * RESEED_SPREAD,
+              camZ + (rand() - 0.5) * RESEED_SPREAD,
+            )
+            b.perchX = spot.x
+            b.perchY = spot.y
+            b.perchZ = spot.z
+            b.state = 'perched'
+            b.stateT = rand() * restDur // don't launch the whole flock at once
+          }
+        }
+
         if (b.state === 'perched') {
           if (b.stateT >= restDur + b.stagger) {
             if (!plan) {
               const climb = rand() < CLIMB_CHANCE
               const legLen = LEG_LEN_MIN + rand() * (LEG_LEN_MAX - LEG_LEN_MIN) + (climb ? CLIMB_EXTRA_LEN : 0)
-              plan = { heading: rand() * Math.PI * 2, climb, legLen, cruiseDur: legLen / CRUISE_SPEED }
+              plan = {
+                heading: rand() * Math.PI * 2,
+                climb,
+                legLen,
+                cruiseDur: legLen / CRUISE_SPEED,
+                bend: (rand() * 2 - 1) * LEG_BEND,
+              }
             }
-            b.legHeading = plan.heading
-            b.legClimb = plan.climb
-            b.legLen = plan.legLen
-            b.cruiseDur = plan.cruiseDur
+            const leg = plan
+            b.legHeading = leg.heading
+            b.legClimb = leg.climb
+            b.legLen = leg.legLen
+            b.cruiseDur = leg.cruiseDur
+            b.legBend = leg.bend
             b.fromX = b.perchX
             b.fromY = b.perchY
             b.fromZ = b.perchZ
@@ -395,9 +454,9 @@ export function createBirds(
           }
         } else if (b.state === 'takeoff') {
           if (b.stateT >= TAKEOFF_DUR) {
-            b.fromX = b.toX
+            b.fromX = b.toX + Math.cos(b.legHeading) * CLIMB_OUT
             b.fromY = b.toY
-            b.fromZ = b.toZ
+            b.fromZ = b.toZ + Math.sin(b.legHeading) * CLIMB_OUT
             b.state = 'cruise'
             b.stateT = 0
           }
@@ -406,8 +465,9 @@ export function createBirds(
             // Re-aim at the player, not at wherever the leg's fixed path
             // ended up: the camera has been moving the whole flight, and the
             // one thing that must land near it is the landing itself.
-            const legEndX = b.fromX + Math.cos(b.legHeading) * b.legLen
-            const legEndZ = b.fromZ + Math.sin(b.legHeading) * b.legLen
+            const endMean = b.legHeading + b.legBend * 0
+            const legEndX = b.fromX + Math.cos(endMean) * b.legLen
+            const legEndZ = b.fromZ + Math.sin(endMean) * b.legLen
             const land = pickLanding(anchorX, anchorZ)
             b.fromX = legEndX
             b.fromY = ALT_LOW + b.altOffset
@@ -434,26 +494,53 @@ export function createBirds(
           heading = b.legHeading
         } else if (b.state === 'takeoff') {
           const p = smoothstep(b.stateT / TAKEOFF_DUR)
-          coreX = b.fromX
+          // Climbing out along the heading, not rising off it: a bird leaves a
+          // branch forwards and buys its height with distance.
+          coreX = b.fromX + Math.cos(b.legHeading) * CLIMB_OUT * p
           coreY = lerp(b.fromY, b.toY, p)
-          coreZ = b.fromZ
+          coreZ = b.fromZ + Math.sin(b.legHeading) * CLIMB_OUT * p
           heading = b.legHeading
         } else if (b.state === 'cruise') {
           const p = Math.min(1, b.stateT / b.cruiseDur)
-          coreX = b.fromX + Math.cos(b.legHeading) * b.legLen * p
-          coreZ = b.fromZ + Math.sin(b.legHeading) * b.legLen * p
+          // A lazy arc rather than a ruled line: the heading swings across the
+          // leg by `bend`, so the path curves and the bird banks through it.
+          const a = b.legHeading + b.legBend * (p - 0.5)
+          const along = b.legLen * p
+          // Integrating the swing exactly is not worth it — sampling the mean
+          // heading over the distance covered is a curve either way.
+          const mean = b.legHeading + b.legBend * (p / 2 - 0.5)
+          coreX = b.fromX + Math.cos(mean) * along
+          coreZ = b.fromZ + Math.sin(mean) * along
           const altLow = ALT_LOW + b.altOffset
           const alt = b.legClimb ? altLow + (ALT_CLIMB - altLow) * Math.sin(Math.PI * p) : altLow
           coreY = alt + Math.sin(time * b.bobSpeed + b.bobPhase) * ALT_BOB
-          heading = b.legHeading
+          heading = a
         } else {
+          // A glide slope, flown in along the final heading. Straight-lining to
+          // the perch drops the bird onto it from wherever it happened to be —
+          // which is what fell like a leaf. It flies AT the perch instead: the
+          // approach turns onto the run-in early and the height comes off over
+          // the last GLIDE_IN metres, so it arrives travelling, and level.
           const p = smoothstep(b.stateT / b.landDur)
-          coreX = lerp(b.fromX, b.toX, p)
-          coreY = lerp(b.fromY, b.toY, p)
-          coreZ = lerp(b.fromZ, b.toZ, p)
           const ddx = b.toX - b.fromX
           const ddz = b.toZ - b.fromZ
-          heading = Math.hypot(ddx, ddz) > 0.01 ? Math.atan2(ddz, ddx) : b.legHeading
+          const runIn = Math.hypot(ddx, ddz) > 0.01 ? Math.atan2(ddz, ddx) : b.legHeading
+          // The gate: a point GLIDE_IN short of the perch, at cruising height.
+          const gateX = b.toX - Math.cos(runIn) * GLIDE_IN
+          const gateZ = b.toZ - Math.sin(runIn) * GLIDE_IN
+          const TURN = 0.55 // share of the approach spent getting onto the run-in
+          if (p < TURN) {
+            const q = p / TURN
+            coreX = lerp(b.fromX, gateX, q)
+            coreY = b.fromY
+            coreZ = lerp(b.fromZ, gateZ, q)
+          } else {
+            const q = (p - TURN) / (1 - TURN)
+            coreX = lerp(gateX, b.toX, q)
+            coreY = lerp(b.fromY, b.toY, q * q) // shed height late: a flare, not a dive
+            coreZ = lerp(gateZ, b.toZ, q)
+          }
+          heading = runIn
         }
 
         const bx = coreX + b.ox
