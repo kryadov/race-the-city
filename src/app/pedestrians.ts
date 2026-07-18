@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import type { Road } from '../geo/types'
+import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildRoadGraph, nextNode, type RoadGraph } from '../world/roadGraph'
-import type { Circle } from '../physics/collide'
+import { pointInPolygon, type Circle } from '../physics/collide'
 
 /** People at 'normal': ambience, not a crowd to thread. */
 const COUNT = 22
@@ -70,6 +70,7 @@ export function createPedestrians(
   provider: ElevationProvider,
   rand: () => number = Math.random,
   count = COUNT,
+  water: Vec2[][] = [],
 ): Pedestrians {
   const group = new THREE.Group()
   scene.add(group)
@@ -77,6 +78,13 @@ export function createPedestrians(
   const graph: RoadGraph = buildRoadGraph(roads.map((r) => (r.kind === 'path' ? { ...r, kind: 'service' as const } : r)))
   const rng = makeRng(0xbeef11)
   const walkers: Walker[] = []
+  // True where (x,z) falls inside a lake/river outline — a walker standing there
+  // would be down on the bed under the surface, so we steer them off it or hide
+  // them (in the walk loop below).
+  const overWater = (x: number, z: number): boolean => {
+    for (const ring of water) if (ring.length >= 3 && pointInPolygon(x, z, ring)) return true
+    return false
+  }
 
   const spawn = (near: { x: number; z: number } | null): Walker | null => {
     if (!graph.nodes.length) return null
@@ -200,6 +208,19 @@ export function createPedestrians(
   let clock = 0
 
   const solidAt: Circle[] = []
+  // Collapse every part of walker i to nothing — used when both pavements of
+  // their road are over water (a causeway or bridge deck), so rather than tramp
+  // across the bottom they simply aren't drawn there.
+  const hide = (i: number): void => {
+    bodies.setMatrixAt(i, hidden)
+    heads.setMatrixAt(i, hidden)
+    skirts.setMatrixAt(i, hidden)
+    hair.setMatrixAt(i, hidden)
+    legs.setMatrixAt(i * 2, hidden)
+    legs.setMatrixAt(i * 2 + 1, hidden)
+    arms.setMatrixAt(i * 2, hidden)
+    arms.setMatrixAt(i * 2 + 1, hidden)
+  }
 
   return {
     obstacles: () => solidAt,
@@ -247,8 +268,25 @@ export function createPedestrians(
         const len = Math.hypot(B.x - A.x, B.z - A.z) || 1
         const f = Math.min(1, w.s / len)
         const angle = Math.atan2(B.z - A.z, B.x - A.x)
-        const x = A.x + (B.x - A.x) * f + Math.sin(angle) * KERB * w.side
-        const z = A.z + (B.z - A.z) * f - Math.cos(angle) * KERB * w.side
+        const baseX = A.x + (B.x - A.x) * f
+        const baseZ = A.z + (B.z - A.z) * f
+        let x = baseX + Math.sin(angle) * KERB * w.side
+        let z = baseZ - Math.cos(angle) * KERB * w.side
+        // The pavement offset can push a lakeside walker off the road onto the
+        // water, where they'd stand on the bed under the surface. Keep them on
+        // land: if this side is wet, cross to the other pavement and stay there;
+        // if BOTH sides are water — a causeway or bridge deck — hide them.
+        if (overWater(x, z)) {
+          const fx = baseX - Math.sin(angle) * KERB * w.side
+          const fz = baseZ + Math.cos(angle) * KERB * w.side
+          if (overWater(fx, fz)) {
+            hide(i)
+            return
+          }
+          w.side = -w.side
+          x = fx
+          z = fz
+        }
 
         if (Math.hypot(x - camX, z - camZ) > FAR) {
           const fresh = spawn({ x: camX, z: camZ })

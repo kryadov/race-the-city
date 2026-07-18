@@ -6,6 +6,10 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎮 Play-test backlog — 2026-07-19 (live session)
 Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
 
+> **Hard constraint on every item below: it must not cost frame rate.** New ambience/props are
+> instanced or capped and culled; anything per-frame (crowd AI, water tests, weather) stays O(few)
+> and async where it touches the network. If a feature can't be done cheaply, it doesn't ship as-is.
+
 - [ ] **Localize the start-menu title** — the stylized "RACE THE CITY" logo should switch per
       language (RU: **"Мчись по городу"**). While in there, audit for any other still-English strings
       and fold them into i18n. User also wants this to feed a broader **"support for new languages"**
@@ -38,6 +42,26 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **People get in and out of cars** — a pedestrian can walk up to a (parked) car, get in and the
       car drives off; and an arriving car can drop one off. Pairs with living parking lots and the
       taxi passenger figures already in `taxi.ts`.
+- [ ] **Arcade mode: Police / Robber (tag)** — a mode where you're **either the police (goal: touch
+      the runner) or the runner (goal: avoid being touched)**. AI drives the other role on the road
+      graph; win/lose on contact or a timer. Slots into the start-menu mode list + `applyTrial`/
+      `applyTaxi`-style wiring, reusing rivals/traffic AI for the opponent.
+- [ ] **Level-crossing barriers** — drop **boom barriers (шлагбаумы) at railway crossings** that
+      lower when a train approaches and raise after it passes. Reuse `trains.ts` timing + the road/rail
+      intersection points; a hinged bar mesh + a simple down/up animation gated on train proximity.
+- [ ] **Sports grounds** — place **pitches with goals (football) / courts with hoops (basketball)**
+      via the same OSM-prop pattern as fountains/benches (`leisure=pitch`), with a few **figures
+      playing with a ball** on them. Instanced figures + a simple ball-and-players loop, capped.
+- [ ] **Glowing landmark markers** — a **lit beacon over `tourism`/`historic` POIs**, exactly like
+      the cafe/fuel markers already do (`buildPoiMarkers`). Ships on its own AND is the base for:
+- [ ] **Arcade mode: Excursion / Tour** — **visit the `tourism`/`historic` markers within a time
+      limit**, using the **same beacon + minimap-arrow mechanism as Taxi**, just over a different set
+      of points. Reuses `taxi.ts`/`taxiHud.ts` structure; a mode on the start menu.
+- [ ] **Real weather for the city** — pull the **current weather at the loaded city's lat/lon from a
+      free, keyless service** (Open-Meteo is CORS-friendly, no API key) and if it's raining there,
+      rain in-game. Hard constraints: **fully async, never blocks the load or a frame**, and **falls
+      back to the default** weather if the fetch fails or is slow. We already have lat/lon from
+      geocode and a rain weather state; just gate the initial weather on the fetch result.
 - [ ] **Fuel-consumption setting + per-vehicle thirst** — a settings-menu **slider for fuel burn
       rate (in litres)**, and each vehicle type has its **own base consumption** (a lorry drinks more
       than a sports car). The slider scales the base. Wire into the existing fuel/HUD (`fuel`,
@@ -49,11 +73,40 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Pickable car-objects on the map** — occasionally a real, selectable vehicle sits parked on
       the map that the player can **walk/drive up to and switch into** (choose it as their car).
       Rare spawns tied to parking/roadside; reuses the vehicle roster + `selectVehicle`.
+- [ ] **Bike lanes + cyclists** — paint a **cycle-lane stripe as a texture on the existing road
+      ribbon** (no new mesh — same draw call as the road markings), and add **cyclists** riding it
+      (instanced, reuse the pedestrian/traffic graph on `cycleway`/pavement). Keep it cheap.
 - [ ] **People use doors** — pedestrians currently pop out through walls anywhere on a building.
       They should **enter and leave only through a door**, and the **door should open as they pass
       and close behind them**. Needs a door position per building (a facade feature already exists —
       reuse the door placement), spawn/despawn pedestrians at that point, and a small open/close
       hinge animation triggered when a pedestrian crosses the threshold.
+
+## 🍂 Seasonal & calendar theming — planned 2026-07-19
+A coherent, mostly-free theme: the world dresses for the season and the date. Almost every item is a
+**material/colour swap on an existing instanced mesh** (no new draw calls) or a **date condition on
+an effect we already have** — so it satisfies "must not cost frame rate" by construction.
+
+**Seasonal (driven by date + latitude):**
+- [ ] **Grass & parks by season** — spring bright green, summer saturated, autumn ochre/rust/brown,
+      winter grey-green or snowy (northern latitudes, synced with the existing snow logic).
+- [ ] **Tree crowns by season** (already instanced) — spring: a few blossoming white/pink deciduous
+      crowns; summer green; autumn yellow-orange-red; winter bare / snow-dusted. A material tint on
+      the existing draw call.
+- [ ] **Snow cover on roofs/ground** in the cold season for northern cities — reuse the existing snow
+      shader, switched on by **calendar** by default (not only the weather toggle).
+- [ ] **Pedestrian clothing by season** — the crowd already varies (skirts shipped). Seasonal
+      palettes/sets: winter coats/hats/scarves; summer shorts/tees/sun-hats; rain → an optional
+      umbrella prop for the high tier. Texture/colour swap on the existing instanced people, no
+      physics change.
+- [ ] **Fields/farms by season** (where the livestock graze) — brown in winter, green in summer; a
+      material swap.
+
+**Calendar one-offs (date condition + existing assets):**
+- [ ] **New Year fireworks** — the lap-finish fireworks already exist; also trigger them on New
+      Year's night, including over the start screen.
+- [ ] **Halloween pumpkins** at entrances — same instancing pattern as the POI signs.
+- [ ] **Spring sakura** in southern latitudes — blossoming crowns (folds into tree-crowns-by-season).
 
 ## 🧭 Big features — planned 2026-07-18 (session batch)
 Five features asked for in one session. Being brainstormed + specced together, then

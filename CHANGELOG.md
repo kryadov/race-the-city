@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.3 — people keep off the water
+- A lakeside pavement could nudge a pedestrian off the road and out onto the water, where they walked
+  along the **lake bed under the surface**. Now if the pavement they'd take lands on water they
+  **cross to the other side of the road**; if both sides are water (a causeway or bridge deck) they
+  are simply **not drawn there** — either way, nobody tramps across the bottom of a lake. The check
+  is a cheap point-in-outline test on the handful of nearby walkers, so it costs no frame rate.
+- 👀 Drive along a lake or river: people stay on the land side of the road, none out on the water.
+
 ## v0.108.2 — birds scatter when you drive up
 - Drive up to birds settled on the ground or a rooftop and they now **flush** — springing into the
   air at once and breaking away from the car, instead of sitting there as you bear down on them.
