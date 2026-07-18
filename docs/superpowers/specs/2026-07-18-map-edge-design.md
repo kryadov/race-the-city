@@ -16,10 +16,21 @@ edge you drive **toward** is only ~150–190m from the camera — deep in clear 
 "boats" lesson already recorded in AGENTS.md. Therefore the mist cannot be a fog tweak; it must
 be a real object standing at the boundary.
 
-## Design (approved)
-Boundary is a **circle, R≈950m**, but built against a `WorldBounds` abstraction so a real OSM
-admin-boundary polygon can drop in later with no consumer change (real boundaries deferred —
-they almost always dwarf the 1km slice for the major-city list, so they buy little now).
+## v0.92.1 correction — square, not circle
+Shipped v0.92.0 with a **circle** (R950). Bug reported immediately: braked and shoved inward
+"among the houses". Cause (deterministic, not a real-city guess): the world is built from a
+±RADIUS **square** bbox, so buildings fill the whole square out to the corners (~1414m diagonally),
+but a circle ≤1000m (it must stay ≤1000 to sit on the ground on the axes) cuts the corners — the
+soft edge is reached at only ~671m per axis on a diagonal, deep among mapped streets. Fixed by
+switching the boundary to `rectBounds` (square, half-extents 965/990) matching the ground.
+Also, players couldn't tell the braking WAS the boundary, so the mist wall gained a bright amber
+**marker band**, and its veil was made dense at the ground (it had peaked ~50m underground).
+
+## Design (as corrected)
+Boundary is a **square** (half-extents soft 965m, hard 990m) matching the square ground, built
+against a `WorldBounds` abstraction so a real OSM admin-boundary polygon can drop in later with no
+consumer change (real boundaries deferred — they almost always dwarf the 1km slice for the
+major-city list, so they buy little now).
 
 ### `src/world/bounds.ts`
 - `WorldBounds.probe(x,z) → { soft, hard, nx, nz }` — signed distances (metres) past the soft

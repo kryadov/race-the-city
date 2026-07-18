@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { circleBounds, confineToBounds } from '../../src/world/bounds'
+import { circleBounds, rectBounds, confineToBounds } from '../../src/world/bounds'
+
+/** Integrate a car through the barrier for `frames` at 60fps, mutating in place. */
+function drive(car: { x: number; z: number; vx: number; vz: number }, bounds: Parameters<typeof confineToBounds>[1], frames: number): void {
+  const dt = 1 / 60
+  for (let i = 0; i < frames; i++) {
+    car.x += car.vx * dt
+    car.z += car.vz * dt
+    confineToBounds(car, bounds, dt)
+  }
+}
 
 describe('circleBounds.probe', () => {
   it('reads a point past the soft edge as over, normal pointing out', () => {
@@ -52,5 +62,45 @@ describe('confineToBounds', () => {
     expect(Math.hypot(car.x, car.z)).toBeLessThanOrEqual(950 + 1e-6)
     expect(car.vx).toBeLessThanOrEqual(1e-6) // no outward velocity remains
     expect(car.vz).toBeCloseTo(5) // tangential motion survives the clamp
+  })
+})
+
+describe('rectBounds — the square the game actually uses', () => {
+  const b = () => rectBounds(965, 990)
+
+  it('is a no-op well inside the square, even out near a corner', () => {
+    const car = { x: 700, z: 700, vx: 12, vz: -8 }
+    confineToBounds(car, b(), 0.1)
+    expect(car).toEqual({ x: 700, z: 700, vx: 12, vz: -8 })
+  })
+
+  it('confines along the axis a point most exceeds', () => {
+    const p = b().probe(994, 200) // x is the exceeded axis
+    expect(p.soft).toBeCloseTo(29) // 994 − 965
+    expect(p.nx).toBe(1)
+    expect(p.nz).toBe(0)
+  })
+
+  it('cannot be driven across the edge, flooring it over hundreds of frames', () => {
+    const car = { x: 900, z: 0, vx: 40, vz: 0 }
+    drive(car, b(), 300)
+    expect(Math.abs(car.x)).toBeLessThanOrEqual(990 + 1e-6) // never punches through
+  })
+
+  it('lets you graze along the edge without grinding to a halt', () => {
+    // pinned to the +x edge, driving purely along it (the vr=0 path)
+    const car = { x: 990, z: 0, vx: 0, vz: 12 }
+    drive(car, b(), 300)
+    expect(car.vz).toBeCloseTo(12) // tangential speed survives; no per-frame leak
+    expect(Math.abs(car.x)).toBeLessThanOrEqual(990 + 1e-6)
+  })
+
+  it('holds a car driving hard into a diagonal corner near the edge', () => {
+    const car = { x: 900, z: 900, vx: 30, vz: 30 }
+    drive(car, b(), 300)
+    // per-axis confinement can let one axis sit a single frame's travel past the
+    // backstop before the next dominance flip, but never escapes toward the void
+    expect(Math.abs(car.x)).toBeLessThanOrEqual(992)
+    expect(Math.abs(car.z)).toBeLessThanOrEqual(992)
   })
 })

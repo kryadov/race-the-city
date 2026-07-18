@@ -1,67 +1,105 @@
 import * as THREE from 'three'
 
 export interface MistWall {
-  mesh: THREE.Mesh
-  /** Match the wall to the current fog colour — day/night and neon flow through it. */
+  object: THREE.Object3D
+  /** Match the veil to the current fog colour — day/night and neon flow through it. */
   setColor(color: THREE.Color): void
   dispose(): void
 }
 
-/**
- * A ring of mist standing at the world's edge.
- *
- * The always-on distance fog is CAMERA-relative, so it never hides the edge you
- * drive TOWARD — the ground mesh's hard rim and the road stubs that OSM lets
- * spill past it sit right in front of the car, in clear air (the boats lesson in
- * AGENTS.md). This hides them as an actual object: an inward-facing cylinder
- * shell whose alpha is dense at the ground and fades out with height, so the
- * world dissolves into haze before the car reaches the real geometry edge.
- *
- * It carries no day-styled look of its own — it renders the fog colour by
- * construction (`setColor`, called each frame from the loop), and the fog colour
- * is already themed for the time of day and darkened for neon. So, unlike the
- * solid world meshes, it needs no ThemeController registration to stay in step.
- */
-export function createMistWall(radius: number, height = 130, floor = -50): MistWall {
-  const geo = new THREE.CylinderGeometry(radius, radius, height, 96, 1, true)
-
-  // A cylinder's v runs 0 at the bottom to 1 at the top. Ramp the alpha from
-  // opaque at the ground to clear overhead, on a soft curve so the top isn't a
-  // hard line. White RGB — the tint comes from the material colour (the fog).
+/** A 1×N alpha ramp texture (white RGB; the tint comes from the material colour). */
+function rampTexture(alphaAt: (t: number) => number): THREE.DataTexture {
   const rows = 64
-  const ramp = new Uint8Array(rows * 4)
+  const data = new Uint8Array(rows * 4)
   for (let i = 0; i < rows; i++) {
-    const t = i / (rows - 1) // 0 bottom .. 1 top
-    ramp[i * 4] = 255
-    ramp[i * 4 + 1] = 255
-    ramp[i * 4 + 2] = 255
-    ramp[i * 4 + 3] = Math.round(255 * Math.pow(1 - t, 1.5))
+    const t = i / (rows - 1) // 0 at the bottom, 1 at the top
+    data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = 255
+    data[i * 4 + 3] = Math.max(0, Math.min(255, Math.round(255 * alphaAt(t))))
   }
-  const tex = new THREE.DataTexture(ramp, 1, rows, THREE.RGBAFormat)
+  const tex = new THREE.DataTexture(data, 1, rows, THREE.RGBAFormat)
   tex.minFilter = THREE.LinearFilter
   tex.magFilter = THREE.LinearFilter
   tex.needsUpdate = true
+  return tex
+}
 
-  const mat = new THREE.MeshBasicMaterial({
-    map: tex,
-    transparent: true,
-    side: THREE.BackSide, // the ring is seen from the inside
-    depthWrite: false,
-    fog: false, // it IS the fog colour; don't let distance fog double-tint it
+/** A square tube standing on the boundary — a 4-sided cylinder with its edges (not
+ *  its corners) squared to the x/z axes at ±`halfExtent`. */
+function squareTube(halfExtent: number, height: number): THREE.CylinderGeometry {
+  const geo = new THREE.CylinderGeometry(halfExtent * Math.SQRT2, halfExtent * Math.SQRT2, height, 4, 1, true)
+  geo.rotateY(Math.PI / 4) // put the flat faces on the axes, corners on the diagonals
+  return geo
+}
+
+/**
+ * The wall around the world's edge — a square ring matching the square ground the
+ * city is built on, so it hides the ground's rim and the road stubs OSM spills
+ * past it. The always-on distance fog can't do this: it is CAMERA-relative and
+ * never veils the edge you drive TOWARD (the boats lesson in AGENTS.md).
+ *
+ * Two coincident layers:
+ *  - a **veil** in the fog colour, densest at the ground and fading to sky, so the
+ *    world dissolves into haze. Its colour tracks the fog (`setColor`), so day,
+ *    night and neon all flow through it with no ThemeController hook.
+ *  - a **marker** — a bright amber band low on the wall, in its own fixed colour,
+ *    so the limit reads as a deliberate edge and not a bug. Fog-coloured haze alone
+ *    blends into the sky and left players unsure whether they'd hit the boundary.
+ */
+export function createMistWall(halfExtent: number): MistWall {
+  const group = new THREE.Group()
+
+  // Veil: dense from the ground up (a solid lower band, not a gradient that peaks
+  // underground), then fading out overhead.
+  const veilH = 120
+  const veilFloor = -30
+  const veilGeo = squareTube(halfExtent, veilH)
+  const veilTex = rampTexture((t) => {
+    const solid = 0.42 // opaque through the lower ~42% (ground + eye-line), then fade
+    return t <= solid ? 1 : Math.pow(1 - (t - solid) / (1 - solid), 1.5)
   })
-  const mesh = new THREE.Mesh(geo, mat)
-  mesh.position.y = floor + height / 2
-  mesh.renderOrder = 2 // drawn after the opaque world, so it veils the stubs behind it
+  const veilMat = new THREE.MeshBasicMaterial({
+    map: veilTex,
+    transparent: true,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+  })
+  const veil = new THREE.Mesh(veilGeo, veilMat)
+  veil.position.y = veilFloor + veilH / 2
+  veil.renderOrder = 2
+
+  // Marker: a bright band low on the wall. Tall enough (∓ its floor) to straddle
+  // the ground across the terrain swing near the edge, fading out above.
+  const bandH = 70
+  const bandFloor = -35
+  const bandGeo = squareTube(halfExtent, bandH)
+  const bandTex = rampTexture((t) => Math.pow(1 - t, 2) * 0.8) // opaque low, gone by the top
+  const bandMat = new THREE.MeshBasicMaterial({
+    map: bandTex,
+    color: 0xffb020, // amber hazard — reads against both green ground and dark neon
+    transparent: true,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+  })
+  const band = new THREE.Mesh(bandGeo, bandMat)
+  band.position.y = bandFloor + bandH / 2
+  band.renderOrder = 3 // over the veil, so the marker colour wins at the base
+
+  group.add(veil, band)
 
   return {
-    mesh,
+    object: group,
     setColor(color) {
-      mat.color.copy(color)
+      veilMat.color.copy(color) // the marker keeps its own colour
     },
     dispose() {
-      geo.dispose()
-      tex.dispose()
-      mat.dispose()
+      veilGeo.dispose()
+      veilTex.dispose()
+      veilMat.dispose()
+      bandGeo.dispose()
+      bandTex.dispose()
+      bandMat.dispose()
     },
   }
 }

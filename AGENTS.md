@@ -78,13 +78,16 @@ startPose(roads) → createCar → startLoop(stepCar + syncCamera + render)`. Al
 - **TypeScript strict**, plus `noUnusedLocals`/`noUnusedParameters` — prefix a deliberately
   unused param with `_`.
 - **The world has an edge.** `src/world/bounds.ts` (`WorldBounds`) defines the drivable
-  boundary — today `circleBounds(EDGE_SOFT 900, EDGE_HARD 950)`, inside the 2·RADIUS ground
-  square. The car is confined by `confineToBounds` AFTER `stepCar` (physics stays pure): soft
-  radial braking past 900m, hard backstop at 950m, tangential motion kept so you can graze the
-  edge. `mistWall.ts` hides the ground rim and the road stubs OSM spills past it. Do NOT lean on
-  the scene fog for this — it is CAMERA-relative and never veils the edge you drive TOWARD (see
-  the boats gotcha). Bounds are shape-swappable, so real OSM admin boundaries can drop in later
-  with no change to the barrier or the wall.
+  boundary. The world is built from a ±RADIUS *square* bbox, so the boundary is a **square**
+  too — `rectBounds(EDGE_SOFT 965, EDGE_HARD 990)` half-extents. A circle was wrong: it left the
+  corner buildings outside and braked you in the middle of the outer streets (v0.92.0 bug).
+  `circleBounds` is kept for a genuinely round world. The car is confined by `confineToBounds`
+  AFTER `stepCar` (physics stays pure): soft braking past the soft edge, hard backstop at the
+  hard one, tangential motion kept so you can graze along it. `mistWall.ts` marks and hides the
+  rim — a square tube with a fog-coloured veil (dense at the ground, colour tracks the fog) plus
+  a bright amber marker band so the limit reads as deliberate, not a bug. Do NOT lean on the
+  scene fog for this — it is CAMERA-relative and never veils the edge you drive TOWARD (the boats
+  gotcha). Bounds are shape-swappable, so real OSM admin boundaries can drop in later.
 
 ## Testing approach
 

@@ -39,6 +39,10 @@ export interface Movable {
 /**
  * A circular boundary centred on the origin: soft braking begins at `soft`
  * metres out, the hard backstop sits at `hard`. Requires `soft < hard`.
+ *
+ * NB the world is built from a ±RADIUS *square* bbox, so a circle leaves the
+ * corner buildings outside it — `rectBounds` is what the game uses. Kept for
+ * a genuinely round world (an island) and for the tests.
  */
 export function circleBounds(soft: number, hard: number): WorldBounds {
   return {
@@ -50,6 +54,30 @@ export function circleBounds(soft: number, hard: number): WorldBounds {
       const nx = r > 1e-6 ? x / r : 1
       const nz = r > 1e-6 ? z / r : 0
       return { soft: r - soft, hard: r - hard, nx, nz }
+    },
+  }
+}
+
+/**
+ * A square boundary centred on the origin, matching the square ground the world
+ * is built on — so every mapped building is inside it and you can drive right to
+ * the edge, not brake in the middle of the outer streets. `softHalf`/`hardHalf`
+ * are half-extents (centre→edge along an axis); `softHalf < hardHalf`.
+ *
+ * The edge nearest a point is the axis it most exceeds, so the outward normal
+ * points straight out along that axis. At a corner the more-exceeded axis is
+ * confined first and the other the next frame — invisible for a soft edge.
+ */
+export function rectBounds(softHalf: number, hardHalf: number): WorldBounds {
+  return {
+    hard: hardHalf,
+    probe(x, z) {
+      const ax = Math.abs(x)
+      const az = Math.abs(z)
+      if (ax >= az) {
+        return { soft: ax - softHalf, hard: ax - hardHalf, nx: Math.sign(x) || 1, nz: 0 }
+      }
+      return { soft: az - softHalf, hard: az - hardHalf, nx: 0, nz: Math.sign(z) || 1 }
     },
   }
 }

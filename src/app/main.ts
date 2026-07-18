@@ -107,7 +107,7 @@ import { buildParking } from '../world/parking'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
-import { circleBounds, confineToBounds } from '../world/bounds'
+import { rectBounds, confineToBounds } from '../world/bounds'
 import { createMistWall } from '../world/mistWall'
 import { SpatialGrid } from '../physics/grid'
 import { roofUnder } from '../physics/collide'
@@ -126,13 +126,15 @@ import {
 } from '../vehicle/model'
 
 const RADIUS = 1000
-// The drivable edge, inside the ground mesh (which is a 2·RADIUS square, so a
-// circle of 950 is on solid ground all the way round). The car brakes into the
-// soft edge and stops at the hard one; the mist wall stands just past it. Built
-// against a `WorldBounds` shape so a real OSM admin boundary can drop in later.
-const EDGE_SOFT = 900
-const EDGE_HARD = 950
-const bounds = circleBounds(EDGE_SOFT, EDGE_HARD)
+// The drivable edge. The world is built from a ±RADIUS *square* bbox, so the
+// boundary is a square too (half-extents, centre→edge): a circle would leave the
+// corner buildings outside it and brake you in the middle of the outer streets.
+// The car brakes into the soft edge and stops at the hard one, just inside the
+// ground rim; the mist wall stands a few metres past it. Built against a
+// `WorldBounds` shape so a real OSM admin boundary can drop in later.
+const EDGE_SOFT = 965
+const EDGE_HARD = 990
+const bounds = rectBounds(EDGE_SOFT, EDGE_HARD)
 // The ground mesh's resolution. Everything that sits on the ground is sampled
 // through griddedProvider at this same figure, so the surface the car drives on
 // is the surface on screen — keep the two together or the car sinks again.
@@ -159,8 +161,8 @@ const theme = new ThemeController(stage)
 // through every city (it depends on the fixed edge, not on the city geometry).
 // Its colour tracks the fog each frame (see the loop), so it stays right through
 // day, night and neon without a ThemeController hook.
-const mist = createMistWall(EDGE_HARD + 8)
-stage.scene.add(mist.mesh)
+const mist = createMistWall(EDGE_HARD + 4)
+stage.scene.add(mist.object)
 const driftFx = createDriftFx(stage.scene)
 driftFx.setEnabled(getDriftFx())
 const headlight = new THREE.SpotLight(0xfff2c0, 0, 70, Math.PI / 5, 0.5, 1.2)
