@@ -6,6 +6,10 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.104.1 — odometer to the bottom-right
+- The distance readout moved out from under the speedometer to the bottom-right, stacked over the
+  fuel bar — the speedometer stands clean on its own.
+
 ## v0.104.0 — About panel, and language on the start screen
 - New **About** group in the settings menu: a short description, a link to the **developer**
   (github.com/kryadov) and one to **support the project** (github.com/sponsors/kryadov). Localized.

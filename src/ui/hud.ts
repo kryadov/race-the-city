@@ -114,16 +114,20 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   const level = document.createElement('div')
   level.style.cssText = 'height:100%;width:100%;background:#5ad07a;transition:width .2s linear'
   gauge.appendChild(level)
-  // The fuel bar sits on its own, bottom-right — a warning light where the eye
-  // lands, not tucked under the speedometer.
+  // Bottom-right stack: the odometer over the fuel bar — both off the speedometer,
+  // where the eye lands leaving the road, not tucked under the dial.
   const fuelBox = document.createElement('div')
   fuelBox.style.cssText =
-    'position:absolute;bottom:16px;right:16px;pointer-events:none;display:flex;align-items:center;gap:7px;' +
-    'font-family:system-ui,sans-serif;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7))'
+    'position:absolute;bottom:16px;right:16px;pointer-events:none;display:flex;flex-direction:column;' +
+    'align-items:flex-end;gap:4px;font-family:system-ui,sans-serif;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7))'
+  const fuelRow = document.createElement('div')
+  fuelRow.style.cssText = 'display:flex;align-items:center;gap:7px'
   const fuelIcon = document.createElement('div')
   fuelIcon.textContent = '⛽'
   fuelIcon.style.cssText = 'font-size:16px'
-  fuelBox.append(fuelIcon, gauge)
+  fuelRow.append(fuelIcon, gauge)
+  odo.style.marginTop = '0'
+  fuelBox.append(odo, fuelRow)
 
   const paint = (): void => {
     // The needle tracks true speed; only the readout changes with units.
@@ -144,7 +148,7 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   paint()
   onLangChange(paint)
 
-  box.append(city, svg, odo)
+  box.append(city, svg)
   root.appendChild(box)
   root.appendChild(fuelBox)
 
