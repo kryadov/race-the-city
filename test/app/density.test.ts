@@ -6,9 +6,9 @@ describe('density', () => {
     expect(DENSITIES).toEqual(['low', 'normal', 'high'])
   })
 
-  it('leaves normal alone', () => {
-    expect(countFor('normal', 16)).toBe(16)
-    expect(crowdFor('normal', 22)).toBe(22)
+  it('leaves the low setting at the plain base (few = the old normal)', () => {
+    expect(countFor('low', 16)).toBe(16)
+    expect(crowdFor('low', 22)).toBe(22)
   })
 
   it('gives the crowd more room at the top than the rest', () => {
@@ -22,9 +22,11 @@ describe('density', () => {
     expect(crowdFor('high', 16)).toBeGreaterThanOrEqual(crowdFor('normal', 16) * 2)
   })
 
-  it('thins everything out at the bottom', () => {
-    expect(countFor('low', 16)).toBeLessThan(16)
-    expect(crowdFor('low', 22)).toBeLessThan(22)
+  it('steps up at every setting, no plateau', () => {
+    expect(countFor('normal', 16)).toBeGreaterThan(countFor('low', 16))
+    expect(countFor('high', 16)).toBeGreaterThan(countFor('normal', 16))
+    expect(crowdFor('normal', 16)).toBeGreaterThan(crowdFor('low', 16))
+    expect(crowdFor('high', 16)).toBeGreaterThan(crowdFor('normal', 16))
   })
 
   it('never empties the world entirely', () => {

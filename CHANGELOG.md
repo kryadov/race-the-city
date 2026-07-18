@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.104.2 — deploy fix (the live site was stuck at 0.100.2)
+- The density unit test wasn't updated when the density scale was rescaled in v0.101.0, so the
+  **Deploy workflow's test step failed** and GitHub Pages stopped publishing at 0.100.2. Test fixed
+  — every release since (convex manholes, flowerbeds, wall-slide, benches, About panel, odometer…)
+  now reaches the live site.
+
 ## v0.104.1 — odometer to the bottom-right
 - The distance readout moved out from under the speedometer to the bottom-right, stacked over the
   fuel bar — the speedometer stands clean on its own.
