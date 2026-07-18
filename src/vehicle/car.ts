@@ -56,6 +56,14 @@ const MAX_SLOPE = 0.6
 const LEDGE_DROP = 1
 /** Above the ground by more than this and the car is flying. */
 const AIR_EPS = 0.05
+/**
+ * How much speed a graze along a wall keeps. Hitting a building used to bleed
+ * ALL velocity to 30%, so pinned against a wall the car crawled and steering
+ * away was a fight. Now only the component driving INTO the wall is removed and
+ * the tangential is kept, bar this small cost — so you slide along it and peel
+ * off smoothly.
+ */
+const WALL_SLIDE = 0.9
 
 /**
  * Arcade drift step. heading 0 faces +x; +heading rotates toward +z.
@@ -114,8 +122,24 @@ export function stepCar(
   // not a jump.
   const resolved = resolveCircle(nx, nz, spec.radius, grid, car.y)
   if (resolved.x !== nx || resolved.z !== nz) {
-    vx *= 0.3 // bleed speed on impact
-    vz *= 0.3
+    // Slide along the wall rather than stop dead against it. The push-out vector
+    // is the wall normal; remove only the velocity driving INTO it and keep the
+    // tangential (bar a small cost), so grazing a building and steering away are
+    // smooth instead of a crawl.
+    const px = resolved.x - nx
+    const pz = resolved.z - nz
+    const pl = Math.hypot(px, pz)
+    if (pl > 1e-6) {
+      const wnx = px / pl
+      const wnz = pz / pl
+      const into = vx * wnx + vz * wnz // component along the outward normal
+      if (into < 0) {
+        vx -= into * wnx // cancel the into-wall part, leaving the slide
+        vz -= into * wnz
+        vx *= WALL_SLIDE
+        vz *= WALL_SLIDE
+      }
+    }
   }
 
   const groundY = provider.heightAt(resolved.x, resolved.z)

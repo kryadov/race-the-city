@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.102.0 — slide off a wall, and two more tracks
+- Pressed against a building, the car used to **crawl** and steering away was a fight — it bled all
+  its speed on any wall touch. Now it **slides**: only the into-wall speed is killed and the
+  tangential is kept, so grazing a building and peeling off are smooth.
+- Two new tracks on the radio: **Moonlit Highway Bloom** and **Rain on Shibuya**.
+- 👀 Drive up against a wall at an angle and steer away — you should slide off, not stall. And
+  listen out for the two new tracks.
+
 ## v0.101.0 — manholes, flowerbeds, and busier streets
 - **Manholes** are now **convex iron domes** (not flat pucks), bigger (~0.9m across), and spaced
   further apart (32–55m) so they don't carpet the road.

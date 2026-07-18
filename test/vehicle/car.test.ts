@@ -72,6 +72,19 @@ describe('stepCar (arcade drift)', () => {
     expect(c.x).toBeLessThan(6)
   })
 
+  it('slides along a building instead of crawling to a halt against it', () => {
+    // A long wall on the car's right; the car drives forward but a touch into it,
+    // so it grazes the whole length rather than driving straight at a face.
+    const wall: Vec2[] = [{ x: -200, z: 2 }, { x: 200, z: 2 }, { x: 200, z: 8 }, { x: -200, z: 8 }]
+    const grid = new SpatialGrid([wall], 25)
+    let c = { ...createCar(-30, 0), heading: 0.22, vx: 18, vz: 4 }
+    for (let i = 0; i < 90; i++) {
+      c = stepCar(c, { throttle: 1, steer: 0, brake: false }, 1 / 30, grid, flat, VEHICLES.sports)
+    }
+    expect(c.x, 'it crawled to a stop against the wall').toBeGreaterThan(0) // travelled far along it
+    expect(c.z, 'it punched through to the far side').toBeLessThan(2) // never crossed the wall
+  })
+
   it('follows terrain height in Y', () => {
     const ramp = { heightAt: (x: number) => x }
     let c = createCar(0, 0)
