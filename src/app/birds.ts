@@ -119,6 +119,20 @@ const FLUSH_R2 = FLUSH_RADIUS * FLUSH_RADIUS
 const PERCH_SEARCH_RADIUS = 220
 /** Rough canopy height a landed bird sits at, metres above the ground below it. */
 const TREE_PERCH_H = 4.5
+/**
+ * How far from a tree's trunk a perched bird may sit — a canopy radius, metres.
+ *
+ * A landing snaps a bird to the trunk of the nearest tree (findPerch returns the
+ * tree's own point), but the bird's fixed formation offset (ox/oz, up to
+ * ±FORMATION_SPREAD each — nearly 5m out) is added at render time. On open ground
+ * that offset is exactly what spreads the flock out to land; over a trunk it flung
+ * the bird clear of the canopy, so it sat at TREE_PERCH_H (4.5m) with nothing under
+ * it — "птицы иногда сидят в воздухе", floaters measured up to ~4m past a canopy
+ * that is only ~1-3m across (see the foliage radii in greenery.ts). Clamping the
+ * offset to this radius keeps a tree-perched bird among the leaves, where a tight
+ * cluster reads fine, while ground and roof perches keep their full spread.
+ */
+const CANOPY_R = 2.2
 /** Clearance above bare ground, so a grounded bird doesn't clip into it. */
 const GROUND_PERCH_H = 0.3
 /** Clearance above a rooftop — a bird stands right on the surface, not on a canopy. */
@@ -296,6 +310,15 @@ interface Bird {
   perchX: number
   perchY: number
   perchZ: number
+  /**
+   * How far the current (or target) perch actually supports the bird from its
+   * core point: Infinity over open ground or a roof (the formation offset is
+   * unclamped, so the flock spreads out), CANOPY_R in a tree (the offset is
+   * reined in, so the bird stays over the foliage instead of floating past it).
+   * Committed the moment a landing is chosen, so the glide-in, the touchdown and
+   * the settled bird all share one offset and none of them jumps.
+   */
+  perchR: number
 
   // This bird's current (or most recent) outbound leg — copied out of the
   // shared plan at takeoff so a later bird replanning mid-flight can't reach
@@ -395,6 +418,7 @@ export function createBirds(
       perchX: 0,
       perchY: 0,
       perchZ: 0,
+      perchR: Infinity, // corrected to the real support the instant a perch is assigned
       legHeading: rand() * Math.PI * 2,
       legBend: 0,
       legClimb: false,
@@ -462,14 +486,28 @@ export function createBirds(
 
   /**
    * A landing spot near (x, z): a nearby tree if one is close, else the roof
-   * directly below the search point if there is one, else the ground.
+   * directly below the search point if there is one, else the ground. `r` is how
+   * far the spot supports a bird from its core point — a canopy radius in a tree,
+   * unbounded on the flat ground or roof it lands on.
    */
-  function pickLanding(x: number, z: number): { x: number; y: number; z: number } {
+  function pickLanding(x: number, z: number): { x: number; y: number; z: number; r: number } {
     const spot = findPerch(x, z, perches)
-    if (spot) return { x: spot.x, y: provider.heightAt(spot.x, spot.z) + TREE_PERCH_H, z: spot.z }
+    if (spot) return { x: spot.x, y: provider.heightAt(spot.x, spot.z) + TREE_PERCH_H, z: spot.z, r: CANOPY_R }
     const roofY = roofAt?.(x, z) ?? null
-    if (roofY !== null) return { x, y: roofY + ROOF_PERCH_H, z }
-    return { x, y: provider.heightAt(x, z) + GROUND_PERCH_H, z }
+    if (roofY !== null) return { x, y: roofY + ROOF_PERCH_H, z, r: Infinity }
+    return { x, y: provider.heightAt(x, z) + GROUND_PERCH_H, z, r: Infinity }
+  }
+
+  /**
+   * The scale to apply to a bird's fixed ox/oz so its render offset never
+   * overhangs the perch it sits on: 1 over open ground (perchR = Infinity), and
+   * CANOPY_R / |offset| in a tree, which shortens the offset to the canopy radius
+   * while keeping its direction — the same value for the glide-in and the settled
+   * bird, so touchdown doesn't jump.
+   */
+  function offsetScale(b: Bird): number {
+    const len = Math.hypot(b.ox, b.oz)
+    return len > b.perchR ? b.perchR / len : 1
   }
 
   function settle(b: Bird): void {
@@ -516,6 +554,7 @@ export function createBirds(
           b.perchX = spot.x
           b.perchY = spot.y
           b.perchZ = spot.z
+          b.perchR = spot.r
           // stateT starts at 0, same as after any other landing: the whole
           // flock rests together and leaves as one wave (offset only by its
           // own small stagger) — not scattered across a full rest period's
@@ -559,6 +598,7 @@ export function createBirds(
             b.perchX = spot.x
             b.perchY = spot.y
             b.perchZ = spot.z
+            b.perchR = spot.r
             b.state = 'perched'
             b.stateT = rand() * restDur // don't launch the whole flock at once
           }
@@ -566,8 +606,11 @@ export function createBirds(
 
         if (b.state === 'perched') {
           // A car bearing down flushes the bird: up at once, fleeing away from it.
-          const rx = b.perchX + b.ox
-          const rz = b.perchZ + b.oz
+          // Measured to where the bird actually sits — the offset clamped to its
+          // perch, the same as the render below — not the raw formation offset.
+          const os = offsetScale(b)
+          const rx = b.perchX + b.ox * os
+          const rz = b.perchZ + b.oz * os
           const spooked = (rx - carX) * (rx - carX) + (rz - carZ) * (rz - carZ) < FLUSH_R2
           if (spooked || b.stateT >= restDur + b.stagger) {
             if (!plan) {
@@ -623,6 +666,10 @@ export function createBirds(
             b.toX = land.x
             b.toY = land.y
             b.toZ = land.z
+            // Commit the target's offset clamp now, for the glide-in and the perch
+            // that follows: a tree reins the offset in to its canopy so touchdown
+            // lands among the leaves, not floating out past them.
+            b.perchR = land.r
             const d = Math.hypot(b.toX - b.fromX, b.toZ - b.fromZ)
             b.landDur = Math.min(LAND_DUR_MAX, Math.max(LAND_DUR_MIN, d / LAND_SPEED))
             b.state = 'landing'
@@ -717,8 +764,12 @@ export function createBirds(
           heading = runIn
         }
 
-        const bx = coreX + b.ox
-        const bz = coreZ + b.oz
+        // The formation offset, reined in to whatever the perch supports: full
+        // spread over open ground, no wider than the canopy in a tree, so a
+        // perched bird is never flung out past the foliage to hang in clear air.
+        const os = offsetScale(b)
+        const bx = coreX + b.ox * os
+        const bz = coreZ + b.oz * os
         const by = coreY
         const grounded = b.state === 'perched'
         qHeading.setFromAxisAngle(yAxis, heading)

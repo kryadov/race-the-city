@@ -121,6 +121,15 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Level-crossing barriers** — drop **boom barriers (шлагбаумы) at railway crossings** that
       lower when a train approaches and raise after it passes. Reuse `trains.ts` timing + the road/rail
       intersection points; a hinged bar mesh + a simple down/up animation gated on train proximity.
+- [ ] **Forests / woodland** — support and render **large wooded areas** (OSM `landuse=forest`,
+      `natural=wood`): fill the polygon with **instanced trees** at a sensible density (capped +
+      culled), not just the scattered `natural=tree` points. Reuse the greenery tree instancing.
+- [ ] **Railway stations with platforms + boarding** — draw rail stops as a **platform** (OSM
+      `railway=station`/`halt`/`platform`), with **people standing on it**; a train **pulls up** and
+      people **board and alight**. Ties into trains.ts stop logic + pedestrians + a platform mesh.
+- [ ] **Bot buses that stop + board** — add **AI buses** that run routes and **stop at bus stops**
+      (`highway=bus_stop`, already used for street furniture), where **people get on and off**. Bus
+      as a traffic agent with dwell-at-stop behaviour + pedestrian board/alight.
 - [ ] **Sports grounds** — place **pitches with goals (football) / courts with hoops (basketball)**
       via the same OSM-prop pattern as fountains/benches (`leisure=pitch`), with a few **figures
       playing with a ball** on them. Instanced figures + a simple ball-and-players loop, capped.

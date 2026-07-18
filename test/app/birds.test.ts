@@ -167,6 +167,42 @@ describe('birds', () => {
     expect(sawCanopyHeight, 'never settled at tree-canopy height near the only tree offered').toBe(true)
   })
 
+  it('perches within a tree\'s canopy, not floating out past it', () => {
+    // The float bug: a landing snaps a bird to the trunk of the nearest tree,
+    // but its fixed formation offset (ox/oz, up to ~5m out) is added at render
+    // time — so it hung at tree-canopy height (4.5m) several metres clear of a
+    // canopy only ~1-3m across, sitting on nothing. A constant rand of 0.95
+    // gives a large offset (|ox,oz| ~= 4.5m) that would float well past the
+    // canopy unclamped; the fix reins the offset in to a canopy radius.
+    const scene = new THREE.Scene()
+    const provider = { heightAt: () => 0 }
+    const TREE = { x: 20, z: 0 }
+    const b = createBirds(scene, () => 0.95, 1, provider, [TREE])
+    const body = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    // With rand=0.95 the bird settles on the tree from the very first frame and
+    // rests ~19s before its first flight, so frames 20..200 are all perched.
+    let sawPerched = false
+    for (let i = 0; i < 200; i++) {
+      b.update(0.1, 0, 0, 1e6, 1e6)
+      if (i < 20) continue
+      const p = positions(body)[0]
+      // Perched at canopy height (the potter hop rides 4.5..4.85), never the
+      // ground (0.3) — proof it used the tree at all.
+      expect(p.y, 'the bird left canopy height while it should be perched').toBeGreaterThan(4)
+      expect(p.y, 'the bird rose off its perch while it should be resting').toBeLessThan(5)
+      // ...and its rendered spot stays within the canopy: the clamped offset
+      // (<= CANOPY_R = 2.2) plus the step-in-place potter (<= STEP_ROCK = 0.6).
+      // Unclamped it sat ~4.5m out — a floater over open sky.
+      expect(
+        Math.hypot(p.x - TREE.x, p.z - TREE.z),
+        'a perched bird floats out beyond its tree canopy',
+      ).toBeLessThan(2.9)
+      sawPerched = true
+    }
+    expect(sawPerched, 'the bird was never perched on the tree to check').toBe(true)
+  })
+
   it('comes down on a rooftop when one is offered and no tree is closer', () => {
     const scene = new THREE.Scene()
     const provider = { heightAt: () => 0 }

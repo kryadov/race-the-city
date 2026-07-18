@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.17 — birds perch in the tree, not in mid-air
+- A bird landing in a tree snapped to the trunk, but its flock-formation offset (up to ~5m) was added
+  at render time — **flinging it clear of the tree's small canopy**, so it sat in mid-air over
+  nothing. Tree perches now **clamp that offset to the canopy radius**, so birds cluster in the
+  foliage; ground and rooftop perches keep their full spread unchanged (no return of the old heap).
+- 👀 Watch birds settle in a tree: they sit in the foliage, none hanging in open air beside it.
+
 ## v0.110.16 — no more windows buried in the ground
 - On sloping ground a building's window grid started from the **average** terrain under its
   footprint, so the uphill wall — standing over higher ground — had its lower window rows **below the
