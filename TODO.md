@@ -35,6 +35,11 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       `src/app/taxi.ts` (state machine + beacon) + `src/ui/taxiHud.ts`, a mode on the start menu,
       markers on the minimap. Reuses road vertices for on-road A/B.
 
+- [ ] **6. LAN multiplayer** — drive the same city with friends on the local network (asked
+      2026-07-18). Architecturally significant: the game is "no backend, static, browser-only", so
+      true networking needs SOME transport (WebRTC P2P + signaling, or an optional local companion
+      server). Being brainstormed — see `docs/superpowers/specs/`.
+
 ## 🗺 World & map
 - [x] Sea / coastline (approximate flat-plane sea for coastal areas) — done in v0.14.0
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0
