@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.1 — birds fly up, not into the ground
+- On terrain higher than the birds' cruising altitude (a hill, a raised city), a startled bird
+  "climbed" toward a fixed **absolute** height that was below the ground, so it **sank out of sight**
+  instead of flying up — obvious the moment the car drove up and flushed one. Flight height is now
+  measured **above the ground beneath the bird**, so they always climb away and never fly into a
+  hillside.
+- 👀 Drive up to birds on high ground: they take off up and away, no more vanishing downward.
+
 ## v0.110.0 — four new vehicles: pickup, police, ambulance, fire-truck
 - Four new drivable models join the roster: a **pickup** 🛻 with an open cargo bed, a **police car**
   🚓 with a roof lightbar and push-bar (interceptor pace), an **ambulance** 🚑 (white box body, red

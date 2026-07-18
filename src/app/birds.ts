@@ -592,7 +592,10 @@ export function createBirds(
             b.fromY = b.perchY
             b.fromZ = b.perchZ
             b.toX = b.perchX
-            b.toY = ALT_LOW + b.altOffset
+            // Climb to ALT_LOW ABOVE THE GROUND, not to an absolute height: on
+            // terrain higher than ALT_LOW the bird would otherwise "climb" DOWN
+            // into the ground and vanish (the flush made this obvious near the car).
+            b.toY = provider.heightAt(b.perchX, b.perchZ) + ALT_LOW + b.altOffset
             b.toZ = b.perchZ
             b.state = 'takeoff'
             b.stateT = 0
@@ -615,7 +618,7 @@ export function createBirds(
             const legEndZ = b.fromZ + Math.sin(endMean) * b.legLen
             const land = pickLanding(anchorX + b.ox * PERCH_SCATTER, anchorZ + b.oz * PERCH_SCATTER)
             b.fromX = legEndX
-            b.fromY = ALT_LOW + b.altOffset
+            b.fromY = provider.heightAt(legEndX, legEndZ) + ALT_LOW + b.altOffset // above the ground here, not absolute
             b.fromZ = legEndZ
             b.toX = land.x
             b.toY = land.y
@@ -678,8 +681,12 @@ export function createBirds(
           const mean = b.legHeading + b.legBend * (p / 2 - 0.5)
           coreX = b.fromX + Math.cos(mean) * along
           coreZ = b.fromZ + Math.sin(mean) * along
-          const altLow = ALT_LOW + b.altOffset
-          const alt = b.legClimb ? altLow + (ALT_CLIMB - altLow) * Math.sin(Math.PI * p) : altLow
+          // Both cruise heights ride ABOVE THE GROUND under the bird, so it never
+          // flies into a hillside — sampled once per frame per airborne bird (few).
+          const ground = provider.heightAt(coreX, coreZ)
+          const altLow = ground + ALT_LOW + b.altOffset
+          const altHigh = ground + ALT_CLIMB + b.altOffset
+          const alt = b.legClimb ? altLow + (altHigh - altLow) * Math.sin(Math.PI * p) : altLow
           coreY = alt + Math.sin(time * b.bobSpeed + b.bobPhase) * ALT_BOB
           heading = a
         } else {

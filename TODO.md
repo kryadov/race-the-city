@@ -6,6 +6,12 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎮 Play-test backlog — 2026-07-19 (live session)
 Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
 
+- [ ] **Bigger map (×2 diameter) without frame-rate loss, adaptive** — raise `RADIUS` (1000 → 2000)
+      so the drivable world is twice across, BUT only where it pays: **if there are no buildings past
+      the current radius, don't expand** (a village shouldn't fetch/scan 4× the empty area). 4× the
+      area is 4× the OSM + geometry, so it MUST stay performant — lean on the existing per-type caps,
+      subsample/LOD distant detail, and cull. Ties into the São Paulo bbox/query work. Measure frame
+      time before/after. Design carefully before building — likely a brainstorm item.
 - [ ] **BUG — benches gone from streets** — across several cities the user no longer sees any
       street benches (park ones may be ok). Regression suspect: `streetFurniture.ts` roadside
       placement caps/`nearestRoad`/ROADSIDE_DIST — check they're actually being placed and drawn
@@ -120,6 +126,18 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       which changes with the layout, so on a Russian (or other) layout it never fires. Match the
       **physical key via `event.code`** for the horn (and audit the other driving keys the same way)
       so the bound key works regardless of layout.
+- [ ] **Per-vehicle horn** — the klaxon should **sound different per vehicle** (a truck's air-horn vs
+      a car's beep vs a sports parp). A small horn-profile per vehicle type in `audio.ts`, keyed off
+      the current vehicle.
+- [ ] **Fly over traffic & people when airborne** — when the player is **jumped/airborne above**
+      passing bot cars OR pedestrians, they shouldn't collide with them — the collision check must
+      respect height (only collide when vertically overlapping), so you pass freely overhead.
+- [ ] **Step up onto a slightly higher surface** — if the player has driven onto a building/ledge and
+      an **adjacent surface is only a wheel-radius higher**, allow driving up onto it (a small
+      step-up allowance in the vertical collision, not a hard wall).
+- [ ] **Smooth bot cornering** — bot cars currently **snap 90° at intersections**; make them **turn
+      smoothly** (ease the heading toward the next edge / a short arc through the junction) in
+      `traffic.ts`, instead of an instant rotation.
 - [ ] **Crowd reacts to the horn** — honking makes **nearby pedestrians and cars veer away** from the
       player — but **not parked ones**. A brief repulsion impulse on `people`/`traffic` agents within
       a radius when the horn fires; parked/stationary cars ignore it.
@@ -143,6 +161,11 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Minimap zoom buttons** — **+ / − buttons on the minimap** to zoom it in/out, working with
       **touch** (pointer events, not just mouse) for mobile. Adjust the minimap's world-to-pixel
       scale; persist the level via prefs.
+- [ ] **Taxi (and other modes) in the ⚙ side menu** — the deliver-a-fare / taxi mode is on the start
+      menu but NOT in the in-game settings menu; the user expects it there too. Make the settings-menu
+      modes a **single-select** (they're mutually exclusive — free/trial/race/taxi), and add taxi.
+      (This is the long-standing "settings-menu modes → dropdown + add taxi" item; may pair with the
+      broader menu regrouping brainstorm.)
 - [ ] **People use doors** — pedestrians currently pop out through walls anywhere on a building.
       They should **enter and leave only through a door**, and the **door should open as they pass
       and close behind them**. Needs a door position per building (a facade feature already exists —
