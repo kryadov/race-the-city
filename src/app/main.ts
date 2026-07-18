@@ -342,13 +342,26 @@ const rivals = createRivals(stage.scene)
 rivals.setEnabled(getRace() && getTrial())
 let stopLoop: (() => void) | null = null
 let loading_ = false
+// A city requested while another is still loading is remembered here and run the
+// moment that load finishes, rather than silently dropped. Clicking Play/Random/
+// search on the start menu while the idle backdrop is still coming in must not be
+// a no-op — that left the menu sitting there with the demo still driving under it.
+let queued: string | null = null
+// Set when a Play / Random / city-search click wants to *play* the city being
+// loaded (not just watch it as the backdrop): the load drops out of attract and
+// enters this mode once the car exists.
+let playAfterLoad: StartMode | null = null
+let startMode: StartMode = 'free' // the mode picked on the start menu, recorded via onMode
 let currentCity = '' // the loaded city query, for session save/restore
 let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
 let lastRailways: import('../geo/types').Railway[] = []
 let lastWater: import('../geo/types').Vec2[][] = []
 
 async function loadCity(query: string): Promise<void> {
-  if (loading_) return
+  if (loading_) {
+    queued = query // fold into the current load; it runs the moment that one lands
+    return
+  }
   loading_ = true
   replay.clear() // the recorded poses belong to the outgoing city
   hud.setCity(query)
@@ -552,6 +565,15 @@ async function loadCity(query: string): Promise<void> {
     stage.renderer.compile(stage.scene, stage.camera)
     stage.renderer.render(stage.scene, stage.camera)
     loading.hide()
+
+    // A Play / Random / city-search click asked to play THIS city: now that the
+    // car exists, drop out of attract and enter the chosen mode. A newer city
+    // request queued behind us supersedes it — that load enters play instead, so
+    // leave the flag for it rather than driving the city we're about to replace.
+    if (playAfterLoad !== null && queued === null) {
+      enterPlay(playAfterLoad)
+      playAfterLoad = null
+    }
 
     if (!stopLoop) {
       stopLoop = startLoop((wallDt) => {
@@ -794,6 +816,11 @@ async function loadCity(query: string): Promise<void> {
     loading.error(t(key))
   } finally {
     loading_ = false
+    if (queued !== null) {
+      const next = queued
+      queued = null
+      void loadCity(next)
+    }
   }
 }
 
@@ -1053,11 +1080,14 @@ function selectVehicle(type: VehicleType): void {
     car.vz = 0
   }
 }
-function startPlay(mode: StartMode): void {
+/**
+ * Drop out of the attract backdrop and start a driving session in `mode`. The
+ * car and roads must already exist (the city is loaded): this runs either off the
+ * Play button (playing the current backdrop) or at the tail of a load kicked off
+ * by Random / city-search — see `playAfterLoad`.
+ */
+function enterPlay(mode: StartMode): void {
   attract = false
-  startMenu.hide()
-  replayControls.setVisible(true) // record / replay your drive, in-game
-  audio.resume() // the Play click is a user gesture — safe to start audio
   if (mode === 'race') {
     setRace(true)
     applyTrial(true)
@@ -1074,6 +1104,25 @@ function startPlay(mode: StartMode): void {
   }
   autopilot.setEnabled(getDemo()) // restore the demo setting (off by default → you drive)
   if (getDemo() && car) autopilot.reset(lastRoads, car)
+}
+function startPlay(mode: StartMode): void {
+  startMenu.hide()
+  replayControls.setVisible(true) // record / replay your drive, in-game
+  audio.resume() // the Play click is a user gesture — safe to start audio
+  enterPlay(mode) // the backdrop is already loaded — play what you're watching
+}
+/**
+ * Load `query` and play it: hide the menu now, and once the city lands, enter the
+ * mode picked on the start screen. Backs the Random button and the city search —
+ * which used to only swap the backdrop and leave the menu (and the demo) up, so a
+ * click during the opening backdrop load did nothing at all.
+ */
+function playCity(query: string): void {
+  startMenu.hide()
+  replayControls.setVisible(true)
+  audio.resume() // user gesture — safe to start audio
+  playAfterLoad = startMode
+  void loadCity(query)
 }
 function startContinue(): void {
   const sess = getSession()
@@ -1094,10 +1143,12 @@ const startMenu = createStartMenu(
   {
     onPlay: startPlay,
     onContinue: startContinue,
-    onCity: (q) => void loadCity(q),
-    onRandom: () => void loadCity(pickRandomCity()),
+    onCity: playCity,
+    onRandom: () => playCity(pickRandomCity()),
     onVehicle: selectVehicle,
-    onMode: () => {},
+    onMode: (m) => {
+      startMode = m
+    },
   },
   { vehicle, city: linkCity, hasSession: !!getSession() },
 )

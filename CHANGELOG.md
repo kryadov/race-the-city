@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.106.2 — Random & city-search start the game, not just the backdrop
+- On the start menu, **🎲 Random city** and the city-search **Go** only swapped the backdrop and
+  left the menu up — and if you pressed them while the opening backdrop was still loading (the case
+  right after a page refresh), nothing happened at all: the menu sat there with the demo driving
+  underneath. Both now **start a driving session** in the chosen city and the picked mode, and a
+  click made while a load is in flight is **queued** and honoured once it lands, never dropped.
+- 👀 After a refresh, on the start menu: hit 🎲 (or type a city and press Go) — the menu goes away
+  and you're driving there in the selected mode. Play and Continue behave as before.
+
 ## v0.106.1 — the "new version" notice is clickable over the menu
 - The update banner was behind the start-menu overlay, so you could not click it. It sits above
   the menu now (z-index), so a fresh build is one click away even on the start screen.
