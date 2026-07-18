@@ -97,12 +97,18 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       the fog. Wants a look before any code
 - [ ] **Elevation is exaggerated in some cities** — Helsinki, St Petersburg and Tokyo have far
       bigger swings than they should (Helsinki and SPb are flat in life); other cities look
-      right. First suspect, to be MEASURED not assumed: Terrarium tiles are Web Mercator, so a
-      tile covers `cos(lat)` fewer ground metres — at 60°N that is half. If the local x/z →
-      pixel mapping misses that factor, every slope comes out twice as steep, and the error
-      grows with latitude. Tokyo at 35°N would be off by ~20%, which fits it being merely
-      wrong rather than absurd. Probe it with the headless-Chrome harness (see AGENTS.md):
-      compare `dem.heightAt` against known ground truth at several latitudes
+      right.
+      - **[MEASURED — the cos(lat) suspect is REFUTED.]** `test/terrain/elevationGeometry.test.ts`
+        runs the real projector + tile-pixel mapping: a local 500m step spans exactly 500.0m of
+        real ground at 0°, 35°, 51° and 60°N. The projector's `cos(lat0)` longitude scale
+        cancels through the Mercator tile sampling, so slopes are geometrically EXACT at every
+        latitude — a ×cos "fix" would have broken correct geometry. Terrarium heights decode by
+        the standard formula and sample bilinearly, so the vertical is right too.
+      - **Still open, next probe:** the exaggeration must therefore be in the DEM SOURCE values
+        (Terrarium artifacts — z14 relief, DSM-vs-DTM, noise over water) or perception (low-poly
+        flat-shading dramatising real relief). Next: a real-city HEADLESS fetch comparing
+        `heightAt`'s range over the map against known ground truth for SPb/Helsinki, to tell a
+        source problem from a look problem before touching anything.
 - [ ] **More cities** — the random list repeats too often (85 across 10 regions today; a
       region is drawn first, so small regions come up disproportionately)
 - [x] **Trains come out of a tunnel and go into one** — carriages off the line are no longer
