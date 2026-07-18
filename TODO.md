@@ -66,6 +66,9 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 ## 📥 Asked for, not done yet
 - [ ] **Birds are still wrong, and the model is worse than the motion** (reported after
       v0.91.1 — check the user was on it before diagnosing):
+      - **[MODEL DONE v0.93.0]** the flat "two triangles, no body" is fixed: a low-poly
+        octahedron **body** (`bodyGeometry`) now rides under the flapping wings, third
+        InstancedMesh, symmetric so heading's z-sign doesn't matter. The two below remain.
       - "висят неподвижно на уровне деревьев" — a perched bird is motionless at TREE_PERCH_H
         over a tree's ground position, but the trees it perches on are scaled 0.7-1.4, so the
         height is a guess and the bird reads as hanging in the air beside one, not sitting in

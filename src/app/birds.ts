@@ -166,6 +166,20 @@ function wingGeometry(mirror: 1 | -1): THREE.BufferGeometry {
   return geo
 }
 
+/**
+ * The bird's body — a low-poly spindle the wings hinge on. Two flat triangles
+ * with nothing between them read as a paper dart, not a bird ("выглядят плоско,
+ * это отвратительно"); a body gives them volume. A faceted octahedron stretched
+ * long and slim keeps the game's low-poly, flat-shaded look, and is symmetric
+ * front-to-back and side-to-side so it reads right whichever way heading points
+ * it — no dependence on the wing frame's z-sign.
+ */
+function bodyGeometry(): THREE.BufferGeometry {
+  const geo = new THREE.OctahedronGeometry(1, 0)
+  geo.scale(1.5, 0.42, 0.42) // long along travel (x), slim in section — a body, not a ball
+  return geo
+}
+
 type State = 'perched' | 'takeoff' | 'cruise' | 'landing'
 
 interface Bird {
@@ -244,9 +258,10 @@ export function createBirds(
     fog: false,
   })
   const n = Math.max(1, count)
+  const body = new THREE.InstancedMesh(bodyGeometry(), mat, n)
   const rightWing = new THREE.InstancedMesh(wingGeometry(1), mat, n)
   const leftWing = new THREE.InstancedMesh(wingGeometry(-1), mat, n)
-  group.add(rightWing, leftWing)
+  group.add(body, rightWing, leftWing)
   /**
    * Instance colours only — NOT vertexColors (see traffic.ts). Neither wing
    * geometry carries a colour attribute, so vertexColors would paint every
@@ -256,6 +271,7 @@ export function createBirds(
   // computes an InstancedMesh's bounding sphere once (see traffic.ts) — so
   // without this the whole flock gets frustum-culled as one the moment it
   // drifts from wherever that first sphere happened to land.
+  body.frustumCulled = false
   rightWing.frustumCulled = false
   leftWing.frustumCulled = false
 
@@ -290,9 +306,11 @@ export function createBirds(
       landDur: 1,
     })
     col.setHex(COLORS[Math.floor(rand() * COLORS.length)])
+    body.setColorAt(i, col)
     rightWing.setColorAt(i, col)
     leftWing.setColorAt(i, col)
   }
+  if (body.instanceColor) body.instanceColor.needsUpdate = true
   if (rightWing.instanceColor) rightWing.instanceColor.needsUpdate = true
   if (leftWing.instanceColor) leftWing.instanceColor.needsUpdate = true
 
@@ -357,6 +375,7 @@ export function createBirds(
     },
     dispose() {
       scene.remove(group)
+      body.geometry.dispose()
       rightWing.geometry.dispose()
       leftWing.geometry.dispose()
       mat.dispose()
@@ -550,6 +569,11 @@ export function createBirds(
         const flap = b.state === 'perched' ? 0 : Math.sin(time * b.flapSpeed + b.flapPhase) * FLAP_AMPLITUDE
         pos.set(bx, by, bz)
 
+        // The body carries no flap — just heading. Set it first, then the wings
+        // hinge around it.
+        m.compose(pos, qHeading, one)
+        body.setMatrixAt(i, m)
+
         // Flap first, in the wing's own local frame (the hinge), then orient
         // the whole bird by heading — the opposite order would swing the
         // wingtip through the ground on a bird flying north.
@@ -565,6 +589,7 @@ export function createBirds(
         m.compose(pos, qTotal, one)
         leftWing.setMatrixAt(i, m)
       }
+      body.instanceMatrix.needsUpdate = true
       rightWing.instanceMatrix.needsUpdate = true
       leftWing.instanceMatrix.needsUpdate = true
     },

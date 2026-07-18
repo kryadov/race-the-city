@@ -58,10 +58,9 @@ describe('birds', () => {
     const scene = new THREE.Scene()
     createBirds(scene, () => 0.5, 6)
     const group = scene.children[0] as THREE.Group
-    // one instanced draw per wing side, however many birds there are
-    expect(group.children.length).toBe(2)
-    const wing = group.children[0] as THREE.InstancedMesh
-    expect(wing.count).toBe(6)
+    // three instanced draws — a body and one per wing side — however many birds there are
+    expect(group.children.length).toBe(3)
+    for (const mesh of group.children) expect((mesh as THREE.InstancedMesh).count).toBe(6)
   })
 
   it('perches, later leaves, and comes back down — a full flight, not a hover', () => {
@@ -110,8 +109,9 @@ describe('birds', () => {
     const scene = new THREE.Scene()
     const b = createBirds(scene, () => 0.5, 1)
     const group = scene.children[0] as THREE.Group
-    const right = group.children[0] as THREE.InstancedMesh
-    const left = group.children[1] as THREE.InstancedMesh
+    const body = group.children[0] as THREE.InstancedMesh
+    const right = group.children[1] as THREE.InstancedMesh
+    const left = group.children[2] as THREE.InstancedMesh
 
     // Frames 10 and 30 are still well inside the initial perch (see the
     // flight-timing test above): the wing must not move at all.
@@ -136,6 +136,10 @@ describe('birds', () => {
     expect(flyingAfter.angleTo(flyingBefore!), 'the wing never moved in flight').toBeGreaterThan(0.01)
     const leftAfter = quatAt(left, 0)
     expect(leftAfter.angleTo(flyingAfter), 'only one wing flapped').toBeGreaterThan(0.01)
+    // The body carries heading but no flap, so at the same instant it differs
+    // from the flapped wing — proof the wings hinge and the body doesn't.
+    const bodyAfter = quatAt(body, 0)
+    expect(bodyAfter.angleTo(flyingAfter), 'the body flapped with the wing').toBeGreaterThan(0.01)
   })
 
   it('comes down on a nearby tree when one is offered', () => {
