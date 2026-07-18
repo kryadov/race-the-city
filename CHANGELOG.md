@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.12 — the car stops twitching in the air
+- Airborne, the car kept tilting to the **terrain normal skimming past below it** — which changes
+  every frame at speed — so it juddered in all directions in flight even with only forward held. It
+  now holds **level while airborne** (as it already did on a bridge deck / hovercraft), pitching to
+  the slope only when it's actually on the ground.
+- 👀 Launch off a ramp and hold forward: the body stays steady in the air instead of shaking.
+
 ## v0.110.11 — street benches are back
 - Street benches had vanished from most cities. Cause: benches were thinned to a single 55 cap
   **before** roadside and park benches were told apart — and a well-surveyed park's benches ate the

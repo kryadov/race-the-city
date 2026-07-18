@@ -146,6 +146,9 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       **flash its headlights and give a honk** as it passes (occasionally, not every time). Needs
       `traffic.ts` to spot a car closing on the player in the oncoming lane and fire a brief
       headlight-flash + a horn sound (reuse the audio bus).
+- [ ] **More realistic helicopter/hover vehicle** — the hover/helicopter (🛸/🚁) should look and
+      behave more like a real helicopter: a proper body + spinning main & tail rotors, nose-down tilt
+      when moving, a little bob at hover. Vehicle model (`vehicle/models`) + hover physics/visual.
 - [ ] **Pickable car-objects on the map** — occasionally a real, selectable vehicle sits parked on
       the map that the player can **walk/drive up to and switch into** (choose it as their car).
       Rare spawns tied to parking/roadside; reuses the vehicle roster + `selectVehicle`.

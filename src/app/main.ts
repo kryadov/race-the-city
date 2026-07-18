@@ -803,7 +803,12 @@ async function loadCity(query: string): Promise<void> {
         // Wheels wind on toward the lock rather than snapping to it, so the
         // angle reflects how long you've held the turn.
         steerVis += (input.steer - steerVis) * (1 - Math.exp(-STEER_EASE * dt))
-        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle] || onDeck, steerVis)
+        // Flying? Hold the body level instead of tilting it to the terrain that's
+        // skimming by underneath — at speed that ground normal changes every frame,
+        // and the car twitched in all directions in the air. On the ground (car.y ≈
+        // terrain) it still pitches to the slope as before.
+        const airborne = car.y > provider.heightAt(car.x, car.z) + 1.5
+        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle] || onDeck || airborne, steerVis)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)
