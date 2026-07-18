@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.107.3 — a home of its own: race-the-city.games
+- The game now lives at its own domain, **race-the-city.games** (the old
+  `kryadov.github.io/race-the-city/` still redirects). A `CNAME` is shipped in the build so every
+  deploy keeps the custom domain instead of dropping it. No code moved — asset paths were already
+  relative (`base: './'`), so the site runs identically at the domain root and the old sub-path.
+
 ## v0.107.2 — birds on the ground look like birds, and potter about
 - A perched bird was just the flight shape holding still — wings spread flat, no motion — which read
   as a **flat diamond** and looked dead. Grounded birds now **fold their wings in**, stand plumper,
