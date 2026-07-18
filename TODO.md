@@ -32,6 +32,14 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Boats: better hull + rower** — make the rowboat **more boat-shaped** and give it a **little
       figure rowing with oars** (animated stroke). `boats.ts` rowboat model + a per-boat oar animation
       in the update loop; keep it cheap.
+- [ ] **BUG — Boston: sparse roads but ZERO buildings.** Roads render (sparse), buildings don't —
+      so the fetch partly works. Diagnosis: the OLD combined Overpass query, truncated under load,
+      streams `highway` (first in the query) then gets cut off before `building` → roads survive,
+      buildings don't. v0.110.10's split buildings query SHOULD fix it — **verify on a reloaded
+      build (the app itself is cached)**. If Boston is STILL empty on v0.110.10: (a) add
+      `relation["building"]` to `buildingsQuery` AND parse **multipolygon buildings** (parse.ts today
+      handles relation multipolygons for WATER only — `way["building"]` misses courtyard/complex
+      buildings), and/or (b) handle `building:part`. Measure Boston's real OSM building count first.
 - [ ] **BUG — São Paulo (and maybe other dense cities) render almost no buildings.** FINDINGS so
       far: the geocode is FINE — "São Paulo" → -23.5507,-46.6334, dense downtown, RADIUS 1000m, so
       buildings exist in OSM there. The suspect is `src/geo/overpass.ts` `overpassQuery`: ONE heavy

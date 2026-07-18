@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.11 — street benches are back
+- Street benches had vanished from most cities. Cause: benches were thinned to a single 55 cap
+  **before** roadside and park benches were told apart — and a well-surveyed park's benches ate the
+  whole budget, leaving about one bench on the streets. Roadside and park benches are now **capped
+  independently**, so a bench-heavy park can't starve the pavements.
+- 👀 Drive a street: benches along the kerb again, not only in the parks.
+
 ## v0.110.10 — dense cities (São Paulo) get their buildings back
 - Dense downtowns rendered almost no buildings. Root cause (measured): under server load, Overpass
   answers the game's one heavy combined query with **HTTP 200 but a timed-out, near-empty body** —

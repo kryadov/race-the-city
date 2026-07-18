@@ -98,6 +98,31 @@ describe('buildStreetFurniture', () => {
     expect(count).toBeGreaterThan(40)
   })
 
+  it('caps park and street benches apart, so a bench-heavy park cannot starve the street', () => {
+    // A single straight street along +x, a park full of benches well off it, and
+    // a run of benches lining the kerb. A single combined cap spends itself almost
+    // entirely on the park and leaves the street bare — the regression that made
+    // street benches vanish. Capping the two groups apart keeps every street one.
+    const road: Road = { points: [{ x: 0, z: 0 }, { x: 1000, z: 0 }], kind: 'residential' } // runs along +x
+    const street: Vec2[] = Array.from({ length: 12 }, (_, i) => ({ x: 20 + i * 15, z: 4 })) // 4m off the kerb
+    const park: Vec2[] = Array.from({ length: 400 }, (_, i) => ({ x: (i % 20) * 6, z: 500 + Math.floor(i / 20) * 6 }))
+    const g = buildStreetFurniture([...park, ...street], [], [road], flat, makeRng(1))
+    const frame = inst(g, 'bench-frame')!
+    expect(frame.count, 'benches are emitted at all').toBeGreaterThan(0)
+
+    // Street benches sit by the road (small |z|); park benches are 500m+ away. So
+    // the count near the road is exactly the street benches that survived the cap.
+    const m = new THREE.Matrix4()
+    const pos = new THREE.Vector3()
+    let nearStreet = 0
+    for (let i = 0; i < frame.count; i++) {
+      frame.getMatrixAt(i, m)
+      pos.setFromMatrixPosition(m)
+      if (Math.abs(pos.z) < 50) nearStreet++
+    }
+    expect(nearStreet, 'every street bench survives a park-heavy cap').toBe(street.length)
+  })
+
   it('is stable for a given rng', () => {
     const a = buildStreetFurniture(grid(30), grid(8), [], flat, makeRng(9))
     const b = buildStreetFurniture(grid(30), grid(8), [], flat, makeRng(9))

@@ -85,16 +85,26 @@ function thin<T>(items: T[], max: number): T[] {
 }
 
 /**
- * Place items: thin them to a cap, and orient each — parallel to the nearest
- * road when it's roadside (so a run of benches stands in a line down the street),
- * any-which-way when it's out in the open (a park bench faces the view, not a kerb).
+ * Place items: split them into roadside and out-in-the-open, orient each — the
+ * roadside ones parallel to the nearest road (so a run of benches stands in a
+ * line down the street), the open ones any-which-way (a park bench faces the
+ * view, not a kerb) — then thin *each group on its own* to the cap.
+ *
+ * The per-group cap is the whole point. A well-surveyed park carries far more
+ * benches than the streets around it, so thinning one combined list spends the
+ * cap almost entirely on park benches and leaves the pavements bare — which is
+ * how street benches vanished. Capping the two groups apart keeps a park's
+ * clutter down without ever starving the streets of their own.
  */
 function place(spots: Vec2[], roads: Road[], cap: number, rand: () => number): Placed[] {
-  return thin(spots, cap).map((s) => {
+  const roadside: Placed[] = []
+  const open: Placed[] = []
+  for (const s of spots) {
     const near = nearestRoad(s.x, s.z, roads)
-    const yaw = near && near.dist < ROADSIDE_DIST ? near.angle : rand() * Math.PI * 2
-    return { x: s.x, z: s.z, yaw }
-  })
+    if (near && near.dist < ROADSIDE_DIST) roadside.push({ x: s.x, z: s.z, yaw: near.angle })
+    else open.push({ x: s.x, z: s.z, yaw: rand() * Math.PI * 2 })
+  }
+  return [...thin(roadside, cap), ...thin(open, cap)]
 }
 
 /**
