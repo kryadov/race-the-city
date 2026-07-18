@@ -107,6 +107,8 @@ import { buildParking } from '../world/parking'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildSea } from '../world/sea'
+import { circleBounds, confineToBounds } from '../world/bounds'
+import { createMistWall } from '../world/mistWall'
 import { SpatialGrid } from '../physics/grid'
 import { roofUnder } from '../physics/collide'
 import { pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../physics/collide'
@@ -124,6 +126,13 @@ import {
 } from '../vehicle/model'
 
 const RADIUS = 1000
+// The drivable edge, inside the ground mesh (which is a 2·RADIUS square, so a
+// circle of 950 is on solid ground all the way round). The car brakes into the
+// soft edge and stops at the hard one; the mist wall stands just past it. Built
+// against a `WorldBounds` shape so a real OSM admin boundary can drop in later.
+const EDGE_SOFT = 900
+const EDGE_HARD = 950
+const bounds = circleBounds(EDGE_SOFT, EDGE_HARD)
 // The ground mesh's resolution. Everything that sits on the ground is sampled
 // through griddedProvider at this same figure, so the surface the car drives on
 // is the surface on screen — keep the two together or the car sinks again.
@@ -146,6 +155,12 @@ createVersionBadge(ui)
 const keyboard = new Keyboard()
 const touch = createTouchControls(ui)
 const theme = new ThemeController(stage)
+// The mist wall rings the world's edge — one object, built once and standing
+// through every city (it depends on the fixed edge, not on the city geometry).
+// Its colour tracks the fog each frame (see the loop), so it stays right through
+// day, night and neon without a ThemeController hook.
+const mist = createMistWall(EDGE_HARD + 8)
+stage.scene.add(mist.mesh)
 const driftFx = createDriftFx(stage.scene)
 driftFx.setEnabled(getDriftFx())
 const headlight = new THREE.SpotLight(0xfff2c0, 0, 70, Math.PI / 5, 0.5, 1.2)
@@ -468,6 +483,7 @@ async function loadCity(query: string): Promise<void> {
       car.y = provider.heightAt(sess.x, sess.z) + (HOVERS[vehicle] ? HOVER_H : 0)
       odometer = sess.dist ?? 0
     }
+    confineToBounds(car, bounds, 1 / 60) // a pose saved on a wider map lands inside the edge
     // scatter nitro pickups on road vertices around the car — must run after the
     // pose above is settled, so a resumed session gets bottles where it left off
     const scatterOn = normalRoads.flatMap((r) => r.points) // skip bridges: their points are the deck's, not the ground's
@@ -621,6 +637,9 @@ async function loadCity(query: string): Promise<void> {
             if (Math.hypot(car.vx, car.vz) > 6) audio.thud() // a shunt you'd feel
           }
         }
+        // Keep the car inside the world. The physics grid holds footprints, not
+        // the map's edge, so nothing else stops you driving off into the void.
+        confineToBounds(car, bounds, dt)
         const onDeck = decks.heightAt(car.x, car.z) !== null && Math.abs(car.y - prevY) < 2.5
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
@@ -651,6 +670,7 @@ async function loadCity(query: string): Promise<void> {
         driftFx.update(car, dt, provider)
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
         applyDayNight(stage, timeOfDay, theme.current === 'neon')
+        mist.setColor((stage.scene.fog as THREE.Fog).color) // veil matches the fog
         // keep the sun's shadow frustum centred on the car
         sunScratch.copy(stage.sun.position).normalize().multiplyScalar(240)
         stage.sun.position.set(car.x + sunScratch.x, car.y + sunScratch.y, car.z + sunScratch.z)

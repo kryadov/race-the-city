@@ -3,6 +3,35 @@
 Backlog of ideas for Race the City. Shipped features live in the git tags / releases
 (v0.1.0 … current); this file tracks what's next.
 
+## 🧭 Big features — planned 2026-07-18 (session batch)
+Five features asked for in one session. Being brainstormed + specced together, then
+built as a swarm and released one-by-one. Design docs land in `docs/superpowers/specs/`.
+
+- [ ] **1. Keep the car on the map (world edge)** — DESIGN LOCKED. Circle boundary
+      R≈950 built against a `WorldBounds` abstraction (polygon-ready, real OSM admin
+      boundaries a later drop-in). Soft radial braking past 900m + hard backstop at 950m,
+      applied after `stepCar` (physics stays pure). A **mist-wall** curtain (`mistWall.ts`,
+      one inward-facing cylinder shell at ~955m, vertical alpha fade, colour tracks
+      `scene.fog`) hides the ground edge and the road stubs that spill past it — because
+      the always-on fog is CAMERA-relative and never hides the edge you drive TOWARD
+      (the boats lesson). Ships as a minor bump.
+- [ ] **2. Offline city packs + distribution** — STRATEGIC, phased. Now: PWA (service
+      worker for the app shell) + on-demand offline cache of a city's OSM (already in
+      IndexedDB) and terrain tiles, with a "download for offline" action over the random
+      list. Later, separate decomposition: native wrapper (Electron/Tauri/Capacitor),
+      Steam, mobile. NB licensing — redistributing OSM-derived data in a store build is
+      ODbL (attribution + share-alike); on-demand cache is the user's own copy and sidesteps it.
+- [ ] **3. Start menu + splash** — a front screen before free-roam: logo/title, Play,
+      city + vehicle pickers moved up front, continue-session, settings. The shell the
+      modes (#5) and replay (#4) hang off. Backdrop TBD (live autopilot city vs static art).
+- [ ] **4. Trip recording + re-play** — record a drive and play it back. Pose-based
+      playback favoured (robust to the sim's randomness) over deterministic input-replay.
+      Trigger TBD (manual vs rolling dashcam buffer). Storage in IndexedDB.
+- [ ] **5. Arcade modes (A→B)** — deliver a passenger/cargo from A to B before a timer;
+      taxi-style chained fares favoured for v1. Reuses `roadGraph` + `route` (A*) to pick
+      valid on-road A/B, nitro-style world markers, time-trial-style HUD. Extends the
+      existing "Goals and missions" backlog item below.
+
 ## 🗺 World & map
 - [x] Sea / coastline (approximate flat-plane sea for coastal areas) — done in v0.14.0
 - [x] Parks, greenery, trees (`leisure=park`, `natural=wood`, `landuse=grass`) — done in v0.13.0

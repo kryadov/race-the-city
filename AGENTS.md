@@ -77,6 +77,14 @@ startPose(roads) → createCar → startLoop(stepCar + syncCamera + render)`. Al
   wire it into the theme in the SAME change.
 - **TypeScript strict**, plus `noUnusedLocals`/`noUnusedParameters` — prefix a deliberately
   unused param with `_`.
+- **The world has an edge.** `src/world/bounds.ts` (`WorldBounds`) defines the drivable
+  boundary — today `circleBounds(EDGE_SOFT 900, EDGE_HARD 950)`, inside the 2·RADIUS ground
+  square. The car is confined by `confineToBounds` AFTER `stepCar` (physics stays pure): soft
+  radial braking past 900m, hard backstop at 950m, tangential motion kept so you can graze the
+  edge. `mistWall.ts` hides the ground rim and the road stubs OSM spills past it. Do NOT lean on
+  the scene fog for this — it is CAMERA-relative and never veils the edge you drive TOWARD (see
+  the boats gotcha). Bounds are shape-swappable, so real OSM admin boundaries can drop in later
+  with no change to the barrier or the wall.
 
 ## Testing approach
 
