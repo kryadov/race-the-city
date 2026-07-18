@@ -67,6 +67,11 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Bench-sitting by the water** — place benches beside lakes and have pedestrians **walk up,
       sit down, sit a while, stand and leave** (a small state machine: approach → sit → idle → rise →
       wander off). Ties into the water-avoidance work above and the existing `streetFurniture` benches.
+- [ ] **BUG — birds sometimes perch in mid-air** — a perched bird occasionally floats with nothing
+      under it. Likely a TREE perch (TREE_PERCH_H≈4.5m) with the render offset (ox/oz ±3.5m) putting
+      the bird out beyond the canopy, worsened by PERCH_SCATTER snapping to distant/absent trees.
+      Measure where floaters perch; fix by keeping the offset within the canopy for tree perches (or
+      only tree-perch when a real tree/canopy is there). birds.ts — free of agents.
 - [ ] **Flowerbed stems** — the beds read better now, but grow the blooms on **stems of slightly
       varied (or shaped/patterned) length**, randomised, so they look tended rather than a flat mat.
       A small per-bloom height jitter on the existing instanced flowers in `props.ts`.
@@ -134,9 +139,19 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       which changes with the layout, so on a Russian (or other) layout it never fires. Match the
       **physical key via `event.code`** for the horn (and audit the other driving keys the same way)
       so the bound key works regardless of layout.
+- [ ] **Flashing police lightbar** — the police car's roof beacons should **flash red/blue while
+      driving** (alternating), not glow steady. Animate the shared BEACON_RED/BLUE emissive intensity
+      in the loop for emergency vehicles. (Doing this myself — main.ts + parts.ts.)
 - [ ] **Per-vehicle horn** — the klaxon should **sound different per vehicle** (a truck's air-horn vs
       a car's beep vs a sports parp). A small horn-profile per vehicle type in `audio.ts`, keyed off
       the current vehicle.
+- [ ] **Collision knocks the OTHER guy back too** — hitting a pedestrian or bot car currently only
+      bounces the PLAYER; the person/car should also be shoved/knocked back (a reaction impulse on the
+      struck agent), not stand there immovable. Add a knockback to `people`/`traffic` when the player
+      overlaps them at speed.
+- [ ] **Underwater bubbles** — if the car sinks so the water is **above the roof**, emit **bubbles
+      rising from the roof up to the surface** at the spot where you went under (they form there and
+      drift up). A cheap particle stream (instanced points/quads) gated on car.y + roof < waterLevel.
 - [ ] **Fly over traffic & people when airborne** — when the player is **jumped/airborne above**
       passing bot cars OR pedestrians, they shouldn't collide with them — the collision check must
       respect height (only collide when vertically overlapping), so you pass freely overhead.

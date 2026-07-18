@@ -123,6 +123,7 @@ import { pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../p
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard } from '../vehicle/input'
 import { VEHICLES, LEANS, HOVERS, HOVER_H, type VehicleType } from '../vehicle/vehicles'
+import { BEACON_RED, BEACON_BLUE } from '../vehicle/models/parts'
 import {
   buildVehicleMesh,
   wheelPrint,
@@ -755,6 +756,12 @@ async function loadCity(query: string): Promise<void> {
         const blinkOn = steerHold > 0.5 && Math.floor(blinkClock / 0.4) % 2 === 0
         TURN_RIGHT_MAT.emissiveIntensity = blinkOn && steerDir > 0 ? 2.4 : 0
         TURN_LEFT_MAT.emissiveIntensity = blinkOn && steerDir < 0 ? 2.4 : 0
+        // Emergency beacons strobe red↔blue. The police / ambulance / fire-truck
+        // roof bars share these two lens materials, so driving the intensities
+        // here lights whichever emergency vehicle is on screen.
+        const beaconOn = Math.floor(blinkClock * 6) % 2 === 0
+        BEACON_RED.emissiveIntensity = beaconOn ? 3 : 0.15
+        BEACON_BLUE.emissiveIntensity = beaconOn ? 0.15 : 3
         prevForward = fwd
         driftFx.update(car, dt, provider)
         timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1

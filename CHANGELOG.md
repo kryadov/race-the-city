@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.5 — emergency beacons flash
+- The police car's (and ambulance's / fire-truck's) roof beacons now **strobe red↔blue** instead of
+  glowing steady, so an emergency vehicle reads at a glance.
+- 👀 Drive the 🚓 police car (or 🚑/🚒): the roof bar flashes.
+
 ## v0.110.4 — nitro and fuel stay on the map
 - Pickups scatter on road vertices, and some OSM roads run past the map's ±RADIUS edge — so a bottle
   could float out over the void beyond the ground. Candidate spots are now filtered to the drivable
