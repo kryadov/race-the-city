@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Railway, Vec2 } from '../geo/types'
 import type { Circle } from '../physics/collide'
 import { RAILHEAD_Y } from '../world/roads'
@@ -210,18 +211,19 @@ function tramCar(k: Kind, first: boolean): THREE.Group {
   const roof = new THREE.Mesh(new THREE.BoxGeometry(k.len * 0.96, 0.22, 2.3), mat(0xb8bec6))
   roof.position.y = FLOOR + H + 0.05
   g.add(roof)
-  // Glazing: a long strip each side, and the cab's screen.
+  // Glazing: a row of separate windows each side (not one long strip), plus the
+  // cab's screen. The panes on both sides are one merged mesh; the doors are
+  // their own boxes over the band below them.
   const glass = new THREE.MeshStandardMaterial({
     color: 0x1b2b36,
     emissive: 0xffd98a,
     emissiveIntensity: 0,
     flatShading: true,
   })
+  const win = new THREE.Mesh(windowBand(k.len * 0.82, FLOOR + 1.75, 1.22, 1.1), glass)
+  win.userData.trainGlass = true
+  g.add(win)
   for (const z of [1.22, -1.22]) {
-    const strip = new THREE.Mesh(new THREE.BoxGeometry(k.len * 0.82, 1.1, 0.06), glass)
-    strip.position.set(0, FLOOR + 1.75, z)
-    strip.userData.trainGlass = true
-    g.add(strip)
     // Doors, in the dark of the band.
     for (const x of [k.len * 0.28, -k.len * 0.28]) {
       const door = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.06), mat(0x3f4a55))
@@ -263,6 +265,39 @@ function tramCar(k: Kind, first: boolean): THREE.Group {
   return g
 }
 
+/**
+ * A row of separate windows down BOTH sides of a car, as one merged geometry.
+ *
+ * The old glazing was a single box `len*0.8` long: one unbroken ribbon of glass
+ * running the whole carriage, which no real coach has — read from the side it was
+ * a stripe, not windows. This lays out evenly spaced panes with body-coloured
+ * pillars left between them; the gaps ARE the pillars — we simply don't put glass
+ * there, so the body colour shows through. Both sides' panes are merged into a
+ * SINGLE BufferGeometry with a single material, so however many windows a car
+ * grows it is still one mesh and one draw — cheaper than the two strips it
+ * replaces, and O(cars) overall.
+ *
+ * @param span length of car the window band occupies, metres (centred on x=0)
+ * @param y    centre height of the band
+ * @param half half-width to each side; panes go at z = +half and z = -half
+ * @param winH pane height
+ */
+function windowBand(span: number, y: number, half: number, winH: number): THREE.BufferGeometry {
+  const pitch = 1.9 // one window + its pillar, metres — a coach-window rhythm
+  const n = Math.max(3, Math.round(span / pitch))
+  const cell = span / n
+  const winW = cell * 0.68 // the remaining third of each cell is the pillar
+  const panes: THREE.BufferGeometry[] = []
+  for (const z of [half, -half]) {
+    for (let i = 0; i < n; i++) {
+      const g = new THREE.BoxGeometry(winW, winH, 0.06)
+      g.translate(-span / 2 + cell * (i + 0.5), y, z)
+      panes.push(g)
+    }
+  }
+  return mergeGeometries(panes)
+}
+
 function carriage(k: Kind): THREE.Group {
   const g = new THREE.Group()
   const body = new THREE.Mesh(new THREE.BoxGeometry(k.len, 3.2, 3), mat(k.body))
@@ -278,12 +313,11 @@ function carriage(k: Kind): THREE.Group {
       emissiveIntensity: 0,
       flatShading: true,
     })
-    for (const z of [1.52, -1.52]) {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(k.len * 0.8, 1, 0.06), glass)
-      strip.position.set(0, RAIL_Y + 2.5, z)
-      strip.userData.trainGlass = true
-      g.add(strip)
-    }
+    // A row of panes down each side, lit as one at night (see the update loop),
+    // rather than a single strip the length of the car.
+    const win = new THREE.Mesh(windowBand(k.len * 0.8, RAIL_Y + 2.5, 1.52, 1), glass)
+    win.userData.trainGlass = true
+    g.add(win)
   }
   addBogies(g, k.len)
   return g
@@ -430,19 +464,29 @@ export function createTrains(
           car.visible = centre >= 0 && centre <= total
           if (!car.visible) return
           const p = at(tr.line, tr.cum, centre)
-          // Pitch to the grade: sample the track a half-carriage either side and
-          // sit on the line between them, the way a bogie at each end would. A
-          // carriage held level while the track climbs sinks into the hill at one
-          // end and hangs off it at the other.
+          // Orient from the two points the car actually rests on — a half-carriage
+          // ahead and behind its centre, where its bogies sit — rather than from
+          // the single segment the centre happens to lie on. `at().angle` is that
+          // segment's own bearing, so it SNAPPED by the whole turn the instant the
+          // centre crossed a vertex, and the grade jerked the same way at a hump.
+          // Sampling the ends and orienting along the line between them spreads a
+          // bend across the ~carriage length it takes the car to round it, so the
+          // body banks and pitches through the curve instead of hinging at each
+          // vertex — the flow a rigid coach on two trucks has. Stateless, so it
+          // stays deterministic and costs the same two extra samples it always did.
           const halfLen = tr.k.len / 2
           const back = at(tr.line, tr.cum, centre - halfLen)
           const front = at(tr.line, tr.cum, centre + halfLen)
           const yBack = provider.heightAt(back.x, back.z)
           const yFront = provider.heightAt(front.x, front.z)
           const run = Math.hypot(front.x - back.x, front.z - back.z) || 1
+          const tang = Math.atan2(front.z - back.z, front.x - back.x)
 
+          // A carriage held level while the track climbs sinks into the hill at one
+          // end and hangs off it at the other; sitting it on the line between the
+          // two sampled ends pitches it to the grade.
           car.position.set(p.x, (yBack + yFront) / 2, p.z)
-          const facing = -(p.angle + (tr.dir < 0 ? Math.PI : 0)) // face the way it's going
+          const facing = -(tang + (tr.dir < 0 ? Math.PI : 0)) // face the way it's going
           car.rotation.set(0, facing, 0)
           // Nose up when the track climbs ahead of us; the sign follows the
           // direction of travel, since the model's +x is its front.

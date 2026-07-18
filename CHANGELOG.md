@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.15 — trains: real windows and smooth cornering
+- Train and tram cars had a single **glass stripe** running the whole length; each now carries a
+  **row of separate windows** with pillars between them (one merged draw per car, still lit at
+  night). And a car's heading is now taken from **where its two ends rest on the rail**, not the one
+  segment under its middle — so it **flows through curves and over humps** instead of snapping a
+  right-angle at each vertex.
+- 👀 Watch a train round a bend: separate lit windows, and it curves smoothly, no kinking.
+
 ## v0.110.14 — bot cars round corners smoothly
 - AI traffic **snapped a full 90° at junctions**, pivoting on the spot. Cars now **ease their heading**
   toward the road they're turning onto (over about half a second) while staying pinned to the road,

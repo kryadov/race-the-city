@@ -175,6 +175,57 @@ describe('trains', () => {
     expect(bar!.position.x, 'the contact bar is ahead of its own arm').toBeLessThan(0)
   })
 
+  it('glazes the car with a row of separate windows, not one long strip', () => {
+    // The old glazing was a single box the length of the car — a stripe, not
+    // windows. It is now a merged row of panes down both sides; several per side.
+    const scene = new THREE.Scene()
+    createTrains(scene, [mainLine], flat, () => 0.5)
+    const carriage = carsOf(scene)[1] // [0] is the locomotive, which has no band
+    let glass: THREE.Mesh | null = null
+    carriage.traverse((o) => {
+      if (o.userData.trainGlass) glass = o as THREE.Mesh
+    })
+    expect(glass, 'the carriage has no glazing').not.toBeNull()
+    // One merged mesh, both sides; a BoxGeometry contributes 24 positions.
+    const boxes = glass!.geometry.getAttribute('position').count / 24
+    expect(boxes, 'the glazing is still a single-box stripe').toBeGreaterThanOrEqual(6)
+  })
+
+  it('flows the car through a bend instead of snapping at the vertex', () => {
+    // The heading used to be the bearing of the one segment the car's centre sat
+    // on, so it jumped by the whole turn the instant the centre crossed a vertex:
+    // a 90-degree corner flipped the body in a single frame. Orienting from the
+    // two ends the car rests on spreads the turn over its length.
+    const scene = new THREE.Scene()
+    // kind -> intercity (windowed), s = 0 (line start), dir = 1 (run forward).
+    const vals = [0.5, 0, 0]
+    let i = 0
+    const seq = (): number => vals[i++] ?? 0
+    const corner: Railway = { points: [v(0, 0), v(150, 0), v(150, 150)], tram: false, tunnel: false }
+    const t = createTrains(scene, [corner], flat, seq)
+    const lead = (): THREE.Object3D => (scene.children[0] as THREE.Group).children[0]
+    let maxTurn = 0
+    let prev: THREE.Vector3 | null = null
+    // Small steps forward, right through the corner; the train never reverses here.
+    for (let f = 0; f < 320; f++) {
+      t.update(0.02, 0)
+      const car = lead()
+      if (!car.visible) {
+        prev = null
+        continue
+      }
+      const fwd = new THREE.Vector3(1, 0, 0).applyEuler(car.rotation)
+      fwd.y = 0
+      if (fwd.lengthSq() < 1e-6) continue
+      fwd.normalize()
+      if (prev) maxTurn = Math.max(maxTurn, prev.angleTo(fwd))
+      prev = fwd
+    }
+    expect(maxTurn, 'the car never rounded the bend').toBeGreaterThan(0)
+    // Nowhere near the 90-degree (1.57 rad) jump the old snap made at the vertex.
+    expect(maxTurn, 'the heading still snaps at the vertex').toBeLessThan(0.3)
+  })
+
   it('takes itself off the scene when the city changes', () => {
     const scene = new THREE.Scene()
     const t = createTrains(scene, [mainLine], flat, () => 0.5)
