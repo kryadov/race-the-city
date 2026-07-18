@@ -177,4 +177,8 @@ patch for fixes), merge to `main`, then tag `vX.Y.Z` and push the tag —
 
 ## Docs
 
-Design spec and the full implementation plan are in `docs/superpowers/`.
+- **`FEATURES.md`** is the player-facing list of everything the game does + the controls. **Keep
+  it current: when you add a feature or change an existing one, update the relevant section of
+  `FEATURES.md` in the SAME change** (the way you also bump the version and tick `TODO.md`). A
+  feature that ships without a line in `FEATURES.md` is a feature players can't discover.
+- Design spec and the full implementation plan are in `docs/superpowers/`.
