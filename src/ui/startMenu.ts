@@ -225,13 +225,13 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
       // Bring the interactive menu back (e.g. after a failed load), leaving the
       // synthwave backdrop up behind it.
       loadingMode = false
-      panel.style.display = ''
+      panel.style.display = 'flex'
       overlay.style.display = 'flex'
       applyText()
     },
     hide() {
       loadingMode = false
-      panel.style.display = ''
+      panel.style.display = 'flex'
       overlay.style.display = 'none'
     },
     enterLoading() {
@@ -256,7 +256,7 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
         backdrop.style.display = 'none'
         if (wasLoading) {
           overlay.style.display = 'none'
-          panel.style.display = ''
+          panel.style.display = 'flex'
         }
       }, 900)
     },

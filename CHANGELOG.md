@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.7 — a failed load stops breaking the menu, and shows progress
+- A city that failed to load used to pop the **whole start menu — with a broken layout — over the
+  game you were driving**. Now if you already had a map, a failed switch just keeps you on it (a
+  failed Play/Random pick drops you into the backdrop you were watching); the menu only returns when
+  **nothing has ever loaded**, and its column layout is fixed (it was collapsing to a block).
+- The **loading spinner/progress now shows above the animated backdrop** instead of hidden behind it,
+  so a slow or retrying first load is no longer a progressless void.
+
 ## v0.110.6 — bridge railings look like railings
 - The bridge railings were a solid parapet wall; they're now a proper **see-through balustrade** —
   thin posts every ~2.5m with a top and a mid rail spanning between them, following the deck's arch.

@@ -841,7 +841,21 @@ async function loadCity(query: string): Promise<void> {
     // so another city can be tried.
     errorDismiss = setTimeout(() => {
       loading.hide()
-      startMenu.show()
+      if (!currentCity) {
+        startMenu.show() // nothing ever loaded — offer the (fixed-layout) menu to try again
+        return
+      }
+      // We still have the map we were driving. A failed switch must NOT yank the
+      // full menu over it — if a Play/Random/search pick failed, just drop into
+      // the map we were already on; an in-game city change leaves the menu hidden
+      // and this is a no-op, so we keep driving.
+      if (playAfterLoad !== null) {
+        const mode = playAfterLoad
+        playAfterLoad = null
+        startMenu.hide()
+        replayControls.setVisible(true)
+        enterPlay(mode)
+      }
     }, 5000)
   } finally {
     loading_ = false

@@ -104,6 +104,10 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       only on green** (stop line on red/amber). A per-junction light phase clock; `traffic.ts` and
       `pedestrians.ts` agents check the light for the edge they're entering and hold at the stop line.
       Keep the check O(1) per agent (light state cached per node).
+- [ ] **Trains: real windows + smooth motion** — give train cars **proper individual windows**, not
+      one stripe running the whole length; and on **curves and grades** the cars should **turn/pitch
+      smoothly** instead of snapping/jerking. `trains.ts` — window geometry per car + ease the car's
+      yaw/pitch along the rail (sample ahead/behind on the polyline, interpolate) so it flows.
 - [ ] **Level-crossing barriers** — drop **boom barriers (шлагбаумы) at railway crossings** that
       lower when a train approaches and raise after it passes. Reuse `trains.ts` timing + the road/rail
       intersection points; a hinged bar mesh + a simple down/up animation gated on train proximity.
@@ -178,6 +182,10 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       carriageway**, and make pillars **collidable** so the player, cars and pedestrians can't pass
       through them. Offset pillar placement clear of road polygons; add their footprints to the
       collision grid.
+- [ ] **Landmark plaque + statue placement** — the landmark **sign should sit BESIDE the monument,
+      not inside it** (offset the poiMarker from the statue prop), and the **monument must not stand
+      inside a tree** (place statues clear of greenery — a small placement collision check against
+      trees/greenery). Touches poiMarkers offset + prop placement in the world build.
 - [ ] **Manhole detail + open covers** — add **four small fixings around the rim** (like real cast
       covers), and make **some covers sit ajar / offset** as if not fully closed. Driving over an open
       one **drops the wheel in and tilts the car** — a physics dip at that spot (per-wheel height /

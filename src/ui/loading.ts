@@ -11,7 +11,7 @@ export function createLoading(root: HTMLElement): Loading {
   box.style.cssText =
     'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
     'background:rgba(11,14,19,.85);color:#fff;padding:18px 24px;border-radius:12px;' +
-    'font-size:15px;pointer-events:none;display:none;max-width:80vw;text-align:center'
+    'font-size:15px;pointer-events:none;display:none;max-width:80vw;text-align:center;z-index:55'
 
   const spinner = document.createElement('div')
   spinner.style.cssText =
