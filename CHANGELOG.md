@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.8 — stone embankments instead of floating water
+- The water's edge is now a **stone embankment sized to the water**: a dry grey-stone lip above the
+  waterline and a **darker wet band below it** (the tide-mark), toned to sit with the grass and
+  tarmac — not red brick — so a river reads as a built, edged channel instead of bare water sitting
+  on the grass. Flat vertex colours, one extra mesh per body — no texture, no frame-rate cost.
+- 👀 Drive along a river: a stone bank with a wet line at the water, meeting the ground cleanly.
+
 ## v0.110.7 — a failed load stops breaking the menu, and shows progress
 - A city that failed to load used to pop the **whole start menu — with a broken layout — over the
   game you were driving**. Now if you already had a map, a failed switch just keeps you on it (a

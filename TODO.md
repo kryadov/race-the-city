@@ -190,6 +190,10 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       covers), and make **some covers sit ajar / offset** as if not fully closed. Driving over an open
       one **drops the wheel in and tilts the car** — a physics dip at that spot (per-wheel height /
       a brief suspension pothole), not just a visual. Keep it cheap (instanced covers already).
+- [ ] **BUG — lit windows sink into the ground** — building facade windows sometimes extend below the
+      terrain (glowing windows in the dirt). On sloping ground a building's facade grid is laid from a
+      fixed base; clamp/raise the lowest window row to stay above the ground under that wall (or seat
+      the facade on the max terrain height along the footprint). `facades.ts`/building facade build.
 - [ ] **Signage text** — real **labels on building nameplates, monuments and signposts** (street
       names, POI names, monument names from OSM). Rendered text (canvas-texture atlas or SDF) on the
       existing sign/nameplate meshes; cap how many render at once and fade by distance for cost.

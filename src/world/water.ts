@@ -11,6 +11,16 @@ const WATER_OFFSET = 0.2 // sit just above the terrain basin
  * perimeter down past the ground plugs that gap so the water meets the shore.
  */
 const SKIRT_DROP = 1.5
+/** How far the stone embankment's dry lip stands above the waterline, metres. */
+const EMB_LIP = 0.5
+/**
+ * Embankment stone — a warm grey tuned to sit with the grass and tarmac (NOT red
+ * brick), with a darker band below the waterline reading as a wet tide-mark, so a
+ * body of water reads as a built, edged channel instead of bare water just sitting
+ * there. Flat vertex colours, no texture — one extra mesh per body, cheap.
+ */
+const STONE_DRY = 0x8c857a
+const STONE_WET = 0x5f5a52
 
 /** Half the map, in metres — RADIUS in `main.ts`, and all the ground there is. */
 const MAP_HALF = 1000
@@ -70,6 +80,10 @@ export function buildWater(water: Vec2[][], provider: ElevationProvider): THREE.
     opacity: 0.86,
     side: THREE.DoubleSide,
   })
+  // The embankment: opaque stone, flat vertex colours (dry lip / wet tide-mark).
+  const emb = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true })
+  const dry = new THREE.Color(STONE_DRY)
+  const wet = new THREE.Color(STONE_WET)
 
   for (const ring of water) {
     if (ring.length < 3) continue
@@ -85,24 +99,35 @@ export function buildWater(water: Vec2[][], provider: ElevationProvider): THREE.
     geo.translate(0, level, 0)
     group.add(new THREE.Mesh(geo, mat))
 
-    // A skirt hanging from the perimeter down past the ground, so a flat surface
-    // over a sloping bank meets the shore instead of floating above it. Each edge
-    // becomes two triangles from the water line down to just below the terrain at
-    // its ends; where the ground is already above the water, it tucks under and
-    // stays hidden.
-    const skirt: number[] = []
+    // A stone embankment around the perimeter: a low DRY lip above the waterline,
+    // then a WET wall down past the ground so a surface over a sloping bank meets a
+    // built edge instead of floating (bare water used to just "stand"). Two flat-
+    // coloured bands — dry stone above the waterline, a darker wet band below it as
+    // the tide-mark. Where the ground is already above the water it tucks under.
+    const pos: number[] = []
+    const col: number[] = []
+    const push = (x: number, y: number, z: number, c: THREE.Color): void => {
+      pos.push(x, y, z)
+      col.push(c.r, c.g, c.b)
+    }
     for (let i = 0; i < ring.length; i++) {
       const a = ring[i]
       const b = ring[(i + 1) % ring.length]
-      const ay = Math.min(level, provider.heightAt(a.x, a.z)) - SKIRT_DROP
-      const by = Math.min(level, provider.heightAt(b.x, b.z)) - SKIRT_DROP
-      skirt.push(a.x, level, a.z, b.x, level, b.z, a.x, ay, a.z)
-      skirt.push(b.x, level, b.z, b.x, by, b.z, a.x, ay, a.z)
+      const top = level + EMB_LIP
+      const ab = Math.min(level, provider.heightAt(a.x, a.z)) - SKIRT_DROP
+      const bb = Math.min(level, provider.heightAt(b.x, b.z)) - SKIRT_DROP
+      // dry lip: waterline up to the top edge
+      push(a.x, top, a.z, dry); push(b.x, top, b.z, dry); push(a.x, level, a.z, dry)
+      push(b.x, top, b.z, dry); push(b.x, level, b.z, dry); push(a.x, level, a.z, dry)
+      // wet wall: waterline down past the ground
+      push(a.x, level, a.z, wet); push(b.x, level, b.z, wet); push(a.x, ab, a.z, wet)
+      push(b.x, level, b.z, wet); push(b.x, bb, b.z, wet); push(a.x, ab, a.z, wet)
     }
-    const skirtGeo = new THREE.BufferGeometry()
-    skirtGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(skirt), 3))
-    skirtGeo.computeVertexNormals()
-    group.add(new THREE.Mesh(skirtGeo, mat))
+    const embGeo = new THREE.BufferGeometry()
+    embGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3))
+    embGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3))
+    embGeo.computeVertexNormals()
+    group.add(new THREE.Mesh(embGeo, emb))
   }
   return group
 }
