@@ -147,14 +147,15 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
   flowerbed: [
     {
       radius: 1.7,
-      top: 0.6,
+      top: 0.8, // the tallest stalks now stand higher than the old flat bed — clear them
       parts: () => [
         { geo: ring(1.62, 0.3), mat: stone(0x9c9384) }, // kerb
         { geo: disc(1.5, 0.18, 0.13), mat: soil() }, // soil
         { geo: disc(1.44, 0.12, 0.26), mat: foliage() }, // green base under the blooms
-        { geo: blooms(1.28, 0.36, 0.19, 21, 0, 3), mat: petalPink() },
-        { geo: blooms(1.28, 0.37, 0.18, 21, 1, 3), mat: petalGold() },
-        { geo: blooms(1.28, 0.36, 0.17, 21, 2, 3), mat: petalWhite() },
+        { geo: stems(1.28, 21), mat: stemGreen() }, // a stalk under every head, all merged
+        { geo: blooms(1.28, 0.19, 21, 0, 3), mat: petalPink() },
+        { geo: blooms(1.28, 0.18, 21, 1, 3), mat: petalGold() },
+        { geo: blooms(1.28, 0.17, 21, 2, 3), mat: petalWhite() },
       ],
     },
   ],
@@ -237,6 +238,8 @@ const foliage = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x
 const petalPink = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xe0568a, flatShading: true })
 const petalGold = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xe8c23f, flatShading: true })
 const petalWhite = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xece7dd, flatShading: true })
+/** The stalks the blooms stand on: a muted green, a touch duller than the foliage below. */
+const stemGreen = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x4a6f3c, flatShading: true })
 
 const boxGeo = (w: number, h: number, d: number, y: number): THREE.BufferGeometry => {
   const g = new THREE.BoxGeometry(w, h, d)
@@ -258,13 +261,58 @@ const sphere = (r: number, y: number): THREE.BufferGeometry => {
   g.translate(0, y, 0)
   return g
 }
+/** The golden angle: successive blooms spiral round by this, so no two land in a row. */
+const GOLD = Math.PI * (3 - Math.sqrt(5))
+/** Where the stalks leave the foliage, a hair below where the flat blooms used to sit. */
+const STALK_ROOT = 0.3
+
+/**
+ * A deterministic [0,1) wobble per bloom index — the same integer-hash trick
+ * pickVariant uses, so a bed's stalks come out the same heights on every reload
+ * without a running RNG (and without reaching for a fresh Math.random).
+ */
+const bloomRand = (i: number): number => {
+  let h = Math.imul(VARIANT_SEED ^ (i + 1), 0x9e3779b1)
+  h ^= h >>> 15
+  return (h >>> 0) / 0x100000000
+}
+
+/**
+ * How tall bloom `i`'s stalk stands: a soft dome (tallest at the bed's centre,
+ * shortest at the rim) plus a per-bloom wobble, so the heads read as tended rather
+ * than a flat mat. Shared by stems() and blooms() so each head caps its own stalk.
+ */
+const stemLift = (i: number, total: number): number => {
+  const t = Math.sqrt((i + 0.5) / total) // 0 at the centre → 1 at the rim: the bloom's own radius
+  const dome = 0.18 * (1 - t * t) // a gentle mound, tallest in the middle
+  return 0.09 + dome + 0.07 * bloomRand(i) // shortest stalk + the mound + the random wobble
+}
+
+/**
+ * A slim tapered stalk under every bloom — one per head, all merged into a single
+ * green geometry so the whole bed's stems stay one instanced draw. Positions and
+ * heights match blooms() exactly (same spiral, same stemLift) so a head tops each one.
+ */
+const stems = (bedR: number, total: number): THREE.BufferGeometry => {
+  const parts: THREE.BufferGeometry[] = []
+  for (let i = 0; i < total; i++) {
+    const rad = bedR * Math.sqrt((i + 0.5) / total)
+    const ang = i * GOLD
+    const h = stemLift(i, total)
+    const g = new THREE.CylinderGeometry(0.018, 0.03, h, 4) // thin, a touch wider at the root
+    g.translate(Math.cos(ang) * rad, STALK_ROOT + h / 2, Math.sin(ang) * rad)
+    parts.push(g)
+  }
+  return mergeGeometries(parts)
+}
+
 /**
  * A cluster of little flower heads scattered over a bed — every `mod`-th one of a
  * golden-angle spiral (so `k=0,1,2` interleave three colours instead of clumping),
- * merged into a single geometry so the whole bed is one instanced draw per colour.
+ * each raised onto its own stalk (see stemLift), merged into a single geometry so
+ * the whole bed is one instanced draw per colour.
  */
-const blooms = (bedR: number, y: number, size: number, total: number, k: number, mod: number): THREE.BufferGeometry => {
-  const GOLD = Math.PI * (3 - Math.sqrt(5))
+const blooms = (bedR: number, size: number, total: number, k: number, mod: number): THREE.BufferGeometry => {
   const parts: THREE.BufferGeometry[] = []
   for (let i = 0; i < total; i++) {
     if (i % mod !== k) continue
@@ -272,7 +320,7 @@ const blooms = (bedR: number, y: number, size: number, total: number, k: number,
     const ang = i * GOLD
     const g = new THREE.SphereGeometry(size, 5, 4)
     g.scale(1, 0.8, 1) // squashed a touch — a bloom, not a ball
-    g.translate(Math.cos(ang) * rad, y + (i % 3) * 0.045, Math.sin(ang) * rad)
+    g.translate(Math.cos(ang) * rad, STALK_ROOT + stemLift(i, total), Math.sin(ang) * rad)
     parts.push(g)
   }
   return mergeGeometries(parts)

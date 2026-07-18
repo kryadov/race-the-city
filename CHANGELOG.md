@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.7 — flowerbeds grow on stems
+- The flowerbeds were a flat mat of blooms; each flower now stands on its own **stem of varied
+  length** — a gentle dome, tallest in the middle, with a per-flower wobble — so a bed reads as
+  tended rather than painted on. Still one merged draw call per bed, so no frame-rate cost.
+- 👀 Drive past a flowerbed: the flowers stand up on stalks of different heights, mounded in the centre.
+
 ## v0.108.6 — version moves into Settings, off the fuel gauge
 - The build version sat in the bottom-right corner **overlapping the fuel gauge**. It's moved into
   the **⚙ Settings → About** panel, so the corner reads clean.
