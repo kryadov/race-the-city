@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.100.1 — the start menu is clickable again (critical fix)
+- Fix: the start menu (and the replay bar) were **completely unclickable** — `#ui` is
+  `pointer-events:none` so every widget must opt back in, and these two didn't. The app was stuck
+  on the menu from v0.98.0. This time verified with a real click test (Playwright), not a screenshot.
+
 ## v0.100.0 — record & replay your drive
 - Record a drive and watch it back. A **REC** button captures your car's path; **Replay** retraces
   it with the camera following — pose-based, so it's smooth and doesn't care that the traffic,

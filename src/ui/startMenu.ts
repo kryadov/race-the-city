@@ -60,8 +60,10 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
   let vehicle = initial.vehicle
 
   const overlay = document.createElement('div')
+  // #ui is pointer-events:none so it doesn't eat clicks meant for the canvas;
+  // every interactive widget must opt back in, or nothing in it is clickable.
   overlay.style.cssText =
-    'position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;' +
+    'position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;pointer-events:auto;' +
     "font-family:system-ui,sans-serif;background:radial-gradient(120% 120% at 50% 20%,rgba(3,7,18,.15),rgba(3,7,18,.72));"
 
   const panel = document.createElement('div')

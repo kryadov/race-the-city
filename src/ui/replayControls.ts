@@ -19,9 +19,10 @@ const fmt = (s: number): string => {
 /** Record / replay buttons, bottom-centre. Record your drive, then watch it back. */
 export function createReplayControls(root: HTMLElement, cb: ReplayCallbacks): ReplayControls {
   const bar = document.createElement('div')
+  // #ui is pointer-events:none; opt back in or the buttons can't be clicked.
   bar.style.cssText =
     'position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;display:none;gap:8px;' +
-    'font:14px system-ui,sans-serif'
+    'pointer-events:auto;font:14px system-ui,sans-serif'
 
   const rec = document.createElement('button')
   const play = document.createElement('button')
