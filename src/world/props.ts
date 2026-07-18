@@ -142,8 +142,10 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
       ],
     },
   ],
-  // A low stone kerb round a bed of soil and greenery, with flower heads in three
-  // colours poking up out of it — a bed of flowers, not a flat pink disc.
+  // A low stone kerb round a bed of soil and greenery, with real petalled flower
+  // heads on stalks poking up out of it in six colours — pink, gold, white, blue,
+  // violet and azure — a mixed bed, not a flat pink disc and not a crop of the
+  // domed mushroom caps the blooms used to read as.
   flowerbed: [
     {
       radius: 1.7,
@@ -152,10 +154,17 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
         { geo: ring(1.62, 0.3), mat: stone(0x9c9384) }, // kerb
         { geo: disc(1.5, 0.18, 0.13), mat: soil() }, // soil
         { geo: disc(1.44, 0.12, 0.26), mat: foliage() }, // green base under the blooms
-        { geo: stems(1.28, 21), mat: stemGreen() }, // a stalk under every head, all merged
-        { geo: blooms(1.28, 0.19, 21, 0, 3), mat: petalPink() },
-        { geo: blooms(1.28, 0.18, 21, 1, 3), mat: petalGold() },
-        { geo: blooms(1.28, 0.17, 21, 2, 3), mat: petalWhite() },
+        { geo: stems(1.28, 24), mat: stemGreen() }, // a stalk under every head, all merged
+        // Six colours, each its own merged geometry so the whole bed stays one
+        // instanced draw per colour; k=0..5 pick every sixth head along the
+        // spiral, so the colours interleave through the bed rather than clump.
+        { geo: blooms(1.28, 0.1, 24, 0, 6), mat: petalPink() },
+        { geo: blooms(1.28, 0.1, 24, 1, 6), mat: petalGold() },
+        { geo: blooms(1.28, 0.1, 24, 2, 6), mat: petalWhite() },
+        { geo: blooms(1.28, 0.1, 24, 3, 6), mat: petalBlue() },
+        { geo: blooms(1.28, 0.1, 24, 4, 6), mat: petalViolet() },
+        { geo: blooms(1.28, 0.1, 24, 5, 6), mat: petalAzure() },
+        { geo: bloomCentres(1.28, 0.1, 24), mat: petalCentre() }, // one gold eye per head, merged into one draw
       ],
     },
   ],
@@ -238,6 +247,12 @@ const foliage = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x
 const petalPink = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xe0568a, flatShading: true })
 const petalGold = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xe8c23f, flatShading: true })
 const petalWhite = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xece7dd, flatShading: true })
+const petalBlue = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x4666cf, flatShading: true })
+const petalViolet = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x8250c4, flatShading: true })
+const petalAzure = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x35b4e0, flatShading: true })
+/** The pollen eye at the middle of every head — one warm amber for the whole bed,
+ * so a flower of any petal colour still gets a contrasting centre. */
+const petalCentre = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xf2b134, flatShading: true })
 /** The stalks the blooms stand on: a muted green, a touch duller than the foliage below. */
 const stemGreen = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x4a6f3c, flatShading: true })
 
@@ -306,21 +321,74 @@ const stems = (bedR: number, total: number): THREE.BufferGeometry => {
   return mergeGeometries(parts)
 }
 
+/** How many petals ring each flower head: enough to read as a bloom, few enough
+ * to stay cheap once it's merged across a bed and instanced across the city. */
+const PETALS = 6
+
+/**
+ * One flower head, centred on the origin and opening upward. PETALS flat petals
+ * are splayed evenly around the middle: each starts as a coarse sphere, gets
+ * squashed wafer-thin and drawn long into a petal, is slid out from the centre so
+ * its inner end tucks into the hub, then tipped up at its far end so the whole
+ * ring cups open toward the chase camera — a flower seen from above, not the
+ * domed cap that read as a mushroom before. There is no geometry in the very
+ * middle; bloomCentres() plugs it with a contrasting eye.
+ *
+ * Built once at the given petal `size` and cloned to every position by blooms(),
+ * so a bed's whole crop of one colour still merges into a single instanced draw.
+ */
+const flowerHead = (size: number): THREE.BufferGeometry => {
+  const petals: THREE.BufferGeometry[] = []
+  for (let p = 0; p < PETALS; p++) {
+    const g = new THREE.SphereGeometry(size, 4, 3) // a coarse blob, about to become a petal
+    g.scale(1.5, 0.22, 0.75) // long, wafer-thin and a touch narrow — a petal, not a ball
+    g.translate(size * 1.15, 0, 0) // slid outward so its inner end meets the hub
+    g.rotateZ(0.42) // tip lifted, so the ring cups upward rather than lying flat
+    g.rotateY((p / PETALS) * Math.PI * 2) // and round into its share of the ring
+    petals.push(g)
+  }
+  return mergeGeometries(petals)
+}
+
 /**
  * A cluster of little flower heads scattered over a bed — every `mod`-th one of a
- * golden-angle spiral (so `k=0,1,2` interleave three colours instead of clumping),
- * each raised onto its own stalk (see stemLift), merged into a single geometry so
- * the whole bed is one instanced draw per colour.
+ * golden-angle spiral (so `k=0..mod-1` interleave that many colours instead of
+ * clumping), each the same flowerHead() cupped open on its own stalk (see
+ * stemLift) and spun by its per-head wobble so no two rings line up. All merged
+ * into a single geometry, so the whole bed is one instanced draw per colour
+ * however many flowerbeds the city has.
  */
 const blooms = (bedR: number, size: number, total: number, k: number, mod: number): THREE.BufferGeometry => {
+  const head = flowerHead(size) // built once, then cloned to every position of this colour
   const parts: THREE.BufferGeometry[] = []
   for (let i = 0; i < total; i++) {
     if (i % mod !== k) continue
     const rad = bedR * Math.sqrt((i + 0.5) / total)
     const ang = i * GOLD
-    const g = new THREE.SphereGeometry(size, 5, 4)
-    g.scale(1, 0.8, 1) // squashed a touch — a bloom, not a ball
+    const g = head.clone()
+    g.rotateY(bloomRand(i) * Math.PI * 2) // spin the ring so the petals don't all point one way
     g.translate(Math.cos(ang) * rad, STALK_ROOT + stemLift(i, total), Math.sin(ang) * rad)
+    parts.push(g)
+  }
+  return mergeGeometries(parts)
+}
+
+/**
+ * The pollen eye at the middle of every head — a tiny squashed button dropped at
+ * each of the bed's bloom positions (all colours, not just one), merged into a
+ * single geometry and drawn in one warm colour. Every flower gets a contrasting
+ * centre for the price of one more instanced draw across the whole city. The
+ * positions match blooms() exactly (same spiral, same stemLift), so each button
+ * sits in the hub of a head rather than floating between them.
+ */
+const bloomCentres = (bedR: number, size: number, total: number): THREE.BufferGeometry => {
+  const parts: THREE.BufferGeometry[] = []
+  for (let i = 0; i < total; i++) {
+    const rad = bedR * Math.sqrt((i + 0.5) / total)
+    const ang = i * GOLD
+    const g = new THREE.SphereGeometry(size * 0.7, 6, 4)
+    g.scale(1, 0.55, 1) // a flat button, sat down among the petals
+    g.translate(Math.cos(ang) * rad, STALK_ROOT + stemLift(i, total) + size * 0.15, Math.sin(ang) * rad)
     parts.push(g)
   }
   return mergeGeometries(parts)

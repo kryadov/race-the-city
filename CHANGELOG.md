@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.13 — flowerbeds bloom with real flowers, in more colours
+- The flowerbed blooms looked like **mushrooms**; each is now a real **petalled flower** — a ring of
+  six petals cupping up around an amber centre — and the palette gains **blue, violet and azure**
+  beside the pinks, golds and whites. Still a fixed set of merged draws for the whole city, no cost.
+- 👀 Drive past a flowerbed: petalled flowers in a mix of colours, not mushroom caps.
+
 ## v0.110.12 — the car stops twitching in the air
 - Airborne, the car kept tilting to the **terrain normal skimming past below it** — which changes
   every frame at speed — so it juddered in all directions in flight even with only forward held. It

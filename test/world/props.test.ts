@@ -65,6 +65,44 @@ describe('props', () => {
   })
 })
 
+describe('flowerbeds', () => {
+  it('is a mixed bed, not a flat disc: kerb, soil, greenery, stalks, six petal colours and their eyes', () => {
+    // 4 structural parts (kerb, soil, foliage base, stalks) + one merged geometry
+    // per petal colour (six of them) + one for the shared centres = eleven parts.
+    expect(buildProps([at(0, 0, 'flowerbed')], flat).children.length).toBeGreaterThanOrEqual(11)
+  })
+
+  it('carries at least six distinct petal colours', () => {
+    // Every part is a differently coloured material; six petals + the amber eye
+    // alone clear six, so a bed that still had three colours would fail this.
+    const colours = new Set(
+      buildProps([at(0, 0, 'flowerbed')], flat).children.map((c) => {
+        const mat = (c as THREE.InstancedMesh).material as THREE.MeshStandardMaterial
+        return mat.color.getHex()
+      }),
+    )
+    expect(colours.size).toBeGreaterThanOrEqual(6)
+  })
+
+  it('stands its flower heads up on stalks, not flat on the soil', () => {
+    // The old flat bed topped out barely above the kerb; the blooms now ride
+    // stalks well clear of the soil, which is what stops them reading as a mat.
+    const b = boxOf([at(0, 0, 'flowerbed')])
+    expect(b.max.y).toBeGreaterThan(0.6)
+  })
+
+  it('draws once per part however many flowerbeds there are', () => {
+    // Every bed shares one merged geometry per part, instanced across the city,
+    // so forty beds cost exactly what one does — no draw growth with the count.
+    const one = buildProps([at(0, 0, 'flowerbed')], flat).children.length
+    const many = buildProps(
+      Array.from({ length: 40 }, (_, i) => at(i * 30, 0, 'flowerbed')),
+      flat,
+    ).children.length
+    expect(many).toBe(one)
+  })
+})
+
 describe('statues', () => {
   // Spread widely so the position hash lands in every bucket; a tight grid
   // (or a step matching the hash's own multiplier) could alias into one kind.
