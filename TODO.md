@@ -110,6 +110,10 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Arcade mode: Excursion / Tour** — **visit the `tourism`/`historic` markers within a time
       limit**, using the **same beacon + minimap-arrow mechanism as Taxi**, just over a different set
       of points. Reuses `taxi.ts`/`taxiHud.ts` structure; a mode on the start menu.
+- [ ] **Day-only / night-only drive** — a setting (or mode) to **lock the time of day**: the sky
+      still breathes a little but never crosses into the other half — perpetual day, or perpetual
+      night, looping. Add to the existing time-of-day setting (cycle / day / night) — clamp/loop
+      `timeOfDay` within the chosen half instead of the full 0..1 cycle.
 - [ ] **Real weather for the city** — pull the **current weather at the loaded city's lat/lon from a
       free, keyless service** (Open-Meteo is CORS-friendly, no API key) and if it's raining there,
       rain in-game. Hard constraints: **fully async, never blocks the load or a frame**, and **falls
@@ -151,6 +155,10 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Roll on a big launch** — if the car leaves a ramp/hill **hard enough** (high vertical speed /
       airtime), let it **flip/roll** per the current physics on landing; a gentle hop stays upright.
       A threshold on launch speed that permits angular tumble, otherwise keep the car damped level.
+- [ ] **Bridge railings look flat/solid** — v0.110.2 seated the railings on the deck edge but they're
+      a **solid-colour wall**; make them read as real railings — **posts at intervals + a top rail (and
+      maybe a mid rail), with gaps between**, not a filled parapet. Instanced/merged posts+rails in
+      `bridgeMesh.ts`, keep it cheap.
 - [ ] **Bridge pillars: off the road + solid** — don't plant **bridge support pillars on the
       carriageway**, and make pillars **collidable** so the player, cars and pedestrians can't pass
       through them. Offset pillar placement clear of road polygons; add their footprints to the

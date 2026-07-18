@@ -528,7 +528,12 @@ async function loadCity(query: string): Promise<void> {
     confineToBounds(car, bounds, 1 / 60) // a pose saved on a wider map lands inside the edge
     // scatter nitro pickups on road vertices around the car — must run after the
     // pose above is settled, so a resumed session gets bottles where it left off
-    const scatterOn = normalRoads.flatMap((r) => r.points) // skip bridges: their points are the deck's, not the ground's
+    // On-map road vertices only: some OSM roads run past the ±RADIUS ground, and
+    // a pickup scattered out there floats off the edge of the world. (Bridges are
+    // skipped too — their points are the deck's, not the ground's.)
+    const scatterOn = normalRoads
+      .flatMap((r) => r.points)
+      .filter((p) => Math.abs(p.x) <= RADIUS && Math.abs(p.z) <= RADIUS)
     cans.setSpots(scatterOn, provider, car.x, car.z)
     fuel = 1 // a new city starts with a full tank
     nitro.setSpots(
@@ -1016,7 +1021,10 @@ const menu = createSettingsMenu(
       boostTimer = 0
       boost = 0
       // Everything that was arranged around the old spot follows the car back.
-      const spots = lastRoads.filter((r) => !r.bridge && !r.tunnel).flatMap((r) => r.points)
+      const spots = lastRoads
+        .filter((r) => !r.bridge && !r.tunnel)
+        .flatMap((r) => r.points)
+        .filter((p) => Math.abs(p.x) <= RADIUS && Math.abs(p.z) <= RADIUS) // keep pickups on the map
       nitro.setSpots(spots, provider, car.x, car.z)
       cans.setSpots(spots, provider, car.x, car.z)
       autopilot.reset(lastRoads, car)

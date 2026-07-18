@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.4 — nitro and fuel stay on the map
+- Pickups scatter on road vertices, and some OSM roads run past the map's ±RADIUS edge — so a bottle
+  could float out over the void beyond the ground. Candidate spots are now filtered to the drivable
+  ground, so no pickup sits off the map.
+
 ## v0.110.3 — water meets the shore instead of floating
 - On sloping ground a flat water surface floated where the bank dropped below its level, showing
   daylight under the water's edge. Each water body now hangs a **skirt from its perimeter down past
