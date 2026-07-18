@@ -1,6 +1,6 @@
 export type VehicleType =
   | 'car' | 'truck' | 'sports' | 'motorbike' | 'bus' | 'racecar' | 'tractor' | 'lorry' | 'cabrio'
-  | 'retro' | 'ev' | 'minivan' | 'jeep' | 'tanker'
+  | 'retro' | 'ev' | 'minivan' | 'jeep' | 'pickup' | 'police' | 'tanker' | 'ambulance' | 'firetruck'
   | 'crane' | 'roller' | 'combine' | 'tiller'
   | 'tracked' | 'hover'
 
@@ -14,10 +14,14 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
   'ev',
   'minivan',
   'jeep',
+  'pickup',
+  'police',
   'truck',
   'lorry',
   'tanker',
   'bus',
+  'ambulance',
+  'firetruck',
   'tractor',
   'crane',
   'roller',
@@ -32,8 +36,8 @@ export const VEHICLE_TYPES: readonly VehicleType[] = [
  * never names a vehicle itself, so adding a type is one line here.
  */
 export const VEHICLE_GROUPS: readonly { key: string; types: readonly VehicleType[] }[] = [
-  { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan', 'jeep'] },
-  { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus', 'tanker'] },
+  { key: 'vehGroup.cars', types: ['car', 'sports', 'racecar', 'cabrio', 'retro', 'ev', 'minivan', 'jeep', 'pickup', 'police'] },
+  { key: 'vehGroup.trucks', types: ['truck', 'lorry', 'bus', 'tanker', 'ambulance', 'firetruck'] },
   { key: 'vehGroup.special', types: ['tractor', 'crane', 'roller', 'combine', 'tiller'] },
   { key: 'vehGroup.exotic', types: ['motorbike', 'tracked', 'hover'] },
 ]
@@ -202,10 +206,33 @@ export const VEHICLES: Record<VehicleType, VehicleSpec> = {
     key: 'jeep', accel: 58, brakeAccel: 62, dragForward: 1.8, gripLateral: 6.3,
     turnRate: 2.0, turnSpeedRef: 8.5, maxSpeed: 40, maxReverse: 13, radius: 1.5,
   },
+  // A pickup: a working truck's weight on a car's footprint — unhurried but not
+  // sluggish, with the loose tail an empty bed gives it.
+  pickup: {
+    key: 'pickup', accel: 56, brakeAccel: 58, dragForward: 1.9, gripLateral: 5.6,
+    turnRate: 2.0, turnSpeedRef: 8.5, maxSpeed: 38, maxReverse: 12, radius: 1.5,
+  },
+  // A police interceptor: nearly the sports car's pace, and grippy with it.
+  police: {
+    key: 'police', accel: 112, brakeAccel: 84, dragForward: 2.1, gripLateral: 7,
+    turnRate: 2.7, turnSpeedRef: 7.5, maxSpeed: 52, maxReverse: 15, radius: 1.3,
+  },
   // A fuel tanker: the sloshing load makes it the loosest heavy thing here.
   tanker: {
     key: 'tanker', accel: 34, brakeAccel: 44, dragForward: 1.5, gripLateral: 2.6,
     turnRate: 0.9, turnSpeedRef: 12, maxSpeed: 27, maxReverse: 8, radius: 2.4,
+  },
+  // An ambulance: a tall van that hustles — quicker than it looks, but it leans
+  // on its brakes and its height keeps the grip modest.
+  ambulance: {
+    key: 'ambulance', accel: 60, brakeAccel: 64, dragForward: 1.8, gripLateral: 5.0,
+    turnRate: 1.8, turnSpeedRef: 9.5, maxSpeed: 37, maxReverse: 11, radius: 1.7,
+  },
+  // A fire engine: heavy kit on board, so it sits between the truck and the
+  // lorry — it gets there, in its own time.
+  firetruck: {
+    key: 'firetruck', accel: 40, brakeAccel: 52, dragForward: 1.5, gripLateral: 3.3,
+    turnRate: 1.2, turnSpeedRef: 11.5, maxSpeed: 28, maxReverse: 9, radius: 2.2,
   },
   // A mobile crane: long, top-heavy, hauls itself around at a walking pace.
   crane: {

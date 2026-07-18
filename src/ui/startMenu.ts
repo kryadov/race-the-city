@@ -42,7 +42,8 @@ const POPULAR: VehicleType[] = ['car', 'sports', 'jeep', 'motorbike', 'bus', 'ra
 const VEHICLE_EMOJI: Record<VehicleType, string> = {
   car: '🚗', truck: '🚚', sports: '🏎', motorbike: '🏍', bus: '🚌', racecar: '🏁',
   tractor: '🚜', lorry: '🚛', cabrio: '🚙', retro: '🚘', ev: '🔌', minivan: '🚐',
-  jeep: '🛻', tanker: '🛢', crane: '🏗', roller: '🛞', combine: '🌾', tiller: '⚙',
+  jeep: '🛻', pickup: '🛻', police: '🚓', tanker: '🛢', ambulance: '🚑', firetruck: '🚒',
+  crane: '🏗', roller: '🛞', combine: '🌾', tiller: '⚙',
   tracked: '⛰', hover: '🛸',
 }
 const ALL_VEHICLES = Object.keys(VEHICLE_EMOJI) as VehicleType[]

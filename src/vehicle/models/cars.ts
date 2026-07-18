@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import {
   box, wheel, fourWheels, exhaust, light, lens, housingBar, glass, person, repeater, mirror,
+  lightbar, BEACON_RED, BEACON_BLUE,
   REAR_LIGHT_MAT, TURN_LEFT_MAT, TURN_RIGHT_MAT,
 } from './parts'
 
@@ -188,5 +189,65 @@ export function buildMinivan(): THREE.Group {
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, fx, 0.6, 0.88, 1), lens(TURN_LEFT_MAT, 0.2, 0.18, fx, 0.6, -0.88, 1))
   g.add(repeater(TURN_RIGHT_MAT, 1.45, 0.95, 0.99), repeater(TURN_LEFT_MAT, 1.45, 0.95, -0.99))
   g.add(mirror(1.5, 1.42, 0.99, 1), mirror(1.5, 1.42, -0.99, -1))
+  return g
+}
+
+/**
+ * A pickup: a car-sized cab up front and an open cargo bed behind it, walled on
+ * three sides with a drop-down tailgate. The open box is the whole silhouette —
+ * it's what tells it apart from the enclosed jeep at a glance.
+ */
+export function buildPickup(): THREE.Group {
+  const g = new THREE.Group()
+  const body = 0xb5651d // bronze
+  const trim = 0x2a2d34
+  g.add(box(4.6, 0.6, 1.9, body, 0, 0.7, 0)) // chassis pan (x ∈ [-2.3, 2.3]); its top is the bed floor
+  g.add(box(1.7, 0.8, 1.8, body, 1.15, 1.4, 0)) // cab (x ∈ [0.3, 2.0])
+  g.add(glass(0.08, 0.5, 1.55, 1.98, 1.5, 0)) // windscreen
+  g.add(glass(1.5, 0.44, 0.06, 1.15, 1.5, 0.88), glass(1.5, 0.44, 0.06, 1.15, 1.5, -0.88)) // side windows
+  g.add(glass(0.08, 0.44, 1.55, 0.32, 1.5, 0)) // rear cab glass
+  // open cargo bed behind the cab (x ∈ [-2.3, 0.25]): low side walls + tailgate + front wall
+  g.add(box(0.08, 0.44, 1.8, trim, 0.28, 1.12, 0)) // wall behind the cab
+  g.add(box(2.55, 0.44, 0.09, trim, -1.0, 1.12, 0.9), box(2.55, 0.44, 0.09, trim, -1.0, 1.12, -0.9)) // bed sides
+  g.add(box(0.09, 0.44, 1.8, trim, -2.28, 1.12, 0)) // tailgate
+  g.add(...fourWheels(0.52, 0.44, 1.5, 0.95, 0.5)) // chunky tyres
+  g.add(exhaust(-2.3, 0.55, 0.6)) // tailpipe under the bed
+  g.add(light(2.06, 0.72, 0.72), light(2.06, 0.72, -0.72))
+  const rx = -2.3, fx = 2.3
+  g.add(housingBar(1.8, 0.44, rx, 1.12, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.42, 0.3, rx, 1.12, 0.5, -1), lens(REAR_LIGHT_MAT, 0.42, 0.3, rx, 1.12, -0.5, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.24, 0.22, rx, 1.12, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.22, rx, 1.12, -0.82, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 0.68, 0.84, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 0.68, -0.84, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.6, 0.8, 0.97), repeater(TURN_LEFT_MAT, 1.6, 0.8, -0.97))
+  g.add(mirror(1.9, 1.5, 0.96, 1), mirror(1.9, 1.5, -0.96, -1))
+  return g
+}
+
+/**
+ * A police interceptor: a black-and-white sedan with a red/blue roof lightbar
+ * and a front push-bar. The lightbar and two-tone livery carry it — the shell is
+ * a saloon, so the props are what read as "police" rather than a repainted car.
+ */
+export function buildPolice(): THREE.Group {
+  const g = new THREE.Group()
+  const white = 0xeef2f5
+  const black = 0x14161a
+  g.add(box(4.2, 0.8, 1.9, white, 0, 0.65, 0)) // body (x ∈ [-2.1, 2.1])
+  g.add(box(1.5, 0.42, 1.9, black, 0.1, 0.66, 0)) // door panel, the black half of the livery
+  g.add(box(2.1, 0.7, 1.7, black, -0.2, 1.25, 0)) // roof (x ∈ [-1.25, 0.85])
+  g.add(glass(0.07, 0.48, 1.5, 0.86, 1.3, 0), glass(0.07, 0.48, 1.5, -1.26, 1.3, 0)) // windscreen, rear
+  g.add(glass(1.75, 0.44, 0.06, -0.2, 1.32, 0.86), glass(1.75, 0.44, 0.06, -0.2, 1.32, -0.86)) // side windows
+  g.add(lightbar(-0.2, 1.66, 1.2, [BEACON_RED, BEACON_BLUE, BEACON_RED, BEACON_BLUE])) // roof bar
+  g.add(box(0.14, 0.5, 1.7, black, 2.16, 0.6, 0)) // push-bar face at the nose
+  g.add(box(0.2, 0.08, 0.1, black, 2.12, 0.82, 0.5), box(0.2, 0.08, 0.1, black, 2.12, 0.82, -0.5)) // push-bar uprights
+  g.add(...fourWheels(0.5, 0.4, 1.35, 0.97, 0.45))
+  g.add(light(2.18, 0.66, 0.7), light(2.18, 0.66, -0.7))
+  const rx = -2.1, fx = 2.1
+  g.add(housingBar(1.9, 0.5, rx, 0.72, 0, -1))
+  g.add(lens(REAR_LIGHT_MAT, 0.44, 0.34, rx, 0.72, 0.4, -1), lens(REAR_LIGHT_MAT, 0.44, 0.34, rx, 0.72, -0.4, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.24, 0.24, rx, 0.72, 0.82, -1), lens(TURN_LEFT_MAT, 0.24, 0.24, rx, 0.72, -0.82, -1))
+  g.add(lens(TURN_RIGHT_MAT, 0.2, 0.2, fx, 0.62, 0.86, 1), lens(TURN_LEFT_MAT, 0.2, 0.2, fx, 0.62, -0.86, 1))
+  g.add(repeater(TURN_RIGHT_MAT, 1.25, 0.72, 0.97), repeater(TURN_LEFT_MAT, 1.25, 0.72, -0.97))
+  g.add(mirror(0.85, 1.2, 0.95, 1), mirror(0.85, 1.2, -0.95, -1))
   return g
 }

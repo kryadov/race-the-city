@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { VehicleType } from './vehicles'
-import { buildCar, buildSports, buildRaceCar, buildCabrio, buildRetro, buildEv, buildMinivan, buildJeep } from './models/cars'
-import { buildTruck, buildBus, buildLorry, buildTanker } from './models/trucks'
+import { buildCar, buildSports, buildRaceCar, buildCabrio, buildRetro, buildEv, buildMinivan, buildJeep, buildPickup, buildPolice } from './models/cars'
+import { buildTruck, buildBus, buildLorry, buildTanker, buildAmbulance, buildFiretruck } from './models/trucks'
 import { buildTractor, buildCrane, buildRoller, buildCombine, buildTiller } from './models/special'
 import { buildMotorbike, buildTracked, buildHover } from './models/exotic'
 import { REAR_LIGHT_MAT } from './models/parts'
@@ -25,7 +25,11 @@ const STOP_STYLE: Record<VehicleType, { color: number; emissive: number }> = {
   ev: { color: 0x3a0030, emissive: 0xff2eb0 }, // pink LED bar
   minivan: { color: 0x5a0018, emissive: 0xff1a3c },
   jeep: { color: 0x4a2400, emissive: 0xff8a1e }, // amber, off-road-yellow tail lamps
+  pickup: { color: 0x5a1400, emissive: 0xff4c00 }, // warm truck-orange
+  police: { color: 0x4a0010, emissive: 0xff0033 }, // sharp red, to match the bar
   tanker: { color: 0x5a1e00, emissive: 0xff5a00 },
+  ambulance: { color: 0x5a0010, emissive: 0xff2030 }, // clinical red
+  firetruck: { color: 0x5a0800, emissive: 0xff2a00 }, // deep engine-red
   crane: { color: 0x5a2400, emissive: 0xff6a00 },
   roller: { color: 0x5a2400, emissive: 0xff6a00 },
   combine: { color: 0x5a2400, emissive: 0xff6a00 },
@@ -48,7 +52,11 @@ const BUILDERS: Record<VehicleType, () => THREE.Group> = {
   ev: buildEv,
   minivan: buildMinivan,
   jeep: buildJeep,
+  pickup: buildPickup,
+  police: buildPolice,
   tanker: buildTanker,
+  ambulance: buildAmbulance,
+  firetruck: buildFiretruck,
   crane: buildCrane,
   roller: buildRoller,
   combine: buildCombine,

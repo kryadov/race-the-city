@@ -90,6 +90,29 @@ export function light(x: number, y: number, z: number): THREE.Mesh {
   return m
 }
 
+// Emergency-beacon lenses. Unlike the tail lights these glow flat-out and never
+// change, so one shared material each does for every police bar and ambulance beacon.
+export const BEACON_RED = new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff2a2a, emissiveIntensity: 1.2, flatShading: true })
+export const BEACON_BLUE = new THREE.MeshStandardMaterial({ color: 0x2a5cff, emissive: 0x2a5cff, emissiveIntensity: 1.2, flatShading: true })
+
+/**
+ * A roof beacon bar centred at (x, y): a dark plinth carrying glowing lenses laid
+ * out along z across `width`. Pass the lens materials — alternating BEACON_RED /
+ * BEACON_BLUE reads as a police or fire bar, a pair of blues as an ambulance
+ * beacon. The lights are always on, so there is nothing for the render loop to do.
+ */
+export function lightbar(x: number, y: number, width: number, lenses: readonly THREE.Material[]): THREE.Object3D {
+  const g = new THREE.Group()
+  g.add(box(0.5, 0.1, width, 0x1a1a1e, x, y, 0)) // plinth
+  const seg = width / lenses.length
+  lenses.forEach((mat, i) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, seg * 0.86), mat)
+    m.position.set(x, y + 0.11, -width / 2 + seg * (i + 0.5))
+    g.add(m)
+  })
+  return g
+}
+
 /**
  * Shared stop-light material: dim tail lights that the render loop brightens on
  * braking. buildVehicleMesh() tints it per vehicle; the loop sets its

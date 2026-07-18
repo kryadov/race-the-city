@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.0 — four new vehicles: pickup, police, ambulance, fire-truck
+- Four new drivable models join the roster: a **pickup** 🛻 with an open cargo bed, a **police car**
+  🚓 with a roof lightbar and push-bar (interceptor pace), an **ambulance** 🚑 (white box body, red
+  cross, blue beacon), and a **fire-truck** 🚒 with a raked roof ladder and twin beacons. Each is a
+  real, distinct low-poly model; the beacons glow with no per-frame cost.
+- 👀 On the start menu (or ⚙ → vehicle), pick one of the four new vehicles.
+
 ## v0.109.0 — glowing markers over landmarks
 - Tourism and historic sights — attractions, museums, artwork, viewpoints, monuments, memorials,
   castles, ruins — now get a **glowing gold beacon**, the same instanced signpost the game already
