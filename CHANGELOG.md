@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.107.4 — manholes that sit in the road, not on it
+- The covers were too dark — near-black on grey asphalt — and too frequent. They're now a **worn
+  iron grey a shade off the tarmac** and **matte**, so they read as lids set into the road rather
+  than black discs punched through it; they're **rarer** (90–180m apart, up from 50–100m); and they
+  no longer land on **footpaths and cycle paths**, only on drivable roads.
+- 👀 Drive a street: the manholes are sparse and blend into the asphalt, and there are none on the
+  pavements.
+
 ## v0.107.3 — a home of its own: race-the-city.games
 - The game now lives at its own domain, **race-the-city.games** (the old
   `kryadov.github.io/race-the-city/` still redirects). A `CNAME` is shipped in the build so every

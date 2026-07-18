@@ -7,19 +7,19 @@ import type { ElevationProvider } from '../terrain/provider'
  *
  * OSM tags them as `man_made=manhole`, but only a handful of cities bother, and
  * the ones that do map a street corner or two — never the whole run. So this is
- * procedural: walk each road's centreline and drop a round iron cover every
- * 18-30m, the way the nitro bottles are scattered — spaced out, and never two in
- * one spot.
+ * procedural: walk each drivable road's centreline and drop a round iron cover
+ * every 90-180m — spaced well out, nudged off to one side, and never two in one
+ * spot.
  *
- * Bridge and tunnel roads are skipped. Their polyline points are the deck's, not
+ * Bridge, tunnel and footpath roads are skipped. Their polyline points are the deck's, not
  * the ground's: a cover dropped on a bridge road sits in mid-air above the water,
  * and one on a tunnel road sits on the roof of the tunnel, out in the open where
  * the tunnel is supposed to be buried.
  */
 
 /** Nearest and furthest a cover sits from the last one down the same road. */
-const MIN_GAP = 50
-const MAX_GAP = 100
+const MIN_GAP = 90
+const MAX_GAP = 180
 /**
  * No two covers closer than this, across the whole city, in metres.
  *
@@ -43,7 +43,9 @@ const DOME_RISE = 0.17 // how far the dome stands proud of the tarmac — convex
 /** How far off the centreline a cover sits, metres — into a lane, not dead centre. */
 const OFF_CENTRE_MIN = 1.4
 const OFF_CENTRE_MAX = 2.8
-const IRON = 0x3a3d42 // dark iron grey
+// Worn iron a shade off the tarmac (roads are 0x5b5c62), so a cover reads as a
+// lid set into the road rather than a black disc punched through it.
+const IRON = 0x55565d
 
 /**
  * The road ribbon sits this far above the ground (roads.ts ROAD_Y_OFFSET, which
@@ -82,8 +84,8 @@ export function buildManholes(
   const mat = new THREE.MeshStandardMaterial({
     color: IRON,
     flatShading: true,
-    metalness: 0.55,
-    roughness: 0.7,
+    metalness: 0.3, // matte, so it tracks its own grey instead of flashing the sky dark or bright
+    roughness: 0.85,
   })
   const mesh = new THREE.InstancedMesh(geo, mat, kept.length)
 
@@ -101,7 +103,7 @@ export function buildManholes(
     // A little brightness variety around the base iron so a street of them does
     // not read as one stamp repeated. instanceColor multiplies the material
     // colour, so this is a scalar near white, not a fresh colour.
-    col.setScalar(0.82 + rand() * 0.32)
+    col.setScalar(0.9 + rand() * 0.2)
     mesh.setColorAt(i, col)
   }
   mesh.instanceMatrix.needsUpdate = true
@@ -119,6 +121,7 @@ function collectSpots(roads: Road[], rand: () => number): Vec2[] {
   const gap = (): number => MIN_GAP + rand() * (MAX_GAP - MIN_GAP)
   for (const road of roads) {
     if (road.bridge || road.tunnel) continue // deck points, not ground points
+    if (road.kind === 'path') continue // footways and cycle paths carry no road manholes
     const pts = road.points
     if (pts.length < 2) continue
     // Distance still to travel before the next cover. Starting a whole gap in

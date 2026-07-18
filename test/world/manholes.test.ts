@@ -8,8 +8,8 @@ const flat = { heightAt: () => 0 }
 /** The road ribbon sits 0.15 above ground (roads.ts ROAD_Y_OFFSET); covers ride on top. */
 const ROAD_SURFACE = 0.15
 const DEDUP_MIN = 8 // must match manholes.ts
-const MIN_GAP = 50
-const MAX_GAP = 100
+const MIN_GAP = 90
+const MAX_GAP = 180
 const OFF_CENTRE_MAX = 2.8 // must match manholes.ts
 
 const road = (points: Vec2[], extra: Partial<Road> = {}): Road => ({ points, kind: 'residential', ...extra })
@@ -96,10 +96,10 @@ describe('buildManholes', () => {
     }
   })
 
-  it('spaces covers 50-100m apart down a straight road', () => {
+  it('spaces covers 90-180m apart down a straight road', () => {
     // Single road, so the junction dedupe never fires — the gaps are purely the spacing.
     const pts = positions(buildManholes([straight(1000)], flat, makeRng(11)))
-    expect(pts.length).toBeGreaterThan(8)
+    expect(pts.length).toBeGreaterThan(3)
     const xs = pts.map((p) => p.x).sort((a, b) => a - b)
     for (let i = 1; i < xs.length; i++) {
       const gap = xs[i] - xs[i - 1]
@@ -128,8 +128,8 @@ describe('buildManholes', () => {
   })
 
   it('scales the cover count with road length', () => {
-    const short = buildManholes([straight(100)], flat, makeRng(9)).count
-    const long = buildManholes([straight(1000)], flat, makeRng(9)).count
+    const short = buildManholes([straight(300)], flat, makeRng(9)).count
+    const long = buildManholes([straight(3000)], flat, makeRng(9)).count
     expect(short).toBeGreaterThan(0)
     expect(long).toBeGreaterThan(short * 5) // ~10× the length, so many more covers
   })
