@@ -3,6 +3,26 @@
 Backlog of ideas for Race the City. Shipped features live in the git tags / releases
 (v0.1.0 … current); this file tracks what's next.
 
+## 🎮 Play-test backlog — 2026-07-19 (live session)
+Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
+
+- [ ] **Localize the start-menu title** — the stylized "RACE THE CITY" logo should switch per
+      language (RU: **"Мчись по городу"**). While in there, audit for any other still-English strings
+      and fold them into i18n. User also wants this to feed a broader **"support for new languages"**
+      effort (beyond EN/RU) — treat the title as the first step of that. (Deferred: "не сейчас, как
+      доберёшься".)
+- [ ] **Analytics / usage stats** — how many players and from where, the most-popular city, etc.
+      Needs a server side (the app is currently backend-free static hosting). User wants a
+      **brainstorm on free-tier options — NOT necessarily AWS** — for standing up a minimal
+      backend, ideally one that could later **double as the multiplayer transport (#6)**. Privacy/GDPR
+      + "no backend" identity of the project are real constraints to weigh. (Deferred: "как дойдём до
+      этого пункта" — needs a brainstorm before any build.)
+- [ ] **BUG — no boaters on small lakes** — small ponds/lakes render no boats, while big ships on
+      large water bodies look fine. Likely a size/threshold in `boats.ts` (min water-area or hull
+      scale) that filters small waters out, or the small-water polygon isn't being fed to
+      `createBoats`. Want small rowboats/dinghies scaled to the pond. (Next up after the in-flight
+      birds + loading-backdrop releases.)
+
 ## 🧭 Big features — planned 2026-07-18 (session batch)
 Five features asked for in one session. Being brainstormed + specced together, then
 built as a swarm and released one-by-one. Design docs land in `docs/superpowers/specs/`.
