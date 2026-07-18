@@ -17,9 +17,18 @@ const BEAM_R = 1.6
 
 export type TaxiPhase = 'toPickup' | 'toDropoff'
 
+/** A pickup / drop-off spot: a road vertex, with the street it sits on. */
+interface Spot {
+  x: number
+  z: number
+  name?: string
+}
+
 export interface TaxiState {
   active: boolean
   phase: TaxiPhase
+  /** The street the current marker is on (OSM road name), or '' if unknown. */
+  targetName: string
   /** Seconds left to reach the current marker. */
   timeLeft: number
   /** Fares delivered on time. */
@@ -52,7 +61,7 @@ export function timeBudget(a: Vec2, b: Vec2): number {
 }
 
 /** A drivable spot [min,max] metres from `from`; falls back to any spot. */
-function pickSpot(spots: Vec2[], from: Vec2, rand: () => number): Vec2 | null {
+function pickSpot(spots: Spot[], from: Vec2, rand: () => number): Spot | null {
   if (!spots.length) return null
   for (let i = 0; i < 50; i++) {
     const p = spots[Math.floor(rand() * spots.length)]
@@ -73,11 +82,11 @@ export function createTaxi(scene: THREE.Scene, rand: () => number = Math.random)
   scene.add(group)
   let on = false
   let provider: ElevationProvider = { heightAt: () => 0 }
-  let spots: Vec2[] = []
+  let spots: Spot[] = []
 
   let phase: TaxiPhase = 'toPickup'
-  let pickup: Vec2 | null = null
-  let dropoff: Vec2 | null = null
+  let pickup: Spot | null = null
+  let dropoff: Spot | null = null
   let timeLeft = 0
   let fares = 0
   let earnings = 0
@@ -99,11 +108,63 @@ export function createTaxi(scene: THREE.Scene, rand: () => number = Math.random)
   beam.frustumCulled = false
   group.add(beam)
 
+  // A little person at the pickup, waving you over; a cheering one at the drop-off.
+  const figMat = (c: number): THREE.MeshStandardMaterial => new THREE.MeshStandardMaterial({ color: c, flatShading: true })
+  function makePerson(cheer: boolean): { group: THREE.Group; arm: THREE.Mesh } {
+    const g = new THREE.Group()
+    const shirt = figMat(cheer ? 0xe86a2a : 0x3a6ea5)
+    const skin = figMat(0xd0a878)
+    const pants = figMat(0x394049)
+    const mk = (w: number, h: number, d: number, x: number, y: number, z: number, m: THREE.Material): THREE.Mesh => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m)
+      b.position.set(x, y, z)
+      return b
+    }
+    g.add(mk(0.4, 0.8, 0.26, 0, 0.4, 0, pants), mk(0.46, 0.6, 0.28, 0, 1.05, 0, shirt), mk(0.28, 0.28, 0.28, 0, 1.5, 0, skin))
+    const upArm = (): THREE.BufferGeometry => {
+      const a = new THREE.BoxGeometry(0.12, 0.5, 0.12)
+      a.translate(0, 0.25, 0) // pivot at the shoulder end so it swings from there
+      return a
+    }
+    if (cheer) {
+      const la = new THREE.Mesh(upArm(), shirt)
+      la.position.set(-0.3, 1.3, 0)
+      la.rotation.z = 0.6
+      const ra = new THREE.Mesh(upArm(), shirt)
+      ra.position.set(0.3, 1.3, 0)
+      ra.rotation.z = -0.6
+      g.add(la, ra) // both arms up — hooray
+      g.frustumCulled = false
+      return { group: g, arm: ra }
+    }
+    g.add(mk(0.12, 0.5, 0.12, -0.3, 1.05, 0, shirt)) // left arm hangs
+    const arm = new THREE.Mesh(upArm(), shirt)
+    arm.position.set(0.3, 1.3, 0) // right arm raised, waving
+    g.add(arm)
+    g.frustumCulled = false
+    return { group: g, arm }
+  }
+  const waver = makePerson(false)
+  const celebrant = makePerson(true)
+  celebrant.group.visible = false
+  group.add(waver.group, celebrant.group)
+  let time = 0
+  let celebrateT = 0
+  let celebrantY = 0
+
   const placeBeam = (spot: Vec2, kind: 'pick' | 'drop'): void => {
     const s = kind === 'pick' ? PICK : DROP
     mat.color.setHex(s.color)
     mat.emissive.setHex(s.emissive)
-    beam.position.set(spot.x, provider.heightAt(spot.x, spot.z) + BEAM_H / 2, spot.z)
+    const gy = provider.heightAt(spot.x, spot.z)
+    beam.position.set(spot.x, gy + BEAM_H / 2, spot.z)
+    if (kind === 'pick') {
+      // beside the pillar, not inside it — the translucent beam would tint them green.
+      waver.group.position.set(spot.x + 2, gy, spot.z)
+      waver.group.visible = true
+    } else {
+      waver.group.visible = false // passenger's aboard now
+    }
   }
 
   /** Start a fresh fare: a passenger to pick up, from wherever the car is now. */
@@ -118,6 +179,7 @@ export function createTaxi(scene: THREE.Scene, rand: () => number = Math.random)
   const snapshot = (): TaxiState => ({
     active: on,
     phase,
+    targetName: ((phase === 'toPickup' ? pickup?.name : dropoff?.name) ?? '').trim(),
     timeLeft: Math.max(0, timeLeft),
     fares,
     earnings,
@@ -134,7 +196,9 @@ export function createTaxi(scene: THREE.Scene, rand: () => number = Math.random)
     },
     reset(roads, prov, car) {
       provider = prov
-      spots = roads.filter((r) => r.kind !== 'path').flatMap((r) => r.points)
+      spots = roads
+        .filter((r) => r.kind !== 'path')
+        .flatMap((r) => r.points.map((p) => ({ x: p.x, z: p.z, name: r.name })))
       fares = 0
       earnings = 0
       justDelivered = false
@@ -158,6 +222,11 @@ export function createTaxi(scene: THREE.Scene, rand: () => number = Math.random)
           fares++
           earnings += fareValue(pickup, dropoff)
           justDelivered = true
+          celebrantY = provider.heightAt(dropoff.x, dropoff.z)
+          celebrant.group.position.set(dropoff.x + 2, celebrantY, dropoff.z) // beside the pillar
+
+          celebrant.group.visible = true // the delivered passenger, cheering
+          celebrateT = 2.2
           newFare({ x: carX, z: carZ })
         }
       } else if (timeLeft <= 0) {
@@ -165,12 +234,24 @@ export function createTaxi(scene: THREE.Scene, rand: () => number = Math.random)
         justFailed = true
         newFare({ x: carX, z: carZ })
       }
+      // Animate: the waver waves, the celebrant bounces for a couple of seconds.
+      time += dt
+      if (waver.group.visible) waver.arm.rotation.z = Math.sin(time * 9) * 0.5
+      if (celebrateT > 0) {
+        celebrateT -= dt
+        celebrant.group.position.y = celebrantY + Math.abs(Math.sin(time * 8)) * 0.28
+        if (celebrateT <= 0) celebrant.group.visible = false
+      }
       return snapshot()
     },
     state: snapshot,
     dispose() {
-      beam.geometry.dispose()
-      mat.dispose()
+      group.traverse((o) => {
+        const m = o as THREE.Mesh
+        if (m.geometry) m.geometry.dispose()
+        const mm = m.material
+        if (mm) (Array.isArray(mm) ? mm : [mm]).forEach((x) => x.dispose())
+      })
       scene.remove(group)
     },
   }

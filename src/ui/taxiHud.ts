@@ -16,17 +16,21 @@ export function createTaxiHud(root: HTMLElement): TaxiHud {
 
   const objective = document.createElement('div')
   objective.style.cssText = 'font-size:15px;font-weight:600'
+  const address = document.createElement('div')
+  address.style.cssText = 'font-size:12px;opacity:.85;margin-top:1px'
   const timer = document.createElement('div')
   timer.style.cssText = 'font-size:22px;font-variant-numeric:tabular-nums;font-weight:700;margin-top:1px'
   const score = document.createElement('div')
   score.style.cssText = 'font-size:12px;opacity:.85;margin-top:2px;font-variant-numeric:tabular-nums'
-  box.append(objective, timer, score)
+  box.append(objective, address, timer, score)
   root.appendChild(box)
 
   let last: TaxiState | null = null
   const paint = (): void => {
     if (!last) return
     objective.textContent = last.phase === 'toPickup' ? t('taxi.pickup') : t('taxi.dropoff')
+    address.textContent = last.targetName ? `📍 ${last.targetName}` : ''
+    address.style.display = last.targetName ? 'block' : 'none'
     timer.textContent = `${Math.ceil(last.timeLeft)}s`
     timer.style.color = last.timeLeft < 6 ? '#ff6363' : '#fff'
     score.textContent = `${t('taxi.fares')}: ${last.fares}   ${t('taxi.earnings')}: ${last.earnings}`

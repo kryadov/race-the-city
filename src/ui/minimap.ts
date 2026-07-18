@@ -10,7 +10,7 @@ export interface Minimap {
    * @param goal somewhere to head for — the next time-trial gate. Drawn on the
    *   rim when it's off the map, so it always says which way to go.
    */
-  update(car: { x: number; z: number; heading: number }, goal?: Vec2 | null): void
+  update(car: { x: number; z: number; heading: number }, goal?: Vec2 | null, goalColor?: string): void
 }
 
 /** World point → pixel in the pre-rendered north-up offscreen map. Pure/testable. */
@@ -93,7 +93,7 @@ export function createMinimap(root: HTMLElement): Minimap {
       offscreen = os
     },
 
-    update(car, goal) {
+    update(car, goal, goalColor) {
       ctx.clearRect(0, 0, SIZE, SIZE)
       const half = SIZE / 2
       if (offscreen) {
@@ -134,7 +134,7 @@ export function createMinimap(root: HTMLElement): Minimap {
         }
         ctx.save()
         ctx.translate(half + sx, half + sy)
-        ctx.fillStyle = '#39e07a'
+        ctx.fillStyle = goalColor ?? '#39e07a'
         ctx.strokeStyle = 'rgba(0,0,0,.6)'
         ctx.lineWidth = 1.5
         if (onRim) {

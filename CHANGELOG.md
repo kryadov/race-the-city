@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.105.0 — the taxi fare, made clearer
+- The taxi HUD shows the **street** of the pickup / drop-off (📍), so you know where you're headed.
+- The **minimap marker is coloured by phase** — green for the pickup, amber for the drop-off, to
+  match the pillar of light — and still arrows to it from the rim when it's off the map.
+- The fare is now a **little person who waves you over** at the pickup, and a cheering one at the
+  drop-off when you deliver in time.
+- 👀 Start Taxi and Play: the street shows under the objective, the minimap marker is green (pickup)
+  then amber (drop-off), a passenger waves at the pillar, and cheers when delivered.
+
 ## v0.104.2 — deploy fix (the live site was stuck at 0.100.2)
 - The density unit test wasn't updated when the density scale was rescaled in v0.101.0, so the
   **Deploy workflow's test step failed** and GitHub Pages stopped publishing at 0.100.2. Test fixed
