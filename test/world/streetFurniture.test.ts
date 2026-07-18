@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { buildStreetFurniture } from '../../src/world/streetFurniture'
-import type { Vec2 } from '../../src/geo/types'
+import type { Road, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
 
@@ -26,7 +26,7 @@ const inst = (g: THREE.Object3D, name: string): THREE.InstancedMesh | undefined 
 
 describe('buildStreetFurniture', () => {
   it('builds one instanced draw per part, sized to the inputs', () => {
-    const g = buildStreetFurniture(grid(24), grid(9), flat, makeRng(1))
+    const g = buildStreetFurniture(grid(24), grid(9), [], flat, makeRng(1))
     expect(inst(g, 'bench-frame')!.count).toBe(24)
     expect(inst(g, 'bench-slats')!.count).toBe(24)
     expect(inst(g, 'busstop-frame')!.count).toBe(9)
@@ -34,22 +34,22 @@ describe('buildStreetFurniture', () => {
   })
 
   it('builds nothing for an empty city', () => {
-    expect(buildStreetFurniture([], [], flat).children).toHaveLength(0)
+    expect(buildStreetFurniture([], [], [], flat).children).toHaveLength(0)
   })
 
   it('builds benches without bus stops, and bus stops without benches', () => {
-    const benchesOnly = buildStreetFurniture(grid(5), [], flat, makeRng(2))
+    const benchesOnly = buildStreetFurniture(grid(5), [], [], flat, makeRng(2))
     expect(inst(benchesOnly, 'bench-frame')!.count).toBe(5)
     expect(inst(benchesOnly, 'busstop-frame')).toBeUndefined()
 
-    const stopsOnly = buildStreetFurniture([], grid(5), flat, makeRng(2))
+    const stopsOnly = buildStreetFurniture([], grid(5), [], flat, makeRng(2))
     expect(inst(stopsOnly, 'busstop-frame')!.count).toBe(5)
     expect(inst(stopsOnly, 'bench-frame')).toBeUndefined()
   })
 
   it('seats figures on some benches but not all', () => {
     const n = 80
-    const g = buildStreetFurniture(grid(n), [], flat, makeRng(7))
+    const g = buildStreetFurniture(grid(n), [], [], flat, makeRng(7))
     const torso = inst(g, 'figure-torso')!
     expect(torso.count, 'some benches are occupied').toBeGreaterThan(0)
     expect(torso.count, 'and some are left empty').toBeLessThan(n)
@@ -60,7 +60,7 @@ describe('buildStreetFurniture', () => {
 
   it('stands everything on the terrain, not floating or sunk', () => {
     const hill = { heightAt: () => 40 }
-    const g = buildStreetFurniture(grid(30), grid(9), hill, makeRng(3))
+    const g = buildStreetFurniture(grid(30), grid(9), [], hill, makeRng(3))
     const box = new THREE.Box3().setFromObject(g)
     // Legs/poles/feet are baked at local y = 0, so the lowest point of the whole
     // batch must sit right on the 40 m ground.
@@ -73,16 +73,34 @@ describe('buildStreetFurniture', () => {
     // too. On a 40 m hill the figure's head must be well clear of the ground —
     // i.e. actually sat up on the bench, not standing at its feet.
     const hill = { heightAt: () => 40 }
-    const g = buildStreetFurniture(grid(80), [], hill, makeRng(7))
+    const g = buildStreetFurniture(grid(80), [], [], hill, makeRng(7))
     const head = inst(g, 'figure-head')
     expect(head, 'at least one bench is occupied').toBeDefined()
     const box = new THREE.Box3().setFromObject(head!)
     expect(box.max.y, 'a seated head is roughly a metre up').toBeGreaterThan(40.8)
   })
 
+  it('lines a roadside bench up parallel to the road', () => {
+    const road: Road = { points: [{ x: 0, z: 0 }, { x: 100, z: 0 }], kind: 'residential' } // runs along +x
+    const g = buildStreetFurniture([{ x: 50, z: 3 }], [], [road], flat, makeRng(1)) // bench 3m off it
+    const m = new THREE.Matrix4()
+    inst(g, 'bench-frame')!.getMatrixAt(0, m)
+    const q = new THREE.Quaternion()
+    m.decompose(new THREE.Vector3(), q, new THREE.Vector3())
+    const yaw = new THREE.Euler().setFromQuaternion(q, 'YXZ').y
+    // road angle is 0; a bench lined up with it has yaw ≈ 0 (or ±π — same line)
+    expect(Math.abs(Math.sin(yaw)), 'roadside bench is not parallel to the road').toBeLessThan(1e-3)
+  })
+
+  it('thins a flood of benches down to a cap', () => {
+    const count = inst(buildStreetFurniture(grid(300), [], [], flat, makeRng(1)), 'bench-frame')!.count
+    expect(count).toBeLessThanOrEqual(55)
+    expect(count).toBeGreaterThan(40)
+  })
+
   it('is stable for a given rng', () => {
-    const a = buildStreetFurniture(grid(30), grid(8), flat, makeRng(9))
-    const b = buildStreetFurniture(grid(30), grid(8), flat, makeRng(9))
+    const a = buildStreetFurniture(grid(30), grid(8), [], flat, makeRng(9))
+    const b = buildStreetFurniture(grid(30), grid(8), [], flat, makeRng(9))
     expect(inst(b, 'figure-torso')?.count ?? 0).toBe(inst(a, 'figure-torso')?.count ?? 0)
     const boxA = new THREE.Box3().setFromObject(a)
     const boxB = new THREE.Box3().setFromObject(b)

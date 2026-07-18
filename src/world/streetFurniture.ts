@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import type { Vec2 } from '../geo/types'
+import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 
 /**
@@ -33,6 +33,70 @@ const SKIN = 0xc39a72
 const SHIRT = 0x6d7f8e
 const TROUSER = 0x40434a
 
+/** A bench (or stop) this close to a road lines up parallel to it, not any-old-way. */
+const ROADSIDE_DIST = 13
+/** Keep the clutter down — OSM over-maps benches in a well-surveyed city. */
+const BENCH_CAP = 55
+const BUSSTOP_CAP = 40
+
+/** A placed item: where it stands and which way it faces. */
+interface Placed {
+  x: number
+  z: number
+  yaw: number
+}
+
+/** Squared distance from (x,z) to segment a-b. */
+function segDist2(x: number, z: number, a: Vec2, b: Vec2): number {
+  const dx = b.x - a.x
+  const dz = b.z - a.z
+  const len2 = dx * dx + dz * dz
+  const t = len2 > 1e-9 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / len2)) : 0
+  const cx = a.x + dx * t
+  const cz = a.z + dz * t
+  return (x - cx) ** 2 + (z - cz) ** 2
+}
+
+/** Nearest drivable road segment to (x,z): its distance and heading, or null. */
+function nearestRoad(x: number, z: number, roads: Road[]): { dist: number; angle: number } | null {
+  let bestD2 = Infinity
+  let angle = 0
+  for (const r of roads) {
+    if (r.bridge || r.tunnel) continue
+    const p = r.points
+    for (let i = 0; i < p.length - 1; i++) {
+      const d2 = segDist2(x, z, p[i], p[i + 1])
+      if (d2 < bestD2) {
+        bestD2 = d2
+        angle = Math.atan2(p[i + 1].z - p[i].z, p[i + 1].x - p[i].x)
+      }
+    }
+  }
+  return bestD2 === Infinity ? null : { dist: Math.sqrt(bestD2), angle }
+}
+
+/** Keep at most `max`, evenly spaced through the list. */
+function thin<T>(items: T[], max: number): T[] {
+  if (items.length <= max) return items
+  const out: T[] = []
+  const step = items.length / max
+  for (let i = 0; out.length < max && Math.floor(i) < items.length; i += step) out.push(items[Math.floor(i)])
+  return out
+}
+
+/**
+ * Place items: thin them to a cap, and orient each — parallel to the nearest
+ * road when it's roadside (so a run of benches stands in a line down the street),
+ * any-which-way when it's out in the open (a park bench faces the view, not a kerb).
+ */
+function place(spots: Vec2[], roads: Road[], cap: number, rand: () => number): Placed[] {
+  return thin(spots, cap).map((s) => {
+    const near = nearestRoad(s.x, s.z, roads)
+    const yaw = near && near.dist < ROADSIDE_DIST ? near.angle : rand() * Math.PI * 2
+    return { x: s.x, z: s.z, yaw }
+  })
+}
+
 /**
  * Benches (with a fraction seated) and bus stops, sitting on `provider`'s
  * surface. `rand` is injectable so the layout can be made stable across reloads
@@ -42,12 +106,15 @@ const TROUSER = 0x40434a
 export function buildStreetFurniture(
   benches: Vec2[],
   busStops: Vec2[],
+  roads: Road[],
   provider: ElevationProvider,
   rand: () => number = Math.random,
 ): THREE.Group {
   const group = new THREE.Group()
-  if (benches.length) addBenches(group, benches, provider, rand)
-  if (busStops.length) addBusStops(group, busStops, provider, rand)
+  const placedBenches = place(benches, roads, BENCH_CAP, rand)
+  const placedStops = place(busStops, roads, BUSSTOP_CAP, rand)
+  if (placedBenches.length) addBenches(group, placedBenches, provider, rand)
+  if (placedStops.length) addBusStops(group, placedStops, provider)
   return group
 }
 
@@ -58,7 +125,7 @@ interface Seat {
   yaw: number
 }
 
-function addBenches(group: THREE.Group, benches: Vec2[], provider: ElevationProvider, rand: () => number): void {
+function addBenches(group: THREE.Group, benches: Placed[], provider: ElevationProvider, rand: () => number): void {
   const n = benches.length
   const frame = new THREE.InstancedMesh(benchFrameGeo(), matte(METAL), n)
   const slats = new THREE.InstancedMesh(benchSlatGeo(), matte(WOOD), n)
@@ -77,7 +144,7 @@ function addBenches(group: THREE.Group, benches: Vec2[], provider: ElevationProv
 
   for (let i = 0; i < n; i++) {
     const b = benches[i]
-    const yaw = rand() * Math.PI * 2 // no path direction from OSM, so face any way
+    const yaw = b.yaw // parallel to the road when roadside, else free (see `place`)
     const sit = rand() < OCCUPANCY
     q.setFromAxisAngle(UP, yaw)
     pos.set(b.x, provider.heightAt(b.x, b.z), b.z)
@@ -134,7 +201,7 @@ function addFigures(group: THREE.Group, seats: Seat[], provider: ElevationProvid
   group.add(head, torso, legs)
 }
 
-function addBusStops(group: THREE.Group, busStops: Vec2[], provider: ElevationProvider, rand: () => number): void {
+function addBusStops(group: THREE.Group, busStops: Placed[], provider: ElevationProvider): void {
   const n = busStops.length
   const frame = new THREE.InstancedMesh(busStopFrameGeo(), matte(POLE), n)
   const sign = new THREE.InstancedMesh(busStopSignGeo(), matte(SIGN), n)
@@ -150,7 +217,7 @@ function addBusStops(group: THREE.Group, busStops: Vec2[], provider: ElevationPr
 
   for (let i = 0; i < n; i++) {
     const b = busStops[i]
-    q.setFromAxisAngle(UP, rand() * Math.PI * 2)
+    q.setFromAxisAngle(UP, b.yaw)
     pos.set(b.x, provider.heightAt(b.x, b.z), b.z)
     m.compose(pos, q, one)
     frame.setMatrixAt(i, m)

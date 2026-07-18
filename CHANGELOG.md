@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.103.0 — benches that line up along the road
+- Fewer benches (capped), and a roadside bench now stands **parallel to the road** — a run of them
+  lines up down the street instead of scattering every which way. Benches out in the open (a park)
+  still face any direction.
+- 👀 Walk a well-mapped street: benches along it stand in line with the kerb, and there are fewer.
+
 ## v0.102.0 — slide off a wall, and two more tracks
 - Pressed against a building, the car used to **crawl** and steering away was a fight — it bled all
   its speed on any wall touch. Now it **slides**: only the into-wall speed is killed and the
