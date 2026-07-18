@@ -6,6 +6,10 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.106.1 — the "new version" notice is clickable over the menu
+- The update banner was behind the start-menu overlay, so you could not click it. It sits above
+  the menu now (z-index), so a fresh build is one click away even on the start screen.
+
 ## v0.106.0 — manholes, bigger, rarer, off to the side
 - Manholes are bigger again (~1.2m across), much **rarer** (50–100m apart), and now sit **off the
   centreline into a lane** (a random side) rather than in a dead-centre line down the road — far

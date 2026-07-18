@@ -14,7 +14,7 @@ export function createUpdateNotice(root: HTMLElement): UpdateNotice {
   let showing = ''
   const bar = document.createElement('div')
   bar.style.cssText =
-    'position:absolute;top:16px;left:50%;transform:translateX(-50%);pointer-events:auto;display:none;' +
+    'position:absolute;top:16px;left:50%;transform:translateX(-50%);pointer-events:auto;display:none;z-index:60;' +
     'align-items:center;gap:10px;background:rgba(11,14,19,.94);color:#fff;padding:9px 12px;' +
     'border-radius:10px;font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4)'
 
