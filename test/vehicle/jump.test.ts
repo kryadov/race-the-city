@@ -193,6 +193,26 @@ describe('landing on a roof', () => {
     expect(c.y, 'it should have come down to the street').toBeCloseTo(0, 1)
   })
 
+  it('flies off the far edge in an arc, not straight down through the lip', () => {
+    // The complaint: reaching the edge, the car dropped rather than launching.
+    // Off the lip it should carry its speed forward and fall in an arc — so for
+    // a stretch past x=40 it is genuinely airborne, above the street but below
+    // the roof, not snapped to the ground the instant the roof ends.
+    let c: CarState = { ...createCar(30, 0), vx: 20, y: TOP }
+    let airborneFrames = 0
+    let landed = false
+    for (let i = 0; i < 400; i++) {
+      const prevY = c.y
+      c = stepCar(c, coast, DT, city, surfaceFor(prevY), { ...car, dragForward: 0 })
+      c.vx = 20
+      const groundNow = surfaceFor(prevY).heightAt(c.x, c.z)
+      if (c.x > 40 && c.y > groundNow + 0.5 && c.y < TOP - 0.1) airborneFrames++
+      if (c.x > 40 && Math.abs(c.y) < 0.02) landed = true
+    }
+    expect(airborneFrames, 'it snapped down at the lip instead of flying off it').toBeGreaterThan(8)
+    expect(landed, 'it never came down to the street after the arc').toBe(true)
+  })
+
   it('does not hoist a car off the street onto a passing roof', () => {
     // Driving along the ground beside it: the roof is not yours to have.
     let c: CarState = { ...createCar(-4, 0), vx: 20, y: 0 }

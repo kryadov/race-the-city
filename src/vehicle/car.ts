@@ -46,6 +46,14 @@ const MAX_CLIMB = 22
  * is what tells the two apart.
  */
 const MAX_SLOPE = 0.6
+/**
+ * A downward step this deep or more is a ledge you fly off, not a kerb you drop
+ * down. Off a roof edge or the end of a high bridge the surface falls metres in
+ * one frame; snapping the car down to the street there read as it dropping
+ * THROUGH the surface. Set above the drop of any real kerb or terrain step, so
+ * only a genuine cliff launches the car.
+ */
+const LEDGE_DROP = 1
 /** Above the ground by more than this and the car is flying. */
 const AIR_EPS = 0.05
 
@@ -141,29 +149,42 @@ export function stepCar(
     // read as a launch.
     const rise = groundY - car.y
     const reach = Math.hypot(vx, vz) * dt * MAX_SLOPE
-    // Past what the distance travelled could have climbed, this is a step and
-    // not a slope: the car is put on top of it regardless, but nothing about it
-    // is throwing the car anywhere.
-    const climb =
-      Math.abs(rise) > reach ? 0 : Math.max(-MAX_CLIMB, Math.min(MAX_CLIMB, rise / dt))
-    // How hard the surface is pulling away beneath us. You leave the ground only
-    // when it falls away faster than gravity can hold you to it — not merely
-    // because you were going up and now you aren't. Testing the latter launched
-    // the car off the crest of every bridge arch: at speed the arch is worth ~3m/s
-    // of climb, over the threshold, so it took off, landed, and took off again.
-    // That was the shake.
-    const surfaceAccel = (climb - car.vy) / dt
-    if (car.vy > TAKEOFF_VY && surfaceAccel < -GRAVITY) {
-      // The ground has dropped out from under us — carry on up.
-      vy = car.vy
+    // Past what the distance travelled could have climbed, this is a step, not a
+    // slope: you cannot ramp off a kerb, and a step throws nothing on its own.
+    const isStep = Math.abs(rise) > reach
+    if (isStep && rise < -LEDGE_DROP) {
+      // The surface fell away below us as a sheer drop — a roof edge, the end of
+      // a high bridge. Fly off it: carry the horizontal speed into an arc and let
+      // gravity take over, instead of snapping straight down to the street. That
+      // snap was the "falls through it" — the car reached the lip and dropped
+      // rather than launching. Any climb it already had is carried into the arc,
+      // so coming off a rise you leap; coming off flat you tip over the edge.
+      vy = car.vy - GRAVITY * dt
       y = car.y + vy * dt
-      if (y < groundY) {
+      if (y <= groundY) {
+        // The drop turned out shallow after all (ground close below): just settle.
         y = groundY
-        vy = climb
+        vy = 0
       }
     } else {
-      y = groundY
-      vy = climb // remembered, so the next frame knows if we crested a rise
+      // A slope imparts the climb it asks, capped to what the distance travelled
+      // could deliver; a step up is snapped onto and imparts nothing.
+      const climb = isStep ? 0 : Math.max(-MAX_CLIMB, Math.min(MAX_CLIMB, rise / dt))
+      // You leave the ground on a rise only when it falls away faster than gravity
+      // can hold you to it — not merely because you were going up and now aren't.
+      // Testing the latter launched the car off the crest of every bridge arch.
+      const surfaceAccel = (climb - car.vy) / dt
+      if (car.vy > TAKEOFF_VY && surfaceAccel < -GRAVITY) {
+        vy = car.vy
+        y = car.y + vy * dt
+        if (y < groundY) {
+          y = groundY
+          vy = climb
+        }
+      } else {
+        y = groundY
+        vy = climb // remembered, so the next frame knows if we crested a rise
+      }
     }
   }
 

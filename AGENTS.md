@@ -137,7 +137,9 @@ print what it actually did. Delete the page afterwards.
   gains metres between two frames; read as a slope that is a climb of 100m/s, and the frame
   after it the car is fired twenty metres into the air. Compare the rise against the distance
   actually travelled: past what that could have climbed, it is a step, and you cannot ramp
-  off a kerb.
+  off a kerb. The mirror case is a step DOWN past `LEDGE_DROP` (a roof edge, the end of a high
+  bridge): do NOT snap the car to the low ground — that read as dropping THROUGH the surface.
+  Go airborne at the lip and carry the horizontal speed into an arc (`car.ts`, v0.94.0).
 - **`at()` on a polyline clamps.** So anything positioned off the end of a line piles onto its
   first point. Every train carriage sat on the first metre of track and drove out of the
   others one at a time. Hide what is off the line instead.

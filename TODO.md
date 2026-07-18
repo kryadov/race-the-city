@@ -82,9 +82,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
         a shared vertex, no body at all. A bird needs volume: a body, and wings that read as
         wings from the side. This is the part to fix first — the motion is closer than the
         model is
-- [ ] **Coming off a height reads as falling through it** — off a roof, and off the end of a
-      high bridge, the car reaches the edge and drops rather than launching off it. The
-      surface stops being ground the instant it ends, so there is no lip and no carry
+- [x] **Coming off a height reads as falling through it** — off a roof, and off the end of a
+      high bridge, the car reaches the edge and drops rather than launching off it — v0.94.0:
+      a downward step past `LEDGE_DROP` (1m) now makes the car airborne at the lip, carrying
+      horizontal speed into an arc instead of snapping down to the street
 - [ ] **Trees want more variety in height** — today every tree is scaled 0.7-1.4 of one
       model per variant, which reads as uniform; the variants themselves are all much of a
       size (conifer 3.7, broadleaf 3.6, spruce 4.4)
