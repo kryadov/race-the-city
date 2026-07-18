@@ -1,4 +1,4 @@
-import { t } from '../i18n/i18n'
+import { t, getLang, setLang, LANGS, onLangChange } from '../i18n/i18n'
 import type { VehicleType } from '../vehicle/vehicles'
 
 export type StartMode = 'free' | 'trial' | 'race' | 'taxi'
@@ -161,7 +161,25 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
   continueBtn.onclick = () => cb.onContinue()
   continueBtn.style.display = initial.hasSession ? 'block' : 'none'
 
-  panel.append(cityRow, randomBtn, carLabel, strip, grid, modeLabel, modeRow, playBtn, continueBtn)
+  // Language toggle — EN / RU right on the front screen.
+  const langRow = document.createElement('div')
+  langRow.style.cssText = 'display:flex;gap:6px;justify-content:center;margin-top:2px'
+  const langBtns = new Map<string, HTMLButtonElement>()
+  const highlightLang = (): void => {
+    for (const [l, b] of langBtns) b.style.background = l === getLang() ? ACTIVE : IDLE
+  }
+  for (const lang of LANGS) {
+    const lb = mkBtn(lang.toUpperCase())
+    lb.style.flex = '1'
+    lb.onclick = () => {
+      setLang(lang)
+      highlightLang()
+    }
+    langBtns.set(lang, lb)
+    langRow.appendChild(lb)
+  }
+
+  panel.append(cityRow, randomBtn, carLabel, strip, grid, modeLabel, modeRow, playBtn, continueBtn, langRow)
   root.appendChild(overlay)
 
   // Fill all text (and re-fill on language change via re-render call sites).
@@ -178,6 +196,11 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
     continueBtn.textContent = t('start.continue')
   }
   applyText()
+  highlightLang()
+  onLangChange(() => {
+    applyText()
+    highlightLang()
+  })
   pickMode('free')
   // Highlight the initial vehicle WITHOUT firing the swap callback — the game
   // already has this car, and the callback runs before the first city loads.

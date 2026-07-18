@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.104.0 — About panel, and language on the start screen
+- New **About** group in the settings menu: a short description, a link to the **developer**
+  (github.com/kryadov) and one to **support the project** (github.com/sponsors/kryadov). Localized.
+- The **start screen now has an EN / RU language toggle** — switch before you even load a city, and
+  the menu re-translates on the spot.
+- 👀 Open ⚙ → About for the links; flip EN/RU on the start menu.
+
 ## v0.103.0 — benches that line up along the road
 - Fewer benches (capped), and a roadside bench now stands **parallel to the road** — a run of them
   lines up down the street instead of scattering every which way. Benches out in the open (a park)

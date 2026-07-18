@@ -553,6 +553,30 @@ export function createSettingsMenu(
   resetBtn.addEventListener('click', () => cb.onReset())
 
   // Sections append themselves as they're created; only the actions go last.
+  // --- About ---
+  const aboutSec = section('about.title')
+  const aboutDesc = document.createElement('div')
+  aboutDesc.style.cssText = 'font-size:12px;color:rgba(255,255,255,.72);line-height:1.5;margin-bottom:4px'
+  aboutDesc.textContent = t('about.description')
+  labels.push({ el: aboutDesc, key: 'about.description' })
+  const aboutLink = (href: string, key: string): HTMLAnchorElement => {
+    const a = document.createElement('a')
+    a.href = href
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    a.textContent = t(key)
+    a.style.cssText =
+      'display:block;padding:8px 11px;margin-top:6px;border-radius:6px;color:#fff;text-decoration:none;' +
+      `font-size:14px;background:${INACTIVE};text-align:center`
+    labels.push({ el: a, key })
+    return a
+  }
+  aboutSec.append(
+    aboutDesc,
+    aboutLink('https://github.com/kryadov', 'about.developer'),
+    aboutLink('https://github.com/sponsors/kryadov', 'about.support'),
+  )
+
   panel.append(resetLocBtn, resetBtn)
   root.append(gear, panel)
 
