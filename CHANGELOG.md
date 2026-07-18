@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.1 — boaters on the small lakes too
+- Small ponds and lakes floated no boats, while big harbours and rivers were fine. Two things hid
+  them: the boat-spot search only kept water at least a ship's turning-room wide, and its 40m
+  map-wide sampling grid stepped clean over anything pond-sized. Now, when nothing turns up on a
+  body of water, a **fine sweep of just that water's own outline** finds a spot down to a rowboat's
+  size — so a village pond gets its rowboat.
+- 👀 Find a small lake or pond: there's a little rowboat pottering on it now.
+
 ## v0.108.0 — a synthwave loading screen, not a black void
 - While the first city loads behind the start menu (on boot, or after a page refresh), the backdrop
   was a **dead black screen** until the demo kicked in. It's now an animated **synthwave sunset** —

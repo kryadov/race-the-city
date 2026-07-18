@@ -17,11 +17,20 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       backend, ideally one that could later **double as the multiplayer transport (#6)**. Privacy/GDPR
       + "no backend" identity of the project are real constraints to weigh. (Deferred: "как дойдём до
       этого пункта" — needs a brainstorm before any build.)
-- [ ] **BUG — no boaters on small lakes** — small ponds/lakes render no boats, while big ships on
-      large water bodies look fine. Likely a size/threshold in `boats.ts` (min water-area or hull
-      scale) that filters small waters out, or the small-water polygon isn't being fed to
-      `createBoats`. Want small rowboats/dinghies scaled to the pond. (Next up after the in-flight
-      birds + loading-backdrop releases.)
+- [x] **BUG — no boaters on small lakes** — v0.108.1: `spots()` skipped any water below
+      ROWBOAT_ROOM (14m) AND the 40m whole-map sampling grid stepped right over small ponds. Added a
+      fine per-ring bbox rescue sweep down to a new `MIN_ROOM` (6m) floor when the coarse sweep finds
+      nothing, so a genuine pond now floats a rowboat. `test/app/boats.test.ts` locks it.
+- [ ] **BUG — pedestrians walk across the bottom of water** — people path straight through lakes/
+      ponds instead of going around. Need the pedestrian walk in `people.ts`/`pedestrians` to treat
+      water polygons as obstacles (avoid/route around), the way traffic avoids buildings.
+- [ ] **Bench-sitting by the water** — place benches beside lakes and have pedestrians **walk up,
+      sit down, sit a while, stand and leave** (a small state machine: approach → sit → idle → rise →
+      wander off). Ties into the water-avoidance work above and the existing `streetFurniture` benches.
+- [ ] **Colour-coded nitro** — nitro bottles come in **different colours**, and the colour sets the
+      boost: a **different acceleration effect and/or a different duration** per colour (e.g. a short
+      hard punch vs a long gentle push). Needs a small table of nitro types (colour → boost strength
+      → duration), the pickup mesh tinted per type, and `car`/boost logic reading the type it grabbed.
 
 ## 🧭 Big features — planned 2026-07-18 (session batch)
 Five features asked for in one session. Being brainstormed + specced together, then

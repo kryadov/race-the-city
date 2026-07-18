@@ -21,6 +21,14 @@ const YACHT_ROOM = 38
 const SAIL_ROOM = 24
 /** A rowing boat is happy on anything from a pond up. */
 const ROWBOAT_ROOM = 14
+/**
+ * The least clear-water radius, in metres, that still floats a (rowing) boat.
+ * The whole-map sampling grid steps every 40m and only keeps ROWBOAT_ROOM-sized
+ * water, so a pond a couple of boat-lengths across falls between its teeth and
+ * comes back empty — no boat ("в маленьких озёрах не вижу лодочников"). This
+ * smaller floor is used by the fine per-pond rescue sweep in `spots()`.
+ */
+const MIN_ROOM = 6
 /** Half the length of each hull — what has to stay wet, not just its centre. */
 const SHIP_HALF = 19
 const YACHT_HALF = 8
@@ -204,6 +212,39 @@ export function spots(
       if (r < ROWBOAT_ROOM) continue
       if (provider.heightAt(x, z) > level) continue // dry land inside the outline
       found.push({ x, z, r })
+    }
+  }
+  // Small ponds fall between the 40m grid's teeth: no sample lands inside one a
+  // couple of boat-lengths across, so it comes back empty and never floats a
+  // boat. If the coarse sweep found nothing for this body, sweep just its own
+  // bounding box at a fine step, down to the smaller MIN_ROOM floor — a rowboat
+  // is content on a pond, and kindFor picks it for water this size.
+  if (found.length === 0) {
+    let minX = Infinity
+    let maxX = -Infinity
+    let minZ = Infinity
+    let maxZ = -Infinity
+    for (const p of ring) {
+      minX = Math.min(minX, p.x)
+      maxX = Math.max(maxX, p.x)
+      minZ = Math.min(minZ, p.z)
+      maxZ = Math.max(maxZ, p.z)
+    }
+    // Clamp to the map, exactly as the coarse sweep is bounded to ±LOOK — water
+    // that runs off the edge is not ours to put a boat on (a lake wholly off the
+    // map collapses to an empty box and yields nothing, as it must).
+    minX = Math.max(-LOOK, Math.min(LOOK, minX))
+    maxX = Math.max(-LOOK, Math.min(LOOK, maxX))
+    minZ = Math.max(-LOOK, Math.min(LOOK, minZ))
+    maxZ = Math.max(-LOOK, Math.min(LOOK, maxZ))
+    const step = Math.max(3, Math.min(maxX - minX, maxZ - minZ) / 8)
+    for (let x = minX; x <= maxX; x += step) {
+      for (let z = minZ; z <= maxZ; z += step) {
+        const r = roomAt(ring, x, z)
+        if (r < MIN_ROOM) continue
+        if (provider.heightAt(x, z) > level) continue
+        found.push({ x, z, r })
+      }
     }
   }
   // Roomy enough for the biggest vessel first, and among those the nearest to
