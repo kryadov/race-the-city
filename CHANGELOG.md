@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.0 — a synthwave loading screen, not a black void
+- While the first city loads behind the start menu (on boot, or after a page refresh), the backdrop
+  was a **dead black screen** until the demo kicked in. It's now an animated **synthwave sunset** —
+  gradient sky, a glowing sun and a perspective grid scrolling toward you — that **fades out the
+  moment the live city is on screen**, so there's no ugly black gap before the demo starts.
+- 👀 Reload the page: the menu sits over a moving neon horizon, which dissolves into the live demo
+  city once it finishes loading.
+
 ## v0.107.5 — birds don't pile up where they land
 - Grounded birds were landing in a heap: the whole flock aimed every landing at one spot near you,
   spread only a couple of metres — fine when they were flat diamonds, an ugly pile now they have

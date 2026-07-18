@@ -21,6 +21,8 @@ export interface StartMenuCallbacks {
 export interface StartMenuHandle {
   show(): void
   hide(): void
+  /** Fade the animated boot backdrop out — a city is on the canvas now. */
+  revealCity(): void
   /** Offer (or hide) the Continue button. */
   setContinueAvailable(on: boolean): void
   /** Reflect the current backdrop car in the strip. */
@@ -71,6 +73,11 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
     'min-width:320px;max-width:min(92vw,460px);padding:26px 24px 22px;border-radius:16px;' +
     'background:rgba(12,18,30,.82);backdrop-filter:blur(6px);box-shadow:0 18px 60px rgba(0,0,0,.5);' +
     'color:#fff;display:flex;flex-direction:column;gap:14px;'
+  // A synthwave floor and sun animate behind the panel while the first city
+  // loads, so the boot screen isn't a dead black void. It fades out (revealCity)
+  // the moment a city is on the canvas, letting the live demo show through.
+  const backdrop = buildLoadingBackdrop()
+  overlay.appendChild(backdrop)
   overlay.appendChild(panel)
 
   const title = document.createElement('div')
@@ -214,6 +221,14 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
     hide() {
       overlay.style.display = 'none'
     },
+    revealCity() {
+      if (backdrop.style.opacity === '0') return
+      backdrop.style.opacity = '0'
+      // Stop the floor/sun animating once it's invisible behind the live city.
+      setTimeout(() => {
+        backdrop.style.display = 'none'
+      }, 900)
+    },
     setContinueAvailable(on) {
       continueBtn.style.display = on ? 'block' : 'none'
     },
@@ -246,4 +261,40 @@ function mkLabel(text: string): HTMLDivElement {
   d.textContent = text
   d.style.cssText = 'font-size:12px;opacity:.65;margin-bottom:-6px;'
   return d
+}
+
+/**
+ * The animated boot backdrop: a synthwave sunset — gradient sky, a glowing sun on
+ * the horizon and a perspective grid scrolling toward you — drawn behind the menu
+ * panel so the first city's load isn't a black void. Pure CSS plus the same WAAPI
+ * the loading spinner uses (no stylesheet to inject); `revealCity()` fades it out.
+ */
+function buildLoadingBackdrop(): HTMLElement {
+  const wrap = document.createElement('div')
+  wrap.style.cssText =
+    'position:absolute;inset:0;overflow:hidden;pointer-events:none;transition:opacity .8s ease;' +
+    'background:linear-gradient(to bottom,#0a0618 0%,#241a52 34%,#6a2a7a 54%,#ff5bd0 65%,#ff8a4d 69%,#160726 70%,#0a0414 100%);'
+
+  const sun = document.createElement('div')
+  sun.style.cssText =
+    'position:absolute;left:50%;top:60%;width:200px;height:200px;transform:translate(-50%,-50%);' +
+    'border-radius:50%;filter:blur(1px);' +
+    'background:radial-gradient(circle at 50% 42%,#fef3b0,#ff9a3d 42%,#ff4fa3 74%,rgba(255,79,163,0) 100%);'
+
+  const grid = document.createElement('div')
+  grid.style.cssText =
+    'position:absolute;left:-30%;right:-30%;top:66%;bottom:-2%;transform:perspective(300px) rotateX(76deg);transform-origin:top center;' +
+    '-webkit-mask-image:linear-gradient(to bottom,transparent,#000 34%);mask-image:linear-gradient(to bottom,transparent,#000 34%);' +
+    'background-image:repeating-linear-gradient(to right,rgba(56,245,255,.5) 0 2px,transparent 2px 66px),' +
+    'repeating-linear-gradient(to bottom,rgba(56,245,255,.5) 0 2px,transparent 2px 66px);'
+
+  wrap.append(sun, grid)
+  // The floor rolls toward the viewer, and the sun breathes — WAAPI, so nothing
+  // has to be injected into a stylesheet.
+  grid.animate([{ backgroundPosition: '0 0' }, { backgroundPosition: '0 66px' }], { duration: 1600, iterations: Infinity })
+  sun.animate(
+    [{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-50%) scale(1.05)' }],
+    { duration: 3200, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' },
+  )
+  return wrap
 }

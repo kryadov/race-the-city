@@ -565,6 +565,7 @@ async function loadCity(query: string): Promise<void> {
     stage.renderer.compile(stage.scene, stage.camera)
     stage.renderer.render(stage.scene, stage.camera)
     loading.hide()
+    startMenu.revealCity() // a city is on the canvas now — fade the animated boot backdrop
 
     // A Play / Random / city-search click asked to play THIS city: now that the
     // car exists, drop out of attract and enter the chosen mode. A newer city
