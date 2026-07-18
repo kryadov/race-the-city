@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.107.2 — birds on the ground look like birds, and potter about
+- A perched bird was just the flight shape holding still — wings spread flat, no motion — which read
+  as a **flat diamond** and looked dead. Grounded birds now **fold their wings in**, stand plumper,
+  and gain a **head, neck and tail**; they **turn to look about, shuffle a step with a low hop, and
+  dip to peck** now and then. Takeoff and flight are byte-for-byte unchanged — only the perched look.
+- 👀 Find birds settled on a roof or by a tree: bird-shaped now (head up, wings folded), and they
+  keep pottering — turning, stepping, pecking — instead of sitting frozen.
+
 ## v0.107.1 — the camera stops looking under the map on steep hills
 - Driving off a steep downslope, the chase camera could sink below the terrain and show the ground
   mesh's **underside** and buildings poking through the void. The camera's height is now **clamped

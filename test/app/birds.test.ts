@@ -58,8 +58,9 @@ describe('birds', () => {
     const scene = new THREE.Scene()
     createBirds(scene, () => 0.5, 6)
     const group = scene.children[0] as THREE.Group
-    // three instanced draws — a body and one per wing side — however many birds there are
-    expect(group.children.length).toBe(3)
+    // Six instanced draws — a body, one per wing side, and a grounded bird's
+    // head, neck and tail — each carrying however many birds there are.
+    expect(group.children.length).toBe(6)
     for (const mesh of group.children) expect((mesh as THREE.InstancedMesh).count).toBe(6)
   })
 
@@ -114,14 +115,18 @@ describe('birds', () => {
     const left = group.children[2] as THREE.InstancedMesh
 
     // Frames 10 and 30 are still well inside the initial perch (see the
-    // flight-timing test above): the wing must not move at all.
-    let stillBefore: THREE.Quaternion | null = null
+    // flight-timing test above). A grounded bird now potters — it turns and
+    // shuffles — so its wings move through the world along with it. What must
+    // not move is the fold that holds them against the body: the wing's angle
+    // RELATIVE TO THE BODY, i.e. the hinge a flap would open and close.
+    const foldRel = (): THREE.Quaternion => quatAt(body, 0).invert().multiply(quatAt(right, 0))
+    let foldBefore: THREE.Quaternion | null = null
     for (let i = 1; i <= 40; i++) {
       b.update(0.1, 0, 0)
-      if (i === 10) stillBefore = quatAt(right, 0)
+      if (i === 10) foldBefore = foldRel()
       if (i === 30) {
-        const stillAfter = quatAt(right, 0)
-        expect(stillAfter.angleTo(stillBefore!), 'wings moved while perched').toBeLessThan(1e-6)
+        const foldAfter = foldRel()
+        expect(foldAfter.angleTo(foldBefore!), 'the wing flapped while perched').toBeLessThan(1e-4)
       }
     }
 
