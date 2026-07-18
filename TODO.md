@@ -175,7 +175,11 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Step up onto a slightly higher surface** — if the player has driven onto a building/ledge and
       an **adjacent surface is only a wheel-radius higher**, allow driving up onto it (a small
       step-up allowance in the vertical collision, not a hard wall).
-- [ ] **Smooth bot cornering** — bot cars currently **snap 90° at intersections**; make them **turn
+- [x] **Smooth bot cornering** — v0.110.14: eased yaw toward the edge, arcs through junctions.
+- [ ] **BUG — bot cars drive through each other** — traffic cars overlap and pass straight through
+      one another; they should not. Add car-to-car separation in `traffic.ts` — each car checks the
+      few ahead on its edge/nearby and slows/holds (or nudges) to keep a gap, so they queue instead
+      of merging. Keep it O(cars) (spatial bucket or per-edge ordering), no frame-rate hit. bot cars currently **snap 90° at intersections**; make them **turn
       smoothly** (ease the heading toward the next edge / a short arc through the junction) in
       `traffic.ts`, instead of an instant rotation.
 - [ ] **Crowd reacts to the horn** — honking makes **nearby pedestrians and cars veer away** from the

@@ -107,3 +107,50 @@ describe('building batching', () => {
     expect(footprints).toHaveLength(3)
   })
 })
+
+describe('no windows in the dirt on a slope', () => {
+  // The bug: a facade's windows are drawn upward from a single ground level, but
+  // a footprint on a slope stands over ground of varying height. Seated at the
+  // average grade, every window over the higher, uphill side glowed from inside
+  // the earth. Seated at the highest grade, the whole grid clears the ground —
+  // this locks that.
+  const ramp = { heightAt: (x: number) => x * 0.5 } // ground climbs west→east
+
+  /** The one wall mesh: not the instanced doors/signs, and carrying facade UVs. */
+  function wallMesh(root: THREE.Object3D): THREE.Mesh {
+    let wall: THREE.Mesh | undefined
+    root.traverse((c) => {
+      if ((c as THREE.InstancedMesh).isInstancedMesh) return
+      const g = (c as THREE.Mesh).geometry
+      if (g?.attributes?.uv) wall = c as THREE.Mesh
+    })
+    if (!wall) throw new Error('no wall mesh with facade UVs')
+    return wall
+  }
+
+  it('seats the whole window grid above the highest terrain under the footprint', () => {
+    const b: Building = {
+      footprint: [v(0, 0), v(40, 0), v(40, 12), v(0, 12)], // spans a 20m rise
+      height: 15,
+      kind: 'apartments',
+    }
+    const pos = wallMesh(buildBuildings([b], ramp).mesh).geometry.attributes.position
+    let topY = -Infinity
+    let baseY = Infinity
+    for (let i = 0; i < pos.count; i++) {
+      topY = Math.max(topY, pos.getY(i))
+      baseY = Math.min(baseY, pos.getY(i))
+    }
+    // The facade's v=0 ground floor sits `height` below the roofline; every
+    // window row stacks up from there.
+    const groundFloorY = topY - b.height
+
+    // No point of the terrain under the footprint pokes above the ground floor,
+    // so no window row is ever buried — not even on the uphill wall.
+    for (let x = 0; x <= 40; x++) {
+      expect(ramp.heightAt(x), `terrain at x=${x} vs ground floor`).toBeLessThanOrEqual(groundFloorY + 1e-6)
+    }
+    // Still seated: the base reaches down past the lowest corner, not floating.
+    expect(baseY).toBeLessThanOrEqual(ramp.heightAt(0))
+  })
+})

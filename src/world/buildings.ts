@@ -111,13 +111,18 @@ export function buildBuildings(
     for (let i = 1; i < b.footprint.length; i++) shape.lineTo(b.footprint[i].x, b.footprint[i].z)
     shape.closePath()
 
-    // Top sits at avg ground + height; the base is extended down to the lowest
-    // ground under the footprint (+margin) so no side floats over a slope.
-    const { avg, min } = groundStats(b.footprint, provider)
-    const skirt = avg - min + 0.5
+    // A facade's windows are drawn UPWARD from its ground floor, so that floor
+    // is seated at the HIGHEST ground under the footprint, not the average. On a
+    // slope the average sits below the uphill grade, and every window over that
+    // grade — the rows the average buried — glowed from inside the dirt. With the
+    // floor at the max, the whole window grid clears the ground on every side.
+    // The base still reaches down to the lowest corner (+margin), so the downhill
+    // side shows a taller plinth rather than floating over the slope.
+    const { min, max } = groundStats(b.footprint, provider)
+    const skirt = max - min + 0.5
     const geo = new THREE.ExtrudeGeometry(shape, { depth: b.height + skirt, bevelEnabled: false })
     geo.rotateX(Math.PI / 2) // extrude along +Y without mirroring z
-    geo.translate(0, avg + b.height, 0)
+    geo.translate(0, max + b.height, 0)
 
     // Jitter each facade off the palette so neighbours never share a shade, and
     // give the roof a darker, greyer tone so volumes read apart from the road.
@@ -125,8 +130,9 @@ export function buildBuildings(
     wall.offsetHSL((rng() - 0.5) * 0.015, (rng() - 0.5) * 0.05, (rng() - 0.5) * 0.06)
     roof.copy(wall).offsetHSL(0, -0.22, -0.12)
     paintVolume(geo, wall, roof)
-    // Storeys fitted to this building, so the roof never slices a window row.
-    facadeUVs(geo, avg, b.height)
+    // Storeys fitted to this building and counted up from the seated ground
+    // floor, so the roof never slices a window row and no row starts underground.
+    facadeUVs(geo, max, b.height)
 
     let batch = batches.get(b.kind)
     if (!batch) {
@@ -136,7 +142,7 @@ export function buildBuildings(
     appendTo(batch, geo)
     geo.dispose() // its vertices live in the batch now
     footprints.push(b.footprint)
-    tops.push(avg + b.height)
+    tops.push(max + b.height)
   }
 
   for (const [kind, batch] of batches) group.add(batchMesh(batch, facades.of(kind)))
@@ -147,14 +153,14 @@ export function buildBuildings(
   return { mesh: group, footprints, tops, facades }
 }
 
-/** Average and minimum terrain height sampled at a footprint's vertices. */
-export function groundStats(ring: Vec2[], provider: ElevationProvider): { avg: number; min: number } {
-  let sum = 0
+/** Lowest and highest terrain height sampled at a footprint's vertices. */
+export function groundStats(ring: Vec2[], provider: ElevationProvider): { min: number; max: number } {
   let min = Infinity
+  let max = -Infinity
   for (const p of ring) {
     const h = provider.heightAt(p.x, p.z)
-    sum += h
     if (h < min) min = h
+    if (h > max) max = h
   }
-  return { avg: sum / ring.length, min }
+  return { min, max }
 }

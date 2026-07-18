@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.16 — no more windows buried in the ground
+- On sloping ground a building's window grid started from the **average** terrain under its
+  footprint, so the uphill wall — standing over higher ground — had its lower window rows **below the
+  surface** (lit windows down in the dirt). The facade is now seated at the **highest** terrain under
+  the footprint, so every window clears the ground; the downhill side just shows a taller plinth, as
+  a level-floored building on a slope should.
+- 👀 Find a building on a hillside: its windows sit above the ground on the uphill side now.
+
 ## v0.110.15 — trains: real windows and smooth cornering
 - Train and tram cars had a single **glass stripe** running the whole length; each now carries a
   **row of separate windows** with pillars between them (one merged draw per car, still lit at
