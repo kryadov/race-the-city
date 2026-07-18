@@ -41,6 +41,9 @@ if (!bundle) {
 const PAGE = `<!doctype html><html><body>
 <div id="app"></div><div id="ui"></div><div id="out">PENDING</div>
 <script>
+  // Tell the app it's under boot-check: infinite CSS/WAAPI animations never let
+  // this headless run's virtual-time budget settle, so --dump-dom would hang.
+  window.__BOOTCHECK = 1
   window.__err = ''
   addEventListener('error', (e) => { window.__err = String(e.message || e.error) })
   addEventListener('unhandledrejection', (e) => { window.__err = String(e.reason) })

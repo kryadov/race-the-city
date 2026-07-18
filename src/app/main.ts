@@ -25,7 +25,6 @@ import { createNitroFlame } from './nitroFlame'
 import { withRetry, LOAD_ATTEMPTS } from './retry'
 import { createLoading } from '../ui/loading'
 import { createUpdateNotice } from '../ui/updateNotice'
-import { createVersionBadge } from '../ui/version'
 import { createHud } from '../ui/hud'
 import { createSettingsMenu } from '../ui/settingsMenu'
 import { createMinimap } from '../ui/minimap'
@@ -165,7 +164,6 @@ let odometer = 0 // metres driven, carried in the session
 // driving input is ignored, and the autopilot is forced on. Cleared on Play.
 let attract = true
 hud.setVisible(getHud())
-createVersionBadge(ui)
 const keyboard = new Keyboard()
 const touch = createTouchControls(ui)
 const theme = new ThemeController(stage)

@@ -571,10 +571,15 @@ export function createSettingsMenu(
     labels.push({ el: a, key })
     return a
   }
+  const aboutVersion = document.createElement('div')
+  aboutVersion.textContent = `v${__APP_VERSION__}`
+  aboutVersion.title = 'Race the City version'
+  aboutVersion.style.cssText = 'font-size:11px;color:rgba(255,255,255,.45);text-align:center;margin-top:8px'
   aboutSec.append(
     aboutDesc,
     aboutLink('https://github.com/kryadov', 'about.developer'),
     aboutLink('https://github.com/sponsors/kryadov', 'about.support'),
+    aboutVersion,
   )
 
   panel.append(resetLocBtn, resetBtn)

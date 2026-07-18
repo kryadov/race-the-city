@@ -42,6 +42,16 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       colour** (not packed — enough to read as a car park), and cars should **drive in, park, sit,
       then drive out** again. Reuse `world.parking` polygons + the vehicle roster; a small occupancy
       state machine (arrive → parked dwell → depart) feeding off the traffic graph for approach/exit.
+- [ ] **Delivery cargo by vehicle type** — the deliver-a-fare/parcel mode should carry **different
+      loads per vehicle**: a car carries a **person** (and a status/luxury car carries a smartly-
+      dressed one to match), a truck/lorry carries **cargo — sand, gravel, fuel, milk** (pick a
+      fitting load per hull). Swap the "passenger" figure for a typed cargo mesh in `taxi.ts`.
+- [ ] **Road/rail-through-building archways** — bot cars (and **railways** — "как обычная, так и
+      железная") sometimes run where a way passes **under a building**, and the road/track appears to
+      vanish into the wall (screenshot). Detect these (way crossing a building footprint, OSM
+      `covered`/`tunnel`, or a building with an arch) and **render the building bridged over the way
+      with an open passage** — so it reads right AND the **player can drive through** it too (bots can
+      now, the player can't). Applies to both roads and rail lines.
 - [ ] **People get in and out of cars** — a pedestrian can walk up to a (parked) car, get in and the
       car drives off; and an arriving car can drop one off. Pairs with living parking lots and the
       taxi passenger figures already in `taxi.ts`.
@@ -90,6 +100,13 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Bike lanes + cyclists** — paint a **cycle-lane stripe as a texture on the existing road
       ribbon** (no new mesh — same draw call as the road markings), and add **cyclists** riding it
       (instanced, reuse the pedestrian/traffic graph on `cycleway`/pavement). Keep it cheap.
+- [ ] **Roll on a big launch** — if the car leaves a ramp/hill **hard enough** (high vertical speed /
+      airtime), let it **flip/roll** per the current physics on landing; a gentle hop stays upright.
+      A threshold on launch speed that permits angular tumble, otherwise keep the car damped level.
+- [ ] **Bridge pillars: off the road + solid** — don't plant **bridge support pillars on the
+      carriageway**, and make pillars **collidable** so the player, cars and pedestrians can't pass
+      through them. Offset pillar placement clear of road polygons; add their footprints to the
+      collision grid.
 - [ ] **Manhole detail + open covers** — add **four small fixings around the rim** (like real cast
       covers), and make **some covers sit ajar / offset** as if not fully closed. Driving over an open
       one **drops the wheel in and tilts the car** — a physics dip at that spot (per-wheel height /

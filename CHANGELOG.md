@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.6 — version moves into Settings, off the fuel gauge
+- The build version sat in the bottom-right corner **overlapping the fuel gauge**. It's moved into
+  the **⚙ Settings → About** panel, so the corner reads clean.
+- (Dev) `boot-check` no longer hangs on the start screen's looping loading animation — it opts the
+  animation out under the harness, so the release gate is reliable again.
+
 ## v0.108.5 — Random keeps the loading screen; load errors clear themselves
 - Clicking **Random city** (or searching one) used to drop the whole menu and leave a **black screen**
   while the new city loaded. Now the animated **synthwave backdrop stays up as a loading screen** —

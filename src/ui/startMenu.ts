@@ -319,12 +319,17 @@ function buildLoadingBackdrop(): HTMLElement {
     'repeating-linear-gradient(to bottom,rgba(56,245,255,.5) 0 2px,transparent 2px 66px);'
 
   wrap.append(sun, grid)
-  // The floor rolls toward the viewer, and the sun breathes — WAAPI, so nothing
-  // has to be injected into a stylesheet.
-  grid.animate([{ backgroundPosition: '0 0' }, { backgroundPosition: '0 66px' }], { duration: 1600, iterations: Infinity })
-  sun.animate(
-    [{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-50%) scale(1.05)' }],
-    { duration: 3200, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' },
-  )
+  // The floor rolls toward the viewer and the sun breathes — WAAPI, so nothing
+  // has to be injected into a stylesheet. Skipped under boot-check: its headless
+  // Chrome runs on a virtual-time budget that never settles while an infinite
+  // animation is pending, so --dump-dom would hang (the page still renders, which
+  // is all boot-check checks).
+  if (!(window as unknown as { __BOOTCHECK?: boolean }).__BOOTCHECK) {
+    grid.animate([{ backgroundPosition: '0 0' }, { backgroundPosition: '0 66px' }], { duration: 1600, iterations: Infinity })
+    sun.animate(
+      [{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-50%) scale(1.05)' }],
+      { duration: 3200, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' },
+    )
+  }
   return wrap
 }
