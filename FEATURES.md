@@ -9,6 +9,16 @@ runs in the browser.
 
 ---
 
+## Start screen
+
+On load you get a **start menu** — RACE THE CITY — over a real city driving itself on autopilot.
+Pick a **city** (search or 🎲 random — the backdrop reloads to it), a **car** (a quick strip, or
+"More…" for all 19), and a **mode** (Free roam / Time trial / Race), then **▶ Play** to take the
+wheel of the car you were watching. If you've played before, **Continue** resumes your saved
+session. A `?city=` share link pre-fills the city.
+
+---
+
 ## Controls
 
 **Drive (keyboard)**

@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.98.0 — start menu
+- A branded **start screen**: RACE THE CITY, a big Play, and quick picks — city search + 🎲 random,
+  a vehicle strip (+ "More…" for the full roster), and a mode (Free roam / Time trial / Race) —
+  over a **live city driving itself** on autopilot as the backdrop. A saved session adds **Continue**.
+- 👀 On load you now get the menu over a random city that drives itself. Type a city (the backdrop
+  reloads to it), pick a car and a mode, then ▶ Play to take the wheel. Come back with a saved
+  session and there's a Continue button. A `?city=` link pre-fills the city.
+
 ## v0.97.0 — café & fuel signposts
 - Points of interest from OSM get a **signpost**: a post with a small panel, café = warm
   brown/red, fuel = green, with a glowing glyph. Five draw calls for the whole city.

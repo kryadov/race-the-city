@@ -33,6 +33,8 @@ import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
 import { createPauseButton } from '../ui/pauseButton'
 import { createHelpOverlay } from '../ui/helpOverlay'
+import { createStartMenu, type StartMode } from '../ui/startMenu'
+import { pickRandomCity } from './cities'
 import { createAutopilot } from './autopilot'
 import { createTimeTrial } from './timeTrial'
 import { createRivals } from './rivals'
@@ -155,6 +157,9 @@ const roadLabels = createRoadLabels(ui)
 roadLabels.setEnabled(getRoadLabels())
 const hud = createHud(ui, getUnits())
 let odometer = 0 // metres driven, carried in the session
+// The start screen is up: a city drives itself as a backdrop, the player's
+// driving input is ignored, and the autopilot is forced on. Cleared on Play.
+let attract = true
 hud.setVisible(getHud())
 createVersionBadge(ui)
 const keyboard = new Keyboard()
@@ -543,8 +548,9 @@ async function loadCity(query: string): Promise<void> {
         // otherwise leave its idle timer — and its drone — exactly where it was.
         const dt = pause.paused() ? 0 : wallDt
         const spec = VEHICLES[vehicle]
-        const kb = pause.paused() ? { throttle: 0, steer: 0, brake: false } : keyboard.read()
-        const tc = pause.paused() ? { throttle: 0, steer: 0, brake: false } : touch.read()
+        const frozen = pause.paused() || attract // no player driving on the start screen
+        const kb = frozen ? { throttle: 0, steer: 0, brake: false } : keyboard.read()
+        const tc = frozen ? { throttle: 0, steer: 0, brake: false } : touch.read()
         let input = {
           throttle: Math.max(-1, Math.min(1, kb.throttle + tc.throttle)),
           steer: Math.max(-1, Math.min(1, kb.steer + tc.steer)),
@@ -602,7 +608,7 @@ async function loadCity(query: string): Promise<void> {
         // touch of the controls hands the wheel straight back. It reads the
         // BOOSTED spec, or it would cruise past a nitro bottle without using it,
         // and the hazards, or it would drive into a train.
-        if (autopilot.enabled() && !pause.paused()) {
+        if ((autopilot.enabled() || attract) && !pause.paused()) {
           if (handsOn) {
             // You've taken the wheel: the demo's route is from wherever it left
             // off, and steering back to it means aiming through whatever is now
@@ -984,8 +990,59 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === '-' || e.key === '_') applyZoom(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
 })
-// a ?city=… link opens straight to that city; otherwise resume the last session, else the default
-void loadCity(new URL(location.href).searchParams.get('city') || getSession()?.city || getDefaultCity())
+// --- start screen: a live city drives itself behind the menu while you pick ---
+function selectVehicle(type: VehicleType): void {
+  vehicle = type
+  audio.setVehicle(type)
+  showVehicle(type)
+  if (car) {
+    car.vx = 0
+    car.vz = 0
+  }
+}
+function startPlay(mode: StartMode): void {
+  attract = false
+  startMenu.hide()
+  audio.resume() // the Play click is a user gesture — safe to start audio
+  if (mode === 'race') {
+    setRace(true)
+    applyTrial(true)
+  } else if (mode === 'trial') {
+    setRace(false)
+    applyTrial(true)
+  } else {
+    setRace(false)
+    applyTrial(false)
+  }
+  autopilot.setEnabled(getDemo()) // restore the demo setting (off by default → you drive)
+  if (getDemo() && car) autopilot.reset(lastRoads, car)
+}
+function startContinue(): void {
+  const sess = getSession()
+  if (!sess) return
+  attract = false
+  startMenu.hide()
+  audio.resume()
+  autopilot.setEnabled(getDemo())
+  void loadCity(sess.city) // loadCity resumes the saved pose when the city matches
+}
+
+// A ?city= link names the backdrop (and pre-fills the search); otherwise a random
+// city drives itself behind the menu. Play hands you whatever you're watching.
+const linkCity = new URL(location.href).searchParams.get('city') || ''
+const startMenu = createStartMenu(
+  ui,
+  {
+    onPlay: startPlay,
+    onContinue: startContinue,
+    onCity: (q) => void loadCity(q),
+    onRandom: () => void loadCity(pickRandomCity()),
+    onVehicle: selectVehicle,
+    onMode: () => {},
+  },
+  { vehicle, city: linkCity, hasSession: !!getSession() },
+)
+void loadCity(linkCity || pickRandomCity())
 
 // persist the session (city + car pose) so a reload resumes in place
 const saveSession = (): void => {

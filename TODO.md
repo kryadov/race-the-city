@@ -21,9 +21,11 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       list. Later, separate decomposition: native wrapper (Electron/Tauri/Capacitor),
       Steam, mobile. NB licensing — redistributing OSM-derived data in a store build is
       ODbL (attribution + share-alike); on-demand cache is the user's own copy and sidesteps it.
-- [ ] **3. Start menu + splash** — a front screen before free-roam: logo/title, Play,
-      city + vehicle pickers moved up front, continue-session, settings. The shell the
-      modes (#5) and replay (#4) hang off. Backdrop TBD (live autopilot city vs static art).
+- [x] **3. Start menu + splash** — v0.98.0: branded start screen (RACE THE CITY) with Play,
+      city search + 🎲 random, a vehicle strip (+ full roster) and mode (Free/Trial/Race), plus
+      Continue for a saved session, over a **live autopilot city** backdrop. New `attract` state
+      in main.ts suppresses driving input + forces autopilot; `src/ui/startMenu.ts` is the overlay.
+      The shell the modes (#5) and replay (#4) will hang off.
 - [ ] **4. Trip recording + re-play** — record a drive and play it back. Pose-based
       playback favoured (robust to the sim's randomness) over deterministic input-replay.
       Trigger TBD (manual vs rolling dashcam buffer). Storage in IndexedDB.
