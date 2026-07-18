@@ -758,7 +758,7 @@ async function loadCity(query: string): Promise<void> {
         POOL_MAT.opacity = night * 0.5 // and throw a soft pool of light on the road
         facades?.setNight(night) // windows come on behind them
         sky2.update(dt, stage.camera.position.x, stage.camera.position.z, night)
-        birds.update(dt, stage.camera.position.x, stage.camera.position.z)
+        birds.update(dt, stage.camera.position.x, stage.camera.position.z, car.x, car.z)
         trains?.update(dt, night)
         traffic?.update(dt, car.x, car.z, night, trains?.obstacles())
         people?.update(dt, car.x, car.z)

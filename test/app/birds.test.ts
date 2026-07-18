@@ -74,7 +74,7 @@ describe('birds', () => {
     // longer than it did — the bird holds its height until the run-in.
     const ys: number[] = []
     for (let i = 0; i < 700; i++) {
-      b.update(0.1, 0, 0)
+      b.update(0.1, 0, 0, 1e6, 1e6)
       ys.push(positions(wing)[0].y)
     }
 
@@ -96,7 +96,7 @@ describe('birds', () => {
 
     let maxReach = 0
     for (let i = 0; i < 420; i++) {
-      b.update(0.1, 0, 0)
+      b.update(0.1, 0, 0, 1e6, 1e6)
       const p = positions(wing)[0]
       maxReach = Math.max(maxReach, Math.hypot(p.x, p.z))
     }
@@ -122,7 +122,7 @@ describe('birds', () => {
     const foldRel = (): THREE.Quaternion => quatAt(body, 0).invert().multiply(quatAt(right, 0))
     let foldBefore: THREE.Quaternion | null = null
     for (let i = 1; i <= 40; i++) {
-      b.update(0.1, 0, 0)
+      b.update(0.1, 0, 0, 1e6, 1e6)
       if (i === 10) foldBefore = foldRel()
       if (i === 30) {
         const foldAfter = foldRel()
@@ -134,7 +134,7 @@ describe('birds', () => {
     // and both wings must move (a real wingbeat is symmetric).
     let flyingBefore: THREE.Quaternion | null = null
     for (let i = 41; i <= 170; i++) {
-      b.update(0.1, 0, 0)
+      b.update(0.1, 0, 0, 1e6, 1e6)
       if (i === 120) flyingBefore = quatAt(right, 0)
     }
     const flyingAfter = quatAt(right, 0)
@@ -157,7 +157,7 @@ describe('birds', () => {
 
     let sawCanopyHeight = false
     for (let i = 0; i < 450; i++) {
-      b.update(0.1, 0, 0)
+      b.update(0.1, 0, 0, 1e6, 1e6)
       const p = positions(wing)[0]
       // Landed height matches TREE_PERCH_H (4.5) above the ground the tree
       // stands on, not GROUND_PERCH_H (0.3) — proof it used the tree, not
@@ -178,7 +178,7 @@ describe('birds', () => {
 
     let sawRoofHeight = false
     for (let i = 0; i < 450; i++) {
-      b.update(0.1, 0, 0)
+      b.update(0.1, 0, 0, 1e6, 1e6)
       const p = positions(wing)[0]
       // ROOF_PERCH_H (0.3) above the roof, not TREE_PERCH_H (4.5) above it
       // and not sitting on bare ground at y≈0.3.
@@ -203,7 +203,7 @@ describe('birds', () => {
     let framesVisible = 0
     const totalFrames = 900 // 90s: several full flights per bird
     for (let i = 0; i < totalFrames; i++) {
-      b.update(0.1, cam.position.x, cam.position.z)
+      b.update(0.1, cam.position.x, cam.position.z, 1e6, 1e6)
       for (const p of positions(wing)) {
         if (frustum.containsPoint(p)) {
           framesVisible++
@@ -225,7 +225,7 @@ describe('birds', () => {
     // flock rather than eight independent birds.
     let maxSpreadSeen = 0
     for (let i = 0; i < 400; i++) {
-      b.update(0.1, 0, 0)
+      b.update(0.1, 0, 0, 1e6, 1e6)
       const pts = positions(wing)
       let maxD = 0
       for (let a = 0; a < pts.length; a++)
@@ -253,7 +253,7 @@ describe('birds', () => {
     let everClose = Infinity
     for (let step = 0; step < 1200; step++) {
       camX += SPEED * 0.1
-      b.update(0.1, camX, 0)
+      b.update(0.1, camX, 0, 1e6, 1e6)
       if (step > 300) {
         // once the flock has had time to settle into its rhythm
         const closest = Math.min(...positions(wing).map((p) => Math.hypot(p.x - camX, p.z)))
@@ -267,7 +267,7 @@ describe('birds', () => {
     const scene = new THREE.Scene()
     const b = createBirds(scene, () => 0.5, 6)
     const wing = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
-    b.update(0.016, 4000, -4000)
+    b.update(0.016, 4000, -4000, 1e6, 1e6)
     for (const p of positions(wing)) {
       expect(Math.hypot(p.x - 4000, p.z + 4000)).toBeLessThan(200)
     }
@@ -283,8 +283,8 @@ describe('birds', () => {
     const rand = makeRand(31)
     const b = createBirds(scene, rand, 8)
     const wing = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
-    for (let i = 0; i < 50; i++) b.update(0.1, 0, 0)
-    for (let i = 0; i < 1200; i++) b.update(0.1, 9000, 9000)
+    for (let i = 0; i < 50; i++) b.update(0.1, 0, 0, 1e6, 1e6)
+    for (let i = 0; i < 1200; i++) b.update(0.1, 9000, 9000, 1e6, 1e6)
     const closest = Math.min(...positions(wing).map((p) => Math.hypot(p.x - 9000, p.z - 9000)))
     expect(closest, 'the flock never made it back near the player after the jump').toBeLessThan(300)
   })
@@ -292,7 +292,7 @@ describe('birds', () => {
   it('goes away when switched off', () => {
     const scene = new THREE.Scene()
     const b = createBirds(scene, () => 0.5, 4)
-    b.update(0.1, 0, 0)
+    b.update(0.1, 0, 0, 1e6, 1e6)
     b.setEnabled(false)
     expect((scene.children[0] as THREE.Group).visible).toBe(false)
     b.setEnabled(true)
@@ -313,8 +313,8 @@ describe('birds', () => {
     const b1 = createBirds(s1, () => 0.42, 5)
     const b2 = createBirds(s2, () => 0.42, 5)
     for (let i = 0; i < 40; i++) {
-      b1.update(0.1, 30, -10)
-      b2.update(0.1, 30, -10)
+      b1.update(0.1, 30, -10, 1e6, 1e6)
+      b2.update(0.1, 30, -10, 1e6, 1e6)
     }
     const w1 = (s1.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
     const w2 = (s2.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
@@ -326,7 +326,7 @@ describe('birds', () => {
     const scene = new THREE.Scene()
     const b = createBirds(scene, () => 0.5, 1)
     expect(() => {
-      for (let i = 0; i < 100; i++) b.update(0.1, 0, 0)
+      for (let i = 0; i < 100; i++) b.update(0.1, 0, 0, 1e6, 1e6)
     }).not.toThrow()
   })
 
@@ -342,9 +342,22 @@ describe('birds', () => {
     let camX = 0
     for (let i = 0; i < 600; i++) {
       camX += 30 * 0.1 // 30 m/s, a brisk drive: 1.8km in all
-      b.update(0.1, camX, 0)
+      b.update(0.1, camX, 0, 1e6, 1e6)
     }
     const near = positions(wing).filter((p) => Math.abs(p.x - camX) < 400)
     expect(near.length, 'the whole flock was left behind').toBeGreaterThan(0)
+  })
+
+  it('flushes a perched bird when a car drives right up to it', () => {
+    const scene = new THREE.Scene()
+    const b = createBirds(scene, () => 0.5, 1)
+    const body = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    // Settle it on the ground with no car anywhere near.
+    for (let i = 0; i < 3; i++) b.update(0.1, 0, 0, 1e6, 1e6)
+    const grounded = positions(body)[0]
+    expect(grounded.y, 'it should be on the ground').toBeLessThan(2)
+    // Drive a car onto its spot; within a second it should be climbing away.
+    for (let i = 0; i < 25; i++) b.update(0.1, 0, 0, grounded.x, grounded.z)
+    expect(positions(body)[0].y - grounded.y, 'the car flushed it into the air').toBeGreaterThan(1)
   })
 })

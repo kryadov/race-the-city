@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.2 — birds scatter when you drive up
+- Drive up to birds settled on the ground or a rooftop and they now **flush** — springing into the
+  air at once and breaking away from the car, instead of sitting there as you bear down on them.
+- 👀 Aim the car at a group of grounded birds: they take off and scatter away as you get close.
+
 ## v0.108.1 — boaters on the small lakes too
 - Small ponds and lakes floated no boats, while big harbours and rivers were fine. Two things hid
   them: the boat-spot search only kept water at least a ship's turning-room wide, and its 40m

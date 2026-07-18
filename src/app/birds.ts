@@ -3,7 +3,7 @@ import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 
 export interface Birds {
-  update(dt: number, camX: number, camZ: number): void
+  update(dt: number, camX: number, camZ: number, carX: number, carZ: number): void
   setEnabled(on: boolean): void
   dispose(): void
 }
@@ -106,6 +106,14 @@ const FORMATION_SPREAD = 3.5
  * to land; near trees they still snap to a canopy, where a cluster reads fine.
  */
 const PERCH_SCATTER = 3
+
+/**
+ * A car this close to a perched bird flushes it: it springs up at once and flees
+ * straight away from the car instead of waiting out its rest. Measured to the
+ * bird's rendered spot, not the shared perch it hangs off.
+ */
+const FLUSH_RADIUS = 22
+const FLUSH_R2 = FLUSH_RADIUS * FLUSH_RADIUS
 
 /** How far a perch search looks from the anchor for a tree to land in. */
 const PERCH_SEARCH_RADIUS = 220
@@ -494,7 +502,7 @@ export function createBirds(
       mat.dispose()
       birds.length = 0
     },
-    update(dt, camX, camZ) {
+    update(dt, camX, camZ, carX, carZ) {
       if (!started) {
         // Start on top of the player rather than easing in from wherever the
         // anchor's zero value happened to be — otherwise the flock's first
@@ -557,7 +565,11 @@ export function createBirds(
         }
 
         if (b.state === 'perched') {
-          if (b.stateT >= restDur + b.stagger) {
+          // A car bearing down flushes the bird: up at once, fleeing away from it.
+          const rx = b.perchX + b.ox
+          const rz = b.perchZ + b.oz
+          const spooked = (rx - carX) * (rx - carX) + (rz - carZ) * (rz - carZ) < FLUSH_R2
+          if (spooked || b.stateT >= restDur + b.stagger) {
             if (!plan) {
               const climb = rand() < CLIMB_CHANCE
               const legLen = LEG_LEN_MIN + rand() * (LEG_LEN_MAX - LEG_LEN_MIN) + (climb ? CLIMB_EXTRA_LEN : 0)
@@ -570,7 +582,8 @@ export function createBirds(
               }
             }
             const leg = plan
-            b.legHeading = leg.heading
+            // Startled birds break away from the car; unhurried ones follow the plan.
+            b.legHeading = spooked ? Math.atan2(rz - carZ, rx - carX) : leg.heading
             b.legClimb = leg.climb
             b.legLen = leg.legLen
             b.cruiseDur = leg.cruiseDur

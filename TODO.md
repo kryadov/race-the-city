@@ -31,6 +31,29 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       boost: a **different acceleration effect and/or a different duration** per colour (e.g. a short
       hard punch vs a long gentle push). Needs a small table of nitro types (colour → boost strength
       → duration), the pickup mesh tinted per type, and `car`/boost logic reading the type it grabbed.
+- [ ] **Living parking lots** — parking areas should hold **a few parked cars of varied type and
+      colour** (not packed — enough to read as a car park), and cars should **drive in, park, sit,
+      then drive out** again. Reuse `world.parking` polygons + the vehicle roster; a small occupancy
+      state machine (arrive → parked dwell → depart) feeding off the traffic graph for approach/exit.
+- [ ] **People get in and out of cars** — a pedestrian can walk up to a (parked) car, get in and the
+      car drives off; and an arriving car can drop one off. Pairs with living parking lots and the
+      taxi passenger figures already in `taxi.ts`.
+- [ ] **Fuel-consumption setting + per-vehicle thirst** — a settings-menu **slider for fuel burn
+      rate (in litres)**, and each vehicle type has its **own base consumption** (a lorry drinks more
+      than a sports car). The slider scales the base. Wire into the existing fuel/HUD (`fuel`,
+      `hud.ts` fuel bar) and the vehicle spec table; persist via prefs like the other settings.
+- [ ] **Oncoming traffic reacts to you** — a car approaching head-on in the opposite lane can
+      **flash its headlights and give a honk** as it passes (occasionally, not every time). Needs
+      `traffic.ts` to spot a car closing on the player in the oncoming lane and fire a brief
+      headlight-flash + a horn sound (reuse the audio bus).
+- [ ] **Pickable car-objects on the map** — occasionally a real, selectable vehicle sits parked on
+      the map that the player can **walk/drive up to and switch into** (choose it as their car).
+      Rare spawns tied to parking/roadside; reuses the vehicle roster + `selectVehicle`.
+- [ ] **People use doors** — pedestrians currently pop out through walls anywhere on a building.
+      They should **enter and leave only through a door**, and the **door should open as they pass
+      and close behind them**. Needs a door position per building (a facade feature already exists —
+      reuse the door placement), spawn/despawn pedestrians at that point, and a small open/close
+      hinge animation triggered when a pedestrian crosses the threshold.
 
 ## 🧭 Big features — planned 2026-07-18 (session batch)
 Five features asked for in one session. Being brainstormed + specced together, then
