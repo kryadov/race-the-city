@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.107.1 — the camera stops looking under the map on steep hills
+- Driving off a steep downslope, the chase camera could sink below the terrain and show the ground
+  mesh's **underside** and buildings poking through the void. The camera's height is now **clamped
+  to stay above the ground directly beneath it** (with clearance for the near plane), so the view
+  never drops under the world. Look direction, tunnel pull-in and hover framing are untouched — it
+  only lifts when it would otherwise clip below the surface.
+- 👀 Drive down a steep hill (Sydney is a good test) — the camera holds above the road, no red/brown
+  void underneath.
+
 ## v0.107.0 — four more synth tracks on the radio
 - Added **Neon Overpass**, **Midnight Pursuit**, **Neon Horizon Run** and **Red Banner Drive** to
   the in-game soundtrack — more night-drive synthwave to cycle through while you play.

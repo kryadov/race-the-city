@@ -121,6 +121,14 @@ export function setVehicleMesh(stage: Stage, mesh: THREE.Object3D): void {
 const camPos = new THREE.Vector3()
 const camTarget = new THREE.Vector3()
 const CAM_SMOOTH_K = 8 // higher = snappier; framerate-independent
+// Minimum gap to keep between the chase camera and the ground directly beneath
+// it. On a steep downhill the point behind the car sits lower than the terrain
+// there, so the eased camera sinks below the surface and you see UNDER the map —
+// the ground mesh's underside and buildings poking through. Clamping the camera
+// to ground + this margin keeps the near plane (0.5m) clear of the surface even
+// with the frustum tilted downhill; 2.5m is comfortably past that near distance
+// without lifting the camera far enough to feel detached from the car.
+const CAM_GROUND_CLEARANCE = 2.5
 
 const nUp = new THREE.Vector3()
 const nFwd = new THREE.Vector3()
@@ -182,6 +190,13 @@ export function syncCamera(
   // Exponential smoothing: equal easing per real second regardless of frame rate.
   const t = 1 - Math.exp(-CAM_SMOOTH_K * dt)
   stage.camera.position.lerp(camPos, t)
+  // Never let the eased camera drop below the terrain under it: on steep
+  // downslopes the chase point sinks beneath the surface and we'd render the
+  // map from below. Clamp the FINAL (post-smoothing) height, sampled at the
+  // camera's own settled x/z, so the lerp can't undo it; x/z and the look-at
+  // target below are left untouched, so the view direction never jerks.
+  const groundUnderCam = provider.heightAt(stage.camera.position.x, stage.camera.position.z)
+  stage.camera.position.y = Math.max(stage.camera.position.y, groundUnderCam + CAM_GROUND_CLEARANCE)
   camTarget.set(car.x, car.y + 1.5, car.z)
   stage.camera.lookAt(camTarget)
 }
