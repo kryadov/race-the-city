@@ -98,6 +98,15 @@ const FAR = 260
 /** How far from the shared flight line each bird sits — a formation, not a stack. */
 const FORMATION_SPREAD = 3.5
 
+/**
+ * Per-bird scatter of the landing point itself, as a multiple of the bird's
+ * formation offset. The flock used to aim every landing at one spot near the
+ * player and pile up on it — fine as flat diamonds, a heap once the birds grew
+ * bodies. Each bird now aims a little way off, so on open ground they spread out
+ * to land; near trees they still snap to a canopy, where a cluster reads fine.
+ */
+const PERCH_SCATTER = 3
+
 /** How far a perch search looks from the anchor for a tree to land in. */
 const PERCH_SEARCH_RADIUS = 220
 /** Rough canopy height a landed bird sits at, metres above the ground below it. */
@@ -591,7 +600,7 @@ export function createBirds(
             const endMean = b.legHeading + b.legBend * 0
             const legEndX = b.fromX + Math.cos(endMean) * b.legLen
             const legEndZ = b.fromZ + Math.sin(endMean) * b.legLen
-            const land = pickLanding(anchorX, anchorZ)
+            const land = pickLanding(anchorX + b.ox * PERCH_SCATTER, anchorZ + b.oz * PERCH_SCATTER)
             b.fromX = legEndX
             b.fromY = ALT_LOW + b.altOffset
             b.fromZ = legEndZ

@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.107.5 — birds don't pile up where they land
+- Grounded birds were landing in a heap: the whole flock aimed every landing at one spot near you,
+  spread only a couple of metres — fine when they were flat diamonds, an ugly pile now they have
+  bodies. Each bird now aims its own landing a little way off, so on open ground they **spread out**
+  to settle; in a tree they still gather in the canopy, where a cluster looks right.
+- 👀 Watch birds come down on grass: they land spread across the ground, not stacked on each other.
+
 ## v0.107.4 — manholes that sit in the road, not on it
 - The covers were too dark — near-black on grey asphalt — and too frequent. They're now a **worn
   iron grey a shade off the tarmac** and **matte**, so they read as lids set into the road rather
