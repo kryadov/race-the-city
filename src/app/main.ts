@@ -41,6 +41,8 @@ import { createRivals } from './rivals'
 import { createTrialHud } from '../ui/trialHud'
 import { createTaxi } from './taxi'
 import { createTaxiHud } from '../ui/taxiHud'
+import { createReplay } from './replay'
+import { createReplayControls } from '../ui/replayControls'
 import { createAircraft } from './aircraft'
 import { createBirds } from './birds'
 import { countFor, crowdFor, gapFor, type Density } from './density'
@@ -236,6 +238,12 @@ const fireworks = createFireworks(stage.scene)
 const trialHud = createTrialHud(ui)
 const taxi = createTaxi(stage.scene)
 const taxiHud = createTaxiHud(ui)
+const replay = createReplay()
+const replayControls = createReplayControls(ui, {
+  onRecordToggle: () => (replay.recording() ? replay.stopRec() : replay.startRec()),
+  onPlay: () => replay.play(),
+  onStopPlay: () => replay.stopPlay(),
+})
 trial.setEnabled(getTrial())
 trialHud.setVisible(getTrial())
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
@@ -342,6 +350,7 @@ let lastWater: import('../geo/types').Vec2[][] = []
 async function loadCity(query: string): Promise<void> {
   if (loading_) return
   loading_ = true
+  replay.clear() // the recorded poses belong to the outgoing city
   hud.setCity(query)
   try {
     loading.show(t('loading.geocoding'), 0.05)
@@ -553,7 +562,7 @@ async function loadCity(query: string): Promise<void> {
         // otherwise leave its idle timer — and its drone — exactly where it was.
         const dt = pause.paused() ? 0 : wallDt
         const spec = VEHICLES[vehicle]
-        const frozen = pause.paused() || attract // no player driving on the start screen
+        const frozen = pause.paused() || attract || replay.playing() // no player driving here
         const kb = frozen ? { throttle: 0, steer: 0, brake: false } : keyboard.read()
         const tc = frozen ? { throttle: 0, steer: 0, brake: false } : touch.read()
         let input = {
@@ -650,25 +659,39 @@ async function loadCity(query: string): Promise<void> {
             return roof !== null && prevY >= roof - ROOF_SNAP ? Math.max(below, roof) : below
           },
         }
-        car = stepCar(car, input, dt, grid, surface, activeSpec)
-        // Traffic and people are solid. They move, so they can't live in the
-        // static grid: push the car out and bounce it off. You stop; they don't
-        // get run over.
-        const movers: Circle[] = hazards
-        if (movers.length) {
-          const freed = resolveAgainstCircles(car.x, car.z, spec.radius, movers)
-          if (freed.hit) {
-            car.x = freed.x
-            car.z = freed.z
-            const b = bounce(car.vx, car.vz, freed.nx, freed.nz, HIT_BOUNCE)
-            car.vx = b.vx * HIT_BLEED
-            car.vz = b.vz * HIT_BLEED
-            if (Math.hypot(car.vx, car.vz) > 6) audio.thud() // a shunt you'd feel
+        if (replay.playing()) {
+          // Retrace a recorded drive: set the pose straight from the clip and skip
+          // the physics — playback is about where the car WENT, not re-simulating it.
+          const p = replay.step(dt)
+          if (p) car = { ...car, x: p.x, z: p.z, y: p.y, heading: p.heading, vx: 0, vz: 0, vy: 0 }
+        } else {
+          car = stepCar(car, input, dt, grid, surface, activeSpec)
+          // Traffic and people are solid. They move, so they can't live in the
+          // static grid: push the car out and bounce it off. You stop; they don't
+          // get run over.
+          const movers: Circle[] = hazards
+          if (movers.length) {
+            const freed = resolveAgainstCircles(car.x, car.z, spec.radius, movers)
+            if (freed.hit) {
+              car.x = freed.x
+              car.z = freed.z
+              const b = bounce(car.vx, car.vz, freed.nx, freed.nz, HIT_BOUNCE)
+              car.vx = b.vx * HIT_BLEED
+              car.vz = b.vz * HIT_BLEED
+              if (Math.hypot(car.vx, car.vz) > 6) audio.thud() // a shunt you'd feel
+            }
           }
+          // Keep the car inside the world. The physics grid holds footprints, not
+          // the map's edge, so nothing else stops you driving off into the void.
+          confineToBounds(car, bounds, dt)
+          replay.capture(car, dt) // records the pose only while recording; else a no-op
         }
-        // Keep the car inside the world. The physics grid holds footprints, not
-        // the map's edge, so nothing else stops you driving off into the void.
-        confineToBounds(car, bounds, dt)
+        replayControls.set({
+          recording: replay.recording(),
+          playing: replay.playing(),
+          hasClip: replay.hasClip(),
+          duration: replay.duration(),
+        })
         const onDeck = decks.heightAt(car.x, car.z) !== null && Math.abs(car.y - prevY) < 2.5
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
@@ -1029,6 +1052,7 @@ function selectVehicle(type: VehicleType): void {
 function startPlay(mode: StartMode): void {
   attract = false
   startMenu.hide()
+  replayControls.setVisible(true) // record / replay your drive, in-game
   audio.resume() // the Play click is a user gesture — safe to start audio
   if (mode === 'race') {
     setRace(true)
@@ -1052,6 +1076,7 @@ function startContinue(): void {
   if (!sess) return
   attract = false
   startMenu.hide()
+  replayControls.setVisible(true)
   audio.resume()
   autopilot.setEnabled(getDemo())
   void loadCity(sess.city) // loadCity resumes the saved pose when the city matches

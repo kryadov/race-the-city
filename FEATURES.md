@@ -91,6 +91,8 @@ drive along it**, and clear a bungalow, fountain or statue mid-jump.
   attract-mode backdrop).
 - **Pickups** — **nitro** speed boosts and **petrol cans** scattered on the roads; run low on
   fuel and the car slows until you grab a can.
+- **Record & replay** — a **REC** button (bottom-centre, in-game) records your drive; **Replay**
+  retraces it with the camera following. Changing city clears the recording.
 
 ---
 

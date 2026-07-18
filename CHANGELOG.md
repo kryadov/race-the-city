@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.100.0 — record & replay your drive
+- Record a drive and watch it back. A **REC** button captures your car's path; **Replay** retraces
+  it with the camera following — pose-based, so it's smooth and doesn't care that the traffic,
+  weather and nitro all rolled their own dice.
+- 👀 In-game (after Play), bottom-centre: tap **● REC** to start (it shows the running time), tap
+  again to stop, then **▶ Replay** to watch it back — the car retraces the exact path you drove.
+  Changing city clears the recording.
+
 ## v0.99.0 — taxi mode
 - A new arcade mode, **Taxi**: pick a passenger up at the glowing marker, deliver them to the next
   marker before the meter runs out, then straight on to the next fare — a shift that **chains**,

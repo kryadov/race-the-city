@@ -26,9 +26,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       Continue for a saved session, over a **live autopilot city** backdrop. New `attract` state
       in main.ts suppresses driving input + forces autopilot; `src/ui/startMenu.ts` is the overlay.
       The shell the modes (#5) and replay (#4) will hang off.
-- [ ] **4. Trip recording + re-play** — record a drive and play it back. Pose-based
-      playback favoured (robust to the sim's randomness) over deterministic input-replay.
-      Trigger TBD (manual vs rolling dashcam buffer). Storage in IndexedDB.
+- [x] **4. Trip recording + re-play** — v0.100.0: pose-based record (a REC button) + playback
+      (Replay), the camera following, robust to the sim's randomness. `src/app/replay.ts`
+      (recorder/player, unit-tested) + `src/ui/replayControls.ts`; the loop retraces the clip in
+      place of `stepCar` while playing. Cleared on city change. (In-memory for now, not IndexedDB.)
 - [x] **5. Arcade modes (A→B)** — v0.99.0: **Taxi** mode. Pick up at a glowing green marker,
       deliver to an amber marker before the meter runs out, chaining fares with a climbing score.
       `src/app/taxi.ts` (state machine + beacon) + `src/ui/taxiHud.ts`, a mode on the start menu,
