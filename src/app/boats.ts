@@ -72,6 +72,7 @@ interface Afloat {
   angle: number
   speed: number
   turn: number
+  phase: number // where in its rowing stroke a rowboat starts, so they're not in lockstep
 }
 
 function makeRng(seed: number): () => number {
@@ -295,24 +296,88 @@ function ship(): THREE.Group {
   return g
 }
 
-/** A rowing boat with someone in it. */
+/**
+ * A rowing boat with someone pulling at the oars, pointing +x.
+ *
+ * Shaped to read as a boat rather than a plank: a shallow hull sitting low in
+ * the water, a four-sided cone for a pointed bow (the sailboat's trick, scaled
+ * down) with the box's flat -x face left as a squared transom, a gunwale strake
+ * down each side and a pair of thwarts across it. Amidships sits a blocky figure
+ * — cut from the same cloth as the taxi's little people — with an oar to hand.
+ *
+ * The rower and the two oars hang off `userData` so `update` can drive the
+ * stroke. Each oar is a child pivot at its oarlock, so one rotation of the pivot
+ * swings the whole oar about the gunwale without touching a vertex; `side`
+ * (+1 starboard, -1 port) places each and keeps the pair mirror-symmetric.
+ */
 function rowboat(): THREE.Group {
   const g = new THREE.Group()
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.7, 1.3), mat(0x9a6a42))
-  hull.position.y = 0.35
+  const wood = 0x9a6a42
+  const trim = 0x7c542f // gunwale and thwarts, a shade darker than the planking
+
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.55, 1.1), mat(wood))
+  hull.position.set(-0.2, 0.2, 0)
   g.add(hull)
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.35), mat(0x3a6ea5))
-  body.position.y = 1.05
-  g.add(body)
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 5), mat(0xe0ac69))
-  head.position.y = 1.6
-  g.add(head)
-  for (const z of [0.75, -0.75]) {
-    const oar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.07, 0.07), mat(0x8a6a4a))
-    oar.position.set(-0.3, 0.8, z)
-    oar.rotation.x = z > 0 ? 0.35 : -0.35
-    g.add(oar)
+  const bow = new THREE.Mesh(new THREE.ConeGeometry(0.58, 1.5, 4), mat(wood))
+  bow.rotation.z = -Math.PI / 2
+  bow.position.set(1.7, 0.2, 0)
+  g.add(bow)
+  // A gunwale strake down each side — the top edge that turns an open box into
+  // a hull you could climb into.
+  for (const z of [0.52, -0.52]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.12, 0.12), mat(trim))
+    rail.position.set(-0.15, 0.5, z)
+    g.add(rail)
   }
+  // Two thwarts: the seat the rower is on, and one forward for the look of it.
+  for (const x of [-0.1, 1.0]) {
+    const thwart = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 1.0), mat(trim))
+    thwart.position.set(x, 0.44, 0)
+    g.add(thwart)
+  }
+
+  // The rower, in its own group so `update` can rock it fore-and-aft with the
+  // stroke: torso, head, and two arms reaching out to the oar handles.
+  const rower = new THREE.Group()
+  rower.position.set(-0.1, 0.44, 0)
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.6, 0.4), mat(0x3a6ea5))
+  torso.position.y = 0.3
+  rower.add(torso)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 5), mat(0xe0ac69))
+  head.position.y = 0.72
+  rower.add(head)
+  for (const side of [1, -1]) {
+    const armGeo = new THREE.BoxGeometry(0.1, 0.5, 0.1)
+    armGeo.translate(0, -0.25, 0) // pivot at the shoulder end
+    const arm = new THREE.Mesh(armGeo, mat(0x3a6ea5))
+    arm.position.set(0, 0.55, side * 0.18)
+    arm.rotation.z = 0.8 // slung forward-and-down towards the handles
+    rower.add(arm)
+  }
+  g.add(rower)
+
+  // An oar to each side, each on a pivot at its oarlock. The shaft lies outboard
+  // along z with the handle inboard by the rower's hands and the blade at the
+  // far end; the pivot sits between them, so pulling the handle one way swings
+  // the blade the other, exactly as an oar does.
+  const oars: THREE.Group[] = []
+  for (const side of [1, -1]) {
+    const pivot = new THREE.Group()
+    pivot.position.set(-0.1, 0.5, side * 0.55)
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 2.3, 5), mat(trim))
+    shaft.rotation.x = Math.PI / 2 // stand the cylinder up along z
+    shaft.position.z = side * 0.75 // handle inboard, blade reaching outboard
+    pivot.add(shaft)
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.5), mat(wood))
+    blade.position.z = side * 1.85
+    pivot.add(blade)
+    pivot.userData.side = side
+    g.add(pivot)
+    oars.push(pivot)
+  }
+
+  g.userData.rower = rower
+  g.userData.oars = oars
   return g
 }
 
@@ -449,6 +514,7 @@ export function createBoats(
         angle: rng() * Math.PI * 2,
         speed: kind.speed,
         turn: rng() < 0.5 ? 1 : -1,
+        phase: rng() * Math.PI * 2,
       })
       mesh.position.y = level
       return true
@@ -505,6 +571,24 @@ export function createBoats(
         // Face along the circle, and roll gently — it's on water.
         b.mesh.rotation.y = -(b.angle + (Math.PI / 2) * b.turn)
         b.mesh.rotation.z = Math.sin(clock * 0.8 + b.angle) * 0.02
+
+        // Pull the oars, on the boats that carry any. One phase drives the lot:
+        // the pair sweep fore-and-aft together and dip a quarter-cycle later, so
+        // a blade bites as it swings through and lifts clear on the way back,
+        // while the rower leans the way the handles travel. `side` mirrors port
+        // to starboard; each oar turns about its own oarlock pivot.
+        const oars = b.mesh.userData.oars as THREE.Group[] | undefined
+        if (oars) {
+          const s = clock * 2.4 + b.phase
+          const sweep = Math.sin(s) * 0.5
+          const dip = Math.cos(s) * 0.3
+          for (const oar of oars) {
+            const side = oar.userData.side as number
+            oar.rotation.y = -side * sweep
+            oar.rotation.x = side * dip
+          }
+          ;(b.mesh.userData.rower as THREE.Group).rotation.z = -sweep * 0.6
+        }
       }
     },
   }

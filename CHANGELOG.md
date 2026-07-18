@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.9 — a proper rowboat, with someone rowing it
+- The rowboat is reshaped into a real small-boat hull — pointed bow, squared transom, gunwale strakes
+  and seat planks — and gains a **little figure rowing with two oars**: the oars sweep and dip (blade
+  in the water through the stroke, lifting on the return) and the rower leans with it. The small ponds
+  got their rowboats in v0.108.1; now they're worth a look.
+- 👀 Find a boat on a river/pond: it's boat-shaped and someone's rowing it.
+
 ## v0.110.8 — stone embankments instead of floating water
 - The water's edge is now a **stone embankment sized to the water**: a dry grey-stone lip above the
   waterline and a **darker wet band below it** (the tide-mark), toned to sit with the grass and
