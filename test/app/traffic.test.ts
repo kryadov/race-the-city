@@ -354,6 +354,65 @@ describe('level crossings', () => {
   })
 })
 
+describe('smooth cornering', () => {
+  /** Each car's drawn heading (radians), read back out of the body matrix. */
+  function headings(mesh: THREE.InstancedMesh): number[] {
+    const out: number[] = []
+    const m = new THREE.Matrix4()
+    const q = new THREE.Quaternion()
+    const fwd = new THREE.Vector3()
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, m)
+      m.decompose(new THREE.Vector3(), q, new THREE.Vector3())
+      // On flat ground groundQuat is a pure yaw, so the nose (local +x) reads it.
+      fwd.set(1, 0, 0).applyQuaternion(q)
+      out.push(Math.atan2(fwd.z, fwd.x))
+    }
+    return out
+  }
+
+  /** Shortest signed angle from a to b, in (-pi, pi]. */
+  const turn = (a: number, b: number): number => {
+    let d = b - a
+    d -= Math.round(d / (2 * Math.PI)) * (2 * Math.PI)
+    return d
+  }
+
+  it('eases the heading through a junction rather than snapping 90 degrees', () => {
+    // An L: the only way on past the corner is a right-angle turn, and each arm
+    // is long enough (>120m) that roomToDrive is happy to put cars here. Before,
+    // `place` set the yaw straight to the new edge and the car pivoted on the
+    // spot at (0,0); now the drawn heading is eased toward it, so the nose swings
+    // round over several frames while the car keeps moving — an arc, not a snap.
+    const ell: Road[] = [{ points: [v(-130, 0), v(0, 0), v(0, 130)], kind: 'residential' }]
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, ell, flat, () => 0.5)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    t.update(1 / 60, 0, 0, 0)
+    let prev = headings(bodies)
+    const total = new Array(bodies.count).fill(0)
+    let maxStep = 0
+    for (let f = 0; f < 2400; f++) {
+      t.update(1 / 60, 0, 0, 0)
+      const now = headings(bodies)
+      for (let i = 0; i < now.length; i++) {
+        const step = Math.abs(turn(prev[i], now[i]))
+        maxStep = Math.max(maxStep, step)
+        total[i] += step
+      }
+      prev = now
+    }
+
+    // A snap would turn a right-angle (or a dead-end U-turn) in a single frame;
+    // eased at k=5 the largest step is well under a tenth of that.
+    expect(maxStep, 'a car snapped its heading in one frame').toBeLessThan(0.5)
+    // And it must actually have turned — cars on an L round the corner over and
+    // over, so at least one should rack up more than a right-angle of turning.
+    expect(Math.max(...total), 'no car ever turned').toBeGreaterThan(2)
+  })
+})
+
 describe('traffic on a slope', () => {
   it('stands the cars on the hill rather than sliding them down it flat', () => {
     // A pure yaw held every car dead level and it rode the hill like a lift.

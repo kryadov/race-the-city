@@ -17,6 +17,17 @@ const FAR = 940
 const SPAWN_MIN = 620
 const SPAWN_MAX = 900
 const LANE = 2.2 // metres right of the centreline
+/**
+ * How fast a car swings its nose round to the direction it's driving, per second.
+ *
+ * The car's position is pinned to the road graph, but its heading is eased toward
+ * the current edge rather than set to it (see the yaw step in `update`): at a
+ * junction the target flips 90 degrees in one frame, and easing turns that snap
+ * into an arc. `1 - exp(-k*dt)` is the framerate-independent fraction closed per
+ * frame; k=5 rounds a right-angle over roughly half a second, a believable corner
+ * at street speed without the nose lagging so far it reads as a skid.
+ */
+const TURN_RATE = 5
 /** Guard on the walk below, so a pile of coincident nodes can't spin forever. */
 const MAX_HOPS = 8
 /** How far up its own road a car looks for a train, in metres. */
@@ -74,6 +85,9 @@ interface Agent {
   type: number
   /** Consecutive U-turns. Two in a row means it's trapped on a stub. */
   uturns: number
+  /** The heading actually drawn, eased toward the edge direction, so the car
+   *  arcs through a junction instead of snapping 90 degrees on the spot. */
+  yaw: number
 }
 
 interface Placed {
@@ -135,7 +149,12 @@ export function createTraffic(
     if (at < 0) return null // nowhere worth putting it; leave it be
     const to = nextNode(graph, -1, at, rng)
     if (to === at) return null
-    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0 }
+    // Start already facing along the first edge, or a car winking in beyond the
+    // fog would spend its first half-second slewing round from a stale heading.
+    const A = graph.nodes[at]
+    const B = graph.nodes[to]
+    const yaw = Math.atan2(B.z - A.z, B.x - A.x)
+    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw }
   }
 
   for (let i = 0; i < count; i++) {
@@ -321,9 +340,20 @@ export function createTraffic(
 
         solidAt.push({ x: p.x, z: p.z, r: 2.0 })
         pos.set(p.x, provider.heightAt(p.x, p.z), p.z)
+        // Ease the drawn heading toward the edge's direction rather than taking
+        // it whole. `place` snaps `angle` the instant a car crosses a junction
+        // node — the yaw jumped a right-angle in one frame and the car pivoted on
+        // the spot. Closing a framerate-independent fraction of the gap per frame
+        // arcs the nose round instead. The position is still pinned to the graph,
+        // so the car never cuts the corner off the tarmac or drifts into oncoming;
+        // only its heading lags, briefly, through the turn. Wrap the delta to
+        // (-pi, pi] first, or a car facing just past -pi would take the long way.
+        let d = p.angle - a.yaw
+        d -= Math.round(d / (2 * Math.PI)) * (2 * Math.PI)
+        a.yaw += d * (1 - Math.exp(-TURN_RATE * dt))
         // Stood on the road's slope, not merely turned to face along it: a pure
         // yaw slid every car down every hill dead level, like a lift.
-        groundQuat(q, p.x, p.z, p.angle, provider)
+        groundQuat(q, p.x, p.z, a.yaw, provider)
         m.compose(pos, q, one)
         const bt = BODY_TYPES[a.type]
         // Same boxes, stretched: a van, a hatchback and an estate out of one shape.

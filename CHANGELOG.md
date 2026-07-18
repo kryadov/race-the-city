@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.14 — bot cars round corners smoothly
+- AI traffic **snapped a full 90° at junctions**, pivoting on the spot. Cars now **ease their heading**
+  toward the road they're turning onto (over about half a second) while staying pinned to the road,
+  so they **arc through the corner** instead of spinning in place. A fast car sweeps a wider arc than
+  a slow one, as you'd expect. Costs one exp per car per frame.
+- 👀 Watch traffic at a crossroads: cars swing round the turn, no instant snaps.
+
 ## v0.110.13 — flowerbeds bloom with real flowers, in more colours
 - The flowerbed blooms looked like **mushrooms**; each is now a real **petalled flower** — a ring of
   six petals cupping up around an amber centre — and the palette gains **blue, violet and azure**
