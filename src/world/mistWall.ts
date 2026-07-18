@@ -68,15 +68,21 @@ export function createMistWall(halfExtent: number): MistWall {
   veil.position.y = veilFloor + veilH / 2
   veil.renderOrder = 2
 
-  // Marker: a bright band low on the wall. Tall enough (∓ its floor) to straddle
-  // the ground across the terrain swing near the edge, fading out above.
-  const bandH = 70
-  const bandFloor = -35
+  // Marker: a bright amber wall low down. It must be OPAQUE from below the ground
+  // up through eye level, or it doesn't read — the first cut ramped its alpha to a
+  // peak ~35m UNDERGROUND and left only ~20% at the height you actually look, so
+  // the limit stayed invisible. Solid amber through the lower band, fading into the
+  // veil above.
+  const bandH = 58
+  const bandFloor = -12
   const bandGeo = squareTube(halfExtent, bandH)
-  const bandTex = rampTexture((t) => Math.pow(1 - t, 2) * 0.8) // opaque low, gone by the top
+  const bandTex = rampTexture((t) => {
+    const solid = 0.62 // fully opaque through the lower ~62%: below-ground, ground, eye level
+    return t <= solid ? 1 : Math.pow(1 - (t - solid) / (1 - solid), 1.3)
+  })
   const bandMat = new THREE.MeshBasicMaterial({
     map: bandTex,
-    color: 0xffb020, // amber hazard — reads against both green ground and dark neon
+    color: 0xffa81e, // vivid amber — reads against green ground, blue sky and dark neon
     transparent: true,
     side: THREE.BackSide,
     depthWrite: false,
