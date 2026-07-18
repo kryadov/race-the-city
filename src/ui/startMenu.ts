@@ -1,7 +1,7 @@
 import { t } from '../i18n/i18n'
 import type { VehicleType } from '../vehicle/vehicles'
 
-export type StartMode = 'free' | 'trial' | 'race'
+export type StartMode = 'free' | 'trial' | 'race' | 'taxi'
 
 export interface StartMenuCallbacks {
   /** Big Play button: start driving with the chosen mode. */
@@ -44,7 +44,7 @@ const ALL_VEHICLES = Object.keys(VEHICLE_EMOJI) as VehicleType[]
 
 const ACTIVE = '#e63946'
 const IDLE = '#26303f'
-const MODES: StartMode[] = ['free', 'trial', 'race']
+const MODES: StartMode[] = ['free', 'trial', 'race', 'taxi']
 
 /**
  * The start screen: a branded overlay over a live city driving itself. Pick a
@@ -135,7 +135,7 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
   const modeRow = document.createElement('div')
   modeRow.style.cssText = 'display:flex;gap:6px;'
   const modeBtns = new Map<StartMode, HTMLButtonElement>()
-  const modeText: Record<StartMode, string> = { free: 'start.modeFree', trial: 'start.modeTrial', race: 'start.modeRace' }
+  const modeText: Record<StartMode, string> = { free: 'start.modeFree', trial: 'start.modeTrial', race: 'start.modeRace', taxi: 'start.modeTaxi' }
   const pickMode = (m: StartMode): void => {
     mode = m
     for (const [k, b] of modeBtns) b.style.background = k === m ? ACTIVE : IDLE

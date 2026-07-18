@@ -29,10 +29,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [ ] **4. Trip recording + re-play** — record a drive and play it back. Pose-based
       playback favoured (robust to the sim's randomness) over deterministic input-replay.
       Trigger TBD (manual vs rolling dashcam buffer). Storage in IndexedDB.
-- [ ] **5. Arcade modes (A→B)** — deliver a passenger/cargo from A to B before a timer;
-      taxi-style chained fares favoured for v1. Reuses `roadGraph` + `route` (A*) to pick
-      valid on-road A/B, nitro-style world markers, time-trial-style HUD. Extends the
-      existing "Goals and missions" backlog item below.
+- [x] **5. Arcade modes (A→B)** — v0.99.0: **Taxi** mode. Pick up at a glowing green marker,
+      deliver to an amber marker before the meter runs out, chaining fares with a climbing score.
+      `src/app/taxi.ts` (state machine + beacon) + `src/ui/taxiHud.ts`, a mode on the start menu,
+      markers on the minimap. Reuses road vertices for on-road A/B.
 
 ## 🗺 World & map
 - [x] Sea / coastline (approximate flat-plane sea for coastal areas) — done in v0.14.0
@@ -184,7 +184,8 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [x] **Races with rivals** — three AI cars race the gate course, each on an A* route over the
       road graph, driven through the same physics as the player; HUD shows your place — v0.83.0
 - [x] Fireworks when you finish a lap — v0.83.0
-- [ ] **Goals and missions** — pick up a passenger, deliver them inside a time limit
+- [x] **Goals and missions** — pick up a passenger, deliver them inside a time limit — Taxi mode,
+      v0.99.0 (see the big-features #5 entry)
 - [ ] Rivals and traffic as solid obstacles (today you drive through both)
 - [x] Free objectives — nitro speed-boost pickups scattered on roads — done in v0.45.0
       (drive-to-a-point / coins still open)

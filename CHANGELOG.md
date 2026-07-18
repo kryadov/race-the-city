@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.99.0 — taxi mode
+- A new arcade mode, **Taxi**: pick a passenger up at the glowing marker, deliver them to the next
+  marker before the meter runs out, then straight on to the next fare — a shift that **chains**,
+  the score climbing with every drop-off. Start it from the menu's Mode row.
+- 👀 On the start screen pick **Taxi**, then Play. Follow the **green** pillar of light to the
+  fare, then the **amber** pillar to drop them off — beat the timer for a chime + fireworks; miss
+  it and the meter starts a fresh fare from where you are. Fares & score sit under the minimap, and
+  the target shows on the minimap.
+
 ## v0.98.0 — start menu
 - A branded **start screen**: RACE THE CITY, a big Play, and quick picks — city search + 🎲 random,
   a vehicle strip (+ "More…" for the full roster), and a mode (Free roam / Time trial / Race) —

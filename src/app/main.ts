@@ -39,6 +39,8 @@ import { createAutopilot } from './autopilot'
 import { createTimeTrial } from './timeTrial'
 import { createRivals } from './rivals'
 import { createTrialHud } from '../ui/trialHud'
+import { createTaxi } from './taxi'
+import { createTaxiHud } from '../ui/taxiHud'
 import { createAircraft } from './aircraft'
 import { createBirds } from './birds'
 import { countFor, crowdFor, gapFor, type Density } from './density'
@@ -232,6 +234,8 @@ autopilot.setEnabled(getDemo())
 const trial = createTimeTrial(stage.scene)
 const fireworks = createFireworks(stage.scene)
 const trialHud = createTrialHud(ui)
+const taxi = createTaxi(stage.scene)
+const taxiHud = createTaxiHud(ui)
 trial.setEnabled(getTrial())
 trialHud.setVisible(getTrial())
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
@@ -528,6 +532,7 @@ async function loadCity(query: string): Promise<void> {
     autopilot.reset(world.roads, car)
     trial.reset(world.roads, provider, car)
     rivals.reset(world.roads, grid, provider, car, trial.course())
+    taxi.reset(world.roads, provider, car) // a fresh fare in the new city
     currentCity = query
     driftFx.reset()
 
@@ -596,6 +601,16 @@ async function loadCity(query: string): Promise<void> {
             for (const b of FINISH_BURSTS) fireworks.fire(car.x + b.x, car.y + b.y, car.z + b.z)
           } else if (st.taken !== lastGate) audio.chime(false)
           lastGate = st.taken
+        }
+        if (taxi.enabled()) {
+          const ts = taxi.update(dt, car.x, car.z)
+          taxiHud.set(ts)
+          if (ts.justDelivered) {
+            audio.chime(true) // a fare delivered rings out
+            for (const b of FINISH_BURSTS) fireworks.fire(car.x + b.x, car.y + b.y, car.z + b.z)
+          } else if (ts.justFailed) {
+            audio.thud() // meter ran out
+          }
         }
         // Everything solid that moves: traffic, people, trains.
         const hazards: Circle[] = [
@@ -742,7 +757,7 @@ async function loadCity(query: string): Promise<void> {
         weather.update(stage.camera.position, dt)
         fireworks.update(dt)
         clouds.update(stage.camera.position, dt, car.y) // clouds ride above the land, not above sea level
-        minimap.update(car, trial.nextGate())
+        minimap.update(car, taxi.enabled() ? taxi.target() : trial.nextGate())
         roadLabels.update(stage.camera, car.x, car.z)
         stage.renderer.render(stage.scene, stage.camera)
       })
@@ -762,12 +777,23 @@ async function loadCity(query: string): Promise<void> {
  * needs gates, and there is exactly one way to lay them out.
  */
 function applyTrial(on: boolean): void {
+  if (on) applyTaxi(false) // taxi and the trial/race are mutually exclusive
   setTrial(on)
   trial.setEnabled(on)
   trialHud.setVisible(on)
   if (on && car) trial.reset(lastRoads, provider, car)
   rivals.setEnabled(on && getRace())
   if (on && car && getRace()) rivals.reset(lastRoads, grid, provider, car, trial.course())
+}
+
+/** Taxi mode on/off — a chained pick-up/deliver shift, exclusive with the trial. */
+function applyTaxi(on: boolean): void {
+  taxi.setEnabled(on)
+  taxiHud.setVisible(on)
+  if (on) {
+    applyTrial(false)
+    if (car) taxi.reset(lastRoads, provider, car)
+  }
 }
 
 const menu = createSettingsMenu(
@@ -1010,9 +1036,13 @@ function startPlay(mode: StartMode): void {
   } else if (mode === 'trial') {
     setRace(false)
     applyTrial(true)
+  } else if (mode === 'taxi') {
+    setRace(false)
+    applyTaxi(true)
   } else {
     setRace(false)
     applyTrial(false)
+    applyTaxi(false)
   }
   autopilot.setEnabled(getDemo()) // restore the demo setting (off by default → you drive)
   if (getDemo() && car) autopilot.reset(lastRoads, car)

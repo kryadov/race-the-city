@@ -80,6 +80,9 @@ drive along it**, and clear a bungalow, fountain or statue mid-jump.
 ## Gameplay modes
 
 - **Free roam** — just drive.
+- **Taxi** — pick a passenger up at the glowing green marker, deliver them to the amber marker
+  before the meter runs out, then on to the next fare — a chaining shift, your score climbing with
+  every drop-off. Fares and score show under the minimap.
 - **Time trial** — gates, a lap clock, and your best lap kept between sessions. A checkpoint
   chime marks each gate; **fireworks** when you finish a lap.
 - **Races with rivals** — three AI cars run the gate course on A\* routes over the road graph,
