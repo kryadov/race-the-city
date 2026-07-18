@@ -4,6 +4,13 @@ import type { ElevationProvider } from '../terrain/provider'
 import { roomAt } from './area'
 
 const WATER_OFFSET = 0.2 // sit just above the terrain basin
+/**
+ * How far the water's edge skirt hangs below the ground at the shoreline, metres.
+ * A single flat surface over a sloping bank floats where the bank drops below its
+ * level — you see daylight under the water's edge. A vertical skirt from the
+ * perimeter down past the ground plugs that gap so the water meets the shore.
+ */
+const SKIRT_DROP = 1.5
 
 /** Half the map, in metres — RADIUS in `main.ts`, and all the ground there is. */
 const MAP_HALF = 1000
@@ -66,6 +73,8 @@ export function buildWater(water: Vec2[][], provider: ElevationProvider): THREE.
 
   for (const ring of water) {
     if (ring.length < 3) continue
+    const level = waterLevel(ring, provider)
+
     const shape = new THREE.Shape()
     shape.moveTo(ring[0].x, ring[0].z)
     for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i].x, ring[i].z)
@@ -73,9 +82,27 @@ export function buildWater(water: Vec2[][], provider: ElevationProvider): THREE.
 
     const geo = new THREE.ShapeGeometry(shape)
     geo.rotateX(Math.PI / 2) // XY shape → XZ plane, z preserved (no mirror)
-    geo.translate(0, waterLevel(ring, provider), 0)
-
+    geo.translate(0, level, 0)
     group.add(new THREE.Mesh(geo, mat))
+
+    // A skirt hanging from the perimeter down past the ground, so a flat surface
+    // over a sloping bank meets the shore instead of floating above it. Each edge
+    // becomes two triangles from the water line down to just below the terrain at
+    // its ends; where the ground is already above the water, it tucks under and
+    // stays hidden.
+    const skirt: number[] = []
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i]
+      const b = ring[(i + 1) % ring.length]
+      const ay = Math.min(level, provider.heightAt(a.x, a.z)) - SKIRT_DROP
+      const by = Math.min(level, provider.heightAt(b.x, b.z)) - SKIRT_DROP
+      skirt.push(a.x, level, a.z, b.x, level, b.z, a.x, ay, a.z)
+      skirt.push(b.x, level, b.z, b.x, by, b.z, a.x, ay, a.z)
+    }
+    const skirtGeo = new THREE.BufferGeometry()
+    skirtGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(skirt), 3))
+    skirtGeo.computeVertexNormals()
+    group.add(new THREE.Mesh(skirtGeo, mat))
   }
   return group
 }

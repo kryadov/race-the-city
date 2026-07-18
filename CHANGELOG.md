@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.3 — water meets the shore instead of floating
+- On sloping ground a flat water surface floated where the bank dropped below its level, showing
+  daylight under the water's edge. Each water body now hangs a **skirt from its perimeter down past
+  the ground**, so the water always meets the shore instead of hovering. Merged into the same
+  material — a handful of triangles per body, no frame-rate cost.
+- 👀 Drive along a river on a slope: the water's edge meets the bank, no floating gap underneath.
+
 ## v0.110.2 — bridges that read right: flush paint, solid deck, seated railings, buried pillars
 - The bridge deck's long-standing mess is fixed: the lane **markings floated 18cm above the deck** (a
   surface-lift meant for ground roads was double-counted on decks) — now flush; the **deck is a solid

@@ -6,6 +6,10 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎮 Play-test backlog — 2026-07-19 (live session)
 Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
 
+- [ ] **BUG — nitro spawns beyond the map edge** — nitro (and probably fuel) pickups appear outside
+      the drivable map. They scatter on road vertices (`pickups.ts` setSpots / pickSpot), and some
+      roads run past the map bound — clamp candidate spots to within the world radius (drop or pull in
+      any spot outside `RADIUS`/bounds) so no pickup sits off the edge.
 - [ ] **Bigger map (×2 diameter) without frame-rate loss, adaptive** — raise `RADIUS` (1000 → 2000)
       so the drivable world is twice across, BUT only where it pays: **if there are no buildings past
       the current radius, don't expand** (a village shouldn't fetch/scan 4× the empty area). 4× the
