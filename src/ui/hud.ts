@@ -110,10 +110,20 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   // is an instrument panel, and this game is played through the windscreen.
   const gauge = document.createElement('div')
   gauge.style.cssText =
-    'width:110px;height:6px;border-radius:3px;background:rgba(255,255,255,.18);margin-top:4px;overflow:hidden'
+    'width:120px;height:8px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden'
   const level = document.createElement('div')
   level.style.cssText = 'height:100%;width:100%;background:#5ad07a;transition:width .2s linear'
   gauge.appendChild(level)
+  // The fuel bar sits on its own, bottom-right — a warning light where the eye
+  // lands, not tucked under the speedometer.
+  const fuelBox = document.createElement('div')
+  fuelBox.style.cssText =
+    'position:absolute;bottom:16px;right:16px;pointer-events:none;display:flex;align-items:center;gap:7px;' +
+    'font-family:system-ui,sans-serif;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7))'
+  const fuelIcon = document.createElement('div')
+  fuelIcon.textContent = '⛽'
+  fuelIcon.style.cssText = 'font-size:16px'
+  fuelBox.append(fuelIcon, gauge)
 
   const paint = (): void => {
     // The needle tracks true speed; only the readout changes with units.
@@ -134,8 +144,9 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   paint()
   onLangChange(paint)
 
-  box.append(city, svg, odo, gauge)
+  box.append(city, svg, odo)
   root.appendChild(box)
+  root.appendChild(fuelBox)
 
   return {
     setSpeed(v) {
@@ -159,6 +170,7 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     },
     setVisible(on) {
       box.style.display = on ? 'block' : 'none'
+      fuelBox.style.display = on ? 'flex' : 'none'
     },
   }
 }

@@ -6,6 +6,10 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.100.2 — fuel gauge moved to the bottom-right
+- The fuel bar moved out from under the speedometer to its own spot at the **bottom-right**, with a
+  ⛽ icon — a warning light where the eye lands, not tucked under the dial.
+
 ## v0.100.1 — the start menu is clickable again (critical fix)
 - Fix: the start menu (and the replay bar) were **completely unclickable** — `#ui` is
   `pointer-events:none` so every widget must opt back in, and these two didn't. The app was stuck
