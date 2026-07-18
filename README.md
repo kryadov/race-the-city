@@ -14,7 +14,7 @@ against the clock, race three rivals round them, or hand it to the autopilot and
 The city is inhabited while you do — traffic, people, trams and trains, ships, aircraft,
 balloons, livestock in the fields — and it has weather and a day/night cycle to do it in.
 
-**▶ Play it live: https://kryadov.github.io/race-the-city/**
+**▶ Play it live: https://race-the-city.games**
 
 ---
 
@@ -144,7 +144,7 @@ Detailed project docs (spec and implementation plan) live in `docs/superpowers/`
 
 Vite · TypeScript (strict) · Three.js · Vitest. It's a static site — deploy it to any static
 host (e.g. GitHub Pages; this repo ships a workflow that publishes to
-<https://kryadov.github.io/race-the-city/> on every push to `main`).
+<https://race-the-city.games> on every push to `main`).
 
 ### Versioning & releases
 
