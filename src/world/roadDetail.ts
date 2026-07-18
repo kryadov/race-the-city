@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Road, RoadKind, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
-import { roadWidth } from './roads'
+import { roadWidth, ROAD_Y_OFFSET } from './roads'
 
 const DASH_KINDS = new Set<RoadKind>(['motorway', 'primary', 'secondary'])
 const LAMP_KINDS = new Set<RoadKind>(['motorway', 'primary', 'secondary'])
@@ -10,6 +10,8 @@ const DASH_SPACING = 7
 const DASH_LEN = 3.2
 const DASH_HW = 0.16
 const MAX_DASHES = 4000
+/** How far above the ribbon its paint sits — enough to beat z-fighting, no more. */
+const PAINT_HAIR = 0.03
 const LAMP_SPACING = 30 // metres between lamps along a road
 const WORKING_LAMPS = 520 // pre-filter cap (keeps the mid-road check cheap)
 const MAX_LAMPS = 170 // final network budget
@@ -95,6 +97,13 @@ export type DetailGround = ElevationProvider | ((roadIndex: number) => Elevation
 export function buildRoadDetail(roads: Road[], provider: DetailGround): THREE.Object3D {
   const groundOf = (r: number): ElevationProvider =>
     typeof provider === 'function' ? provider(r) : provider
+  // How far the drivable ribbon sits above the height the provider reports, so a
+  // dash lands a hair above the ROAD rather than a fixed height above the bare
+  // terrain. A plain provider is the terrain the tarmac is lifted ROAD_Y_OFFSET
+  // onto; a per-road function (see DetailGround) is a deck the road sits directly
+  // on, whose reported height IS the surface. Blindly adding ROAD_Y_OFFSET to the
+  // deck case floated every bridge's markings that far above their own deck.
+  const ribbonLift = typeof provider === 'function' ? 0 : ROAD_Y_OFFSET
   const group = new THREE.Group()
   const dash: number[] = []
   const lamps: Lamp[] = []
@@ -132,7 +141,7 @@ export function buildRoadDetail(roads: Road[], provider: DetailGround): THREE.Ob
         let d = carryDash
         for (; d < len && dashes < MAX_DASHES; d += DASH_SPACING) {
           const e = Math.min(d + DASH_LEN, len)
-          emitDash(dash, a.x + ux * d, a.z + uz * d, a.x + ux * e, a.z + uz * e, nx, nz, groundOf(r))
+          emitDash(dash, a.x + ux * d, a.z + uz * d, a.x + ux * e, a.z + uz * e, nx, nz, groundOf(r), ribbonLift + PAINT_HAIR)
           dashes++
         }
         carryDash = d - len
@@ -228,6 +237,16 @@ function pointAlong(
   return null
 }
 
+/**
+ * One dashed centre-line quad, laid on the surface rather than hung over it.
+ *
+ * The height is sampled at EACH of the four corners, so a dash on a slope tilts
+ * with the road and its far corners stay on the tarmac instead of lifting off.
+ * `lift` is how far above the reported surface the paint sits: the ribbon's own
+ * y-offset (so it clears the road, not the bare terrain under it) plus a hair to
+ * beat z-fighting — small and constant, never the 0.18m that left bridge paint
+ * floating above its deck.
+ */
 function emitDash(
   out: number[],
   ax: number,
@@ -237,8 +256,9 @@ function emitDash(
   nx: number,
   nz: number,
   provider: ElevationProvider,
+  lift: number,
 ): void {
-  const y = (x: number, z: number): number => provider.heightAt(x, z) + 0.18
+  const y = (x: number, z: number): number => provider.heightAt(x, z) + lift
   const pts: [number, number][] = [
     [ax + nx * DASH_HW, az + nz * DASH_HW],
     [bx + nx * DASH_HW, bz + nz * DASH_HW],

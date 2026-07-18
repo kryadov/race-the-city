@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.2 — bridges that read right: flush paint, solid deck, seated railings, buried pillars
+- The bridge deck's long-standing mess is fixed: the lane **markings floated 18cm above the deck** (a
+  surface-lift meant for ground roads was double-counted on decks) — now flush; the **deck is a solid
+  slab** with a fascia down each edge instead of a paper-thin plane; the **railings stand on the deck
+  edge** instead of hovering a metre off it; and the **support pillars stop at the deck's underside**
+  instead of poking up through the road. All merged into the existing draws — no frame-rate cost.
+- 👀 Drive a bridge: paint on the deck, the deck has thickness, railings sit on its edge, no pillars
+  through the surface.
+
 ## v0.110.1 — birds fly up, not into the ground
 - On terrain higher than the birds' cruising altitude (a hill, a raised city), a startled bird
   "climbed" toward a fixed **absolute** height that was below the ground, so it **sank out of sight**

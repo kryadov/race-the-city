@@ -6,7 +6,14 @@ import type { ElevationProvider } from '../terrain/provider'
 const WIDTHS: Record<RoadKind, number> = {
   motorway: 12, primary: 9, secondary: 7, residential: 5, service: 3.5, path: 2, other: 4,
 }
-const ROAD_Y_OFFSET = 0.15 // lift slightly above ground to avoid z-fighting
+/**
+ * How far the tarmac ribbon is lifted above the terrain the provider reports, to
+ * avoid z-fighting with the ground. Exported so road dressing (markings) can lay
+ * itself a hair above the ROAD rather than a fixed height above the bare terrain
+ * — a deck reports its own top and is NOT lifted, so paint that blindly added
+ * this offset floated that far above the bridge.
+ */
+export const ROAD_Y_OFFSET = 0.15
 /**
  * A ribbon vertex at least this often, in metres.
  *
