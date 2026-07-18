@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.107.0 — four more synth tracks on the radio
+- Added **Neon Overpass**, **Midnight Pursuit**, **Neon Horizon Run** and **Red Banner Drive** to
+  the in-game soundtrack — more night-drive synthwave to cycle through while you play.
+- 👀 ⚙ → Audio: step through the track list to the four new ones.
+
 ## v0.106.2 — Random & city-search start the game, not just the backdrop
 - On the start menu, **🎲 Random city** and the city-search **Go** only swapped the backdrop and
   left the menu up — and if you pressed them while the opening backdrop was still loading (the case

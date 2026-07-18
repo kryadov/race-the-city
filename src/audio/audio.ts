@@ -26,6 +26,10 @@ export const TRACKS: readonly Track[] = [
   { name: 'Level 0', file: 'audio/level-0.mp3' },
   { name: 'Moonlit Highway Bloom', file: 'audio/moonlit-highway-bloom.mp3' },
   { name: 'Rain on Shibuya', file: 'audio/rain-on-shibuya.mp3' },
+  { name: 'Neon Overpass', file: 'audio/neon-overpass.mp3' },
+  { name: 'Midnight Pursuit', file: 'audio/midnight-pursuit.mp3' },
+  { name: 'Neon Horizon Run', file: 'audio/neon-horizon-run.mp3' },
+  { name: 'Red Banner Drive', file: 'audio/red-banner-drive.mp3' },
 ]
 export const TRACK_NAMES: readonly string[] = TRACKS.map((t) => t.name)
 
