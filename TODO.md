@@ -73,6 +73,13 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Pickable car-objects on the map** — occasionally a real, selectable vehicle sits parked on
       the map that the player can **walk/drive up to and switch into** (choose it as their car).
       Rare spawns tied to parking/roadside; reuses the vehicle roster + `selectVehicle`.
+- [ ] **BUG — horn dead on non-Latin keyboard layouts** — the klaxon key is matched on `event.key`,
+      which changes with the layout, so on a Russian (or other) layout it never fires. Match the
+      **physical key via `event.code`** for the horn (and audit the other driving keys the same way)
+      so the bound key works regardless of layout.
+- [ ] **Crowd reacts to the horn** — honking makes **nearby pedestrians and cars veer away** from the
+      player — but **not parked ones**. A brief repulsion impulse on `people`/`traffic` agents within
+      a radius when the horn fires; parked/stationary cars ignore it.
 - [ ] **Bike lanes + cyclists** — paint a **cycle-lane stripe as a texture on the existing road
       ribbon** (no new mesh — same draw call as the road markings), and add **cyclists** riding it
       (instanced, reuse the pedestrian/traffic graph on `cycleway`/pavement). Keep it cheap.

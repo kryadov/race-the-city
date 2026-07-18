@@ -14,6 +14,8 @@ export interface Hud {
   setDistance(metres: number): void
   setUnits(u: Units): void
   setCity(name: string): void
+  /** Pause-only debug line (car x/z + heading), or null to hide it. */
+  setDebug(text: string | null): void
   setVisible(on: boolean): void
 }
 
@@ -50,6 +52,13 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   box.style.cssText =
     `position:absolute;bottom:16px;left:16px;width:${DISPLAY}px;pointer-events:none;text-align:center;` +
     'font-family:system-ui,sans-serif'
+
+  // A pause-only readout of the car's world x/z and heading, above the city
+  // name, so a bug screenshot carries the exact spot to reproduce the render at.
+  const debug = document.createElement('div')
+  debug.style.cssText =
+    'font:11px ui-monospace,Consolas,monospace;color:rgba(120,230,160,.92);margin-bottom:1px;' +
+    'white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85);display:none'
 
   const city = document.createElement('div')
   city.style.cssText =
@@ -148,7 +157,7 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   paint()
   onLangChange(paint)
 
-  box.append(city, svg)
+  box.append(debug, city, svg)
   root.appendChild(box)
   root.appendChild(fuelBox)
 
@@ -171,6 +180,10 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     },
     setCity(name) {
       city.textContent = name
+    },
+    setDebug(text) {
+      debug.textContent = text ?? ''
+      debug.style.display = text ? 'block' : 'none'
     },
     setVisible(on) {
       box.style.display = on ? 'block' : 'none'

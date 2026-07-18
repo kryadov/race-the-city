@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.4 — pause shows your exact position, for bug reports
+- Pausing now prints the car's **world x/z and heading** above the city name. Screenshot a glitch
+  with the game paused and it carries the exact spot and facing, so the view can be reproduced and
+  the bug chased from where you actually were — no more guessing where a screenshot was taken.
+- 👀 Press pause: a small green readout (x, z, heading°) shows over the location name.
+
 ## v0.108.3 — people keep off the water
 - A lakeside pavement could nudge a pedestrian off the road and out onto the water, where they walked
   along the **lake bed under the surface**. Now if the pavement they'd take lands on water they

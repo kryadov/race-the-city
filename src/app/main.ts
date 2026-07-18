@@ -721,6 +721,12 @@ async function loadCity(query: string): Promise<void> {
         hud.setSpeed(Math.abs(fwd) * 3.6)
         odometer += Math.hypot(car.vx, car.vz) * dt // ground distance travelled
         hud.setDistance(odometer)
+        // Paused? Surface the exact pose so a bug screenshot is reproducible.
+        hud.setDebug(
+          pause.paused()
+            ? `x ${car.x.toFixed(1)}  z ${car.z.toFixed(1)}  ${Math.round((((car.heading * 180) / Math.PI) % 360 + 360) % 360)}°`
+            : null,
+        )
         // Parked and hands off? The engine fades out after a few seconds.
         const driving = Math.abs(fwd) > 0.4 || input.throttle !== 0
         if (pause.paused()) audio.silenceEngine()
