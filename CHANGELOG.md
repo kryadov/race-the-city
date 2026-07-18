@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.18 — a railing along the waterfront
+- The stone embankments now carry a low **balustrade along the shore** — thin posts every few metres
+  with a top rail — seated on the embankment lip. Distance-spaced and capped, so even a kilometre of
+  river outline stays one cheap merged draw; tiny ponds get none.
+- 👀 Drive a riverside: a railing runs along the water's edge.
+
 ## v0.110.17 — birds perch in the tree, not in mid-air
 - A bird landing in a tree snapped to the trunk, but its flock-formation offset (up to ~5m) was added
   at render time — **flinging it clear of the tree's small canopy**, so it sat in mid-air over
