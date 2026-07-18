@@ -40,6 +40,8 @@ export function overpassQuery(b: BBox): string {
   way["landuse"="flowerbed"](${box});
   way["natural"="coastline"](${box});
   way["railway"~"rail|light_rail|tram|narrow_gauge"](${box});
+  node["amenity"="bench"](${box});
+  node["highway"="bus_stop"](${box});
 );
 out body;
 >;

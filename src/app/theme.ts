@@ -18,6 +18,7 @@ export interface WorldRefs {
   roads: THREE.Object3D // single roads mesh
   greenery: THREE.Object3D // trees (instanced) — neon-styled by material, not edges
   roadDetail: THREE.Object3D // lamps/signs/lane lines (instanced) — same
+  streetFurniture: THREE.Object3D // benches, bus stops + seated figures (instanced) — same
 }
 
 /** A material we recolour for neon, plus its day values to restore. */
@@ -90,6 +91,7 @@ export class ThemeController {
     }
     collect(world.greenery, NEON_TREE)
     collect(world.roadDetail, NEON_DETAIL)
+    collect(world.streetFurniture, NEON_DETAIL)
   }
 
   toggle(): void {

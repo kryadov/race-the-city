@@ -126,7 +126,12 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [x] **Petrol cans** to pick up, in the nitro's style; run low on fuel and the car slows — the
       pickup engine is shared with the nitro rather than copied — v0.89.0
 - [ ] **People walk through trains** — they should wait at the crossing and let them pass
-- [ ] **Benches, empty and with people sitting on them; bus stops**
+- [x] **Benches, empty and with people sitting on them; bus stops** — from OSM `amenity=bench`
+      and `highway=bus_stop`; instanced benches (~2 in 5 with a blocky seated figure) and
+      two-post bus shelters, neon-styled with the road furniture — v0.96.0
+- [ ] **A couple more languages** (localization) — the i18n table (`src/i18n/i18n.ts`) ships
+      English + Russian today; add ~2 more (e.g. Spanish, German — or French/Chinese) by
+      translating the string map. Menu already has the language switch; the work is the copy.
 - [x] **Fly over anything you are above** — the physics grid carries each obstacle's roof
       height now, so a jump clears a bungalow, a fountain or a statue instead of being
       cancelled in mid-air by ground the car is nowhere near — v0.86.0

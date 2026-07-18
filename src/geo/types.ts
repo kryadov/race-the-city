@@ -41,4 +41,7 @@ export interface WorldData {
   fields: Vec2[][]
   coast: Vec2[][]
   railways: Railway[]
+  /** Street furniture points: benches (`amenity=bench`) and bus stops. */
+  benches: Vec2[]
+  busStops: Vec2[]
 }
