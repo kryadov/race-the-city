@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.10 — dense cities (São Paulo) get their buildings back
+- Dense downtowns rendered almost no buildings. Root cause (measured): under server load, Overpass
+  answers the game's one heavy combined query with **HTTP 200 but a timed-out, near-empty body** —
+  which passed the `res.ok` check, got cached, and drew as a buildingless city. Buildings now fetch
+  in **their own Overpass query** (merged with the rest), the server timeout is raised to 90s, a
+  **second mirror** is tried on failure, and a **silent timed-out 200 is rejected** instead of
+  cached. São Paulo's 6500+ buildings come in now.
+- 👀 Load São Paulo (or another big downtown): buildings, not bare streets.
+
 ## v0.110.9 — a proper rowboat, with someone rowing it
 - The rowboat is reshaped into a real small-boat hull — pointed bow, squared transom, gunwale strakes
   and seat planks — and gains a **little figure rowing with two oars**: the oars sweep and dip (blade

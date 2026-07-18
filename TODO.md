@@ -72,9 +72,11 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       the bird out beyond the canopy, worsened by PERCH_SCATTER snapping to distant/absent trees.
       Measure where floaters perch; fix by keeping the offset within the canopy for tree perches (or
       only tree-perch when a real tree/canopy is there). birds.ts — free of agents.
-- [ ] **Flowerbed stems** — the beds read better now, but grow the blooms on **stems of slightly
-      varied (or shaped/patterned) length**, randomised, so they look tended rather than a flat mat.
-      A small per-bloom height jitter on the existing instanced flowers in `props.ts`.
+- [x] **Flowerbed stems** — v0.108.7: blooms on varied-length stems (dome + jitter).
+- [ ] **Flowerbed colours + flower shape** — the blooms currently read as **mushrooms**; give them
+      actual **flower shapes** (a small petalled head — a ring of petals around a centre, not a plain
+      squashed sphere) and add **blue, violet and azure** to the palette alongside the pinks/golds.
+      `props.ts` bloom geometry + colour list, still merged (one draw per colour).
 - [ ] **Colour-coded nitro** — nitro bottles come in **different colours**, and the colour sets the
       boost: a **different acceleration effect and/or a different duration** per colour (e.g. a short
       hard punch vs a long gentle push). Needs a small table of nitro types (colour → boost strength

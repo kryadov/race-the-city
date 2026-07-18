@@ -3,8 +3,25 @@ import type { OverpassResponse } from './parse'
 
 export interface BBox { south: number; west: number; north: number; east: number }
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
+// Two public mirrors, tried in order. overpass-api.de is the busiest instance
+// and the first to make a heavy query hit its timeout wall; kumi.systems is the
+// fallback for when it errors or times out. This app has no backend of its own
+// to proxy through, so resilience has to come from asking a second server.
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+]
 const M_PER_DEG_LAT = 111320
+
+/**
+ * Server-side execution budget, in seconds. Raised well above the old 25: São
+ * Paulo's downtown is ~6500 buildings in a 1km box, and at [timeout:25] the
+ * combined query hit this wall whenever the public server was busy — and a
+ * query that hits the wall comes back HTTP 200 (so it looks like success) with
+ * a `remark` and a partial or empty element list. The city then rendered with
+ * almost no buildings. The headroom is for the densest downtowns under load.
+ */
+const TIMEOUT_S = 90
 
 export function bboxAround(center: LatLon, radiusMeters: number): BBox {
   const dLat = radiusMeters / M_PER_DEG_LAT
@@ -17,12 +34,35 @@ export function bboxAround(center: LatLon, radiusMeters: number): BBox {
   }
 }
 
-export function overpassQuery(b: BBox): string {
+/**
+ * Just the buildings. Split out from everything else because in a dense city
+ * they are the bulk of the response, and the bulk is what makes a combined query
+ * heavy enough to time out. On their own they gather in a few seconds and come
+ * back whole even when the busy server would have timed the fuller query out —
+ * so São Paulo keeps its skyline instead of rendering empty.
+ */
+function buildingsQuery(b: BBox): string {
   const box = `${b.south},${b.west},${b.north},${b.east}`
-  return `[out:json][timeout:25];
+  return `[out:json][timeout:${TIMEOUT_S}];
+(
+  way["building"](${box});
+);
+out body;
+>;
+out skel qt;`
+}
+
+/**
+ * Everything that isn't a building: roads, water, greenery, railways, the props
+ * and the signposted points of interest. Lighter than the buildings, and asked
+ * for separately so that if it does time out on a busy server the buildings —
+ * fetched in their own request — are unaffected.
+ */
+function featuresQuery(b: BBox): string {
+  const box = `${b.south},${b.west},${b.north},${b.east}`
+  return `[out:json][timeout:${TIMEOUT_S}];
 (
   way["highway"](${box});
-  way["building"](${box});
   way["natural"="water"](${box});
   relation["natural"="water"](${box});
   way["waterway"="riverbank"](${box});
@@ -52,12 +92,65 @@ out body;
 out skel qt;`
 }
 
+/**
+ * The full set of tags we ask OSM for, as one string. It is no longer sent as a
+ * single request — fetchOsm splits the buildings off so a dense city survives a
+ * server timeout — but it still stands in for "what we asked for" in the cache
+ * key: change either half and the string changes, so a city cached under the
+ * old combined query is re-fetched rather than served the stale, half-empty
+ * answer that split query would never have produced.
+ */
+export function overpassQuery(b: BBox): string {
+  return `${buildingsQuery(b)}\n${featuresQuery(b)}`
+}
+
+/**
+ * Run one Overpass query, trying each mirror until one answers cleanly.
+ *
+ * A timed-out response is treated as a failure even though it arrives HTTP 200:
+ * Overpass reports a server-side timeout (or an out-of-memory) in a `remark`
+ * field, not in the status code, and the body that comes with it is partial or
+ * empty. Cached as-is it would strand the city half-built for good — the São
+ * Paulo bug. Throwing instead lets the next mirror, and main's withRetry, try
+ * again for a whole answer.
+ */
+async function runQuery(query: string): Promise<OverpassResponse> {
+  let lastErr: unknown
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(query),
+      })
+      if (!res.ok) throw new Error(`Overpass error ${res.status}`)
+      const json = (await res.json()) as OverpassResponse & { remark?: string }
+      if (json.remark && /timed out|out of memory/i.test(json.remark)) {
+        throw new Error(`Overpass incomplete: ${json.remark}`)
+      }
+      return json
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Overpass request failed')
+}
+
+/**
+ * Fetch the city's OSM as two requests — buildings, and everything else — and
+ * merge the results into one element list.
+ *
+ * They are split because as a single combined query a dense downtown is heavy
+ * enough to hit Overpass's server-side timeout under load, and a timed-out query
+ * answers HTTP 200 with a partial body: São Paulo, ~6500 buildings in a 1km box,
+ * came back with almost none. Buildings fetched on their own gather fast and
+ * survive that wall. The two responses share their corner nodes, but nodes
+ * dedupe by id in parseOsm, so merging is a plain concatenation.
+ */
 export async function fetchOsm(bbox: BBox): Promise<OverpassResponse> {
-  const res = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'data=' + encodeURIComponent(overpassQuery(bbox)),
-  })
-  if (!res.ok) throw new Error(`Overpass error ${res.status}`)
-  return (await res.json()) as OverpassResponse
+  const [buildings, features] = await Promise.all([
+    runQuery(buildingsQuery(bbox)),
+    runQuery(featuresQuery(bbox)),
+  ])
+  return { elements: [...buildings.elements, ...features.elements] }
 }
