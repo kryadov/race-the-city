@@ -53,8 +53,9 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       can see what it crosses. Waiting on relation-mapped rivers arriving at all (above).
 - [ ] **Bridge road labels sit on the terrain** — `roadLabels.setWorld` still reads the ground
       provider, so a bridge's name floats under its deck.
-- [ ] **Manhole covers** on the roads — `man_made=manhole` exists in OSM but is mapped patchily;
-      scattering them along road centrelines (like the nitro spots) will read better than the data
+- [x] **Manhole covers** on the roads — scattered procedurally along road centrelines (like the
+      nitro spots), not from OSM's patchy `man_made=manhole` — one instanced draw, dark iron
+      discs, deduped at junctions, skipping bridge/tunnel decks — v0.95.0
 - [x] **Buildings read by type** — windows, doors and signage from the OSM classification —
       done in v0.66.0
 - [ ] Roof shapes; better height heuristics

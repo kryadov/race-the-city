@@ -102,6 +102,7 @@ import { buildRoads, buildRailways, roadWidth } from '../world/roads'
 import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../world/bridge'
 import { buildBridges } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
+import { buildManholes } from '../world/manholes'
 import { buildWater } from '../world/water'
 import { buildParking } from '../world/parking'
 import { buildProps, propFootprints, propTops } from '../world/props'
@@ -418,6 +419,7 @@ async function loadCity(query: string): Promise<void> {
     const detail = new THREE.Group()
     detail.add(buildRoadDetail(normalRoads, provider))
     if (bridgeRoads.length) detail.add(buildRoadDetail(bridgeRoads, (r) => ownDeck[r] ?? provider))
+    detail.add(buildManholes(normalRoads, provider)) // iron covers down the street centrelines
     roadDetailMesh = detail
     roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider)
