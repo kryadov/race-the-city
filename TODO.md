@@ -60,7 +60,8 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       done in v0.66.0
 - [ ] Roof shapes; better height heuristics
 - [ ] Larger area / stream neighbouring tiles as you drive
-- [ ] POI markers (cafés, fuel) from OSM
+- [x] POI markers (cafés, fuel) from OSM — signpost with a coloured panel + glowing glyph
+      (café brown, fuel green), instanced per kind, neon-styled — v0.97.0
 - [x] Sky dome with gradient + sun disc — done in v0.33.0
 - [x] Street lamps, signs & road markings — done in v0.31.0, reworked in v0.37.0
 

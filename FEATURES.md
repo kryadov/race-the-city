@@ -93,7 +93,7 @@ Built from the real map around you:
 - **Greenery** — parks, woods and grass, with **trees whose kind follows latitude** (palms in
   the Mediterranean band, firs up north), plus fountains, statues and flowerbeds.
 - **Parking** tarmac with painted bays; **manhole covers** dotted down the streets; **benches**
-  (some with someone sat on them) and **bus stops**.
+  (some with someone sat on them), **bus stops**, and **café / fuel signposts** at those spots.
 - **Railways** with **trains** — freight, intercity, commuter — running the real lines out of
   and into tunnel mouths.
 - **Traffic and pedestrians** walking the road graph and pavements around you; **livestock** on

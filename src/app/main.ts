@@ -108,6 +108,7 @@ import { buildParking } from '../world/parking'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildStreetFurniture } from '../world/streetFurniture'
+import { buildPoiMarkers } from '../world/poiMarkers'
 import { buildSea } from '../world/sea'
 import { rectBounds, confineToBounds } from '../world/bounds'
 import { createMistWall } from '../world/mistWall'
@@ -427,6 +428,7 @@ async function loadCity(query: string): Promise<void> {
     const parkingMesh = buildParking(world.parking, provider)
     const propsMesh = buildProps(world.props, provider)
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, provider)
+    const poiMesh = buildPoiMarkers(world.pois, provider)
     const greenMesh = buildGreenery(world.green, world.trees, provider, center.lat)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
     ground.receiveShadow = true
@@ -438,11 +440,11 @@ async function loadCity(query: string): Promise<void> {
     greenMesh.traverse((o) => {
       o.castShadow = true
     })
-    for (const obj of [ground, seaMesh, greenMesh, waterMesh, parkingMesh, propsMesh, furnitureMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
+    for (const obj of [ground, seaMesh, greenMesh, waterMesh, parkingMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
-    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh })
+    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
     // index buildings (with heights) so the camera can tell when one blocks the car

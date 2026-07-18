@@ -25,6 +25,10 @@ export interface Railway { points: Vec2[]; tram: boolean; tunnel: boolean }
 export type PropKind = 'fountain' | 'statue' | 'flowerbed'
 export interface Prop { at: Vec2; kind: PropKind }
 
+/** A signposted point of interest: cafés and fuel stations. */
+export type PoiKind = 'cafe' | 'fuel'
+export interface Poi { x: number; z: number; kind: PoiKind }
+
 export type BuildingKind = 'house' | 'apartments' | 'retail' | 'office' | 'industrial' | 'civic'
 
 export interface Building { footprint: Vec2[]; height: number; kind: BuildingKind }
@@ -44,4 +48,6 @@ export interface WorldData {
   /** Street furniture points: benches (`amenity=bench`) and bus stops. */
   benches: Vec2[]
   busStops: Vec2[]
+  /** Signposted points of interest: cafés and fuel stations. */
+  pois: Poi[]
 }

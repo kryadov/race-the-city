@@ -1,5 +1,5 @@
 import type { Projector } from './project'
-import type { Building, BuildingKind, Prop, PropKind, Railway, Road, RoadKind, Vec2, WorldData } from './types'
+import type { Building, BuildingKind, Poi, Prop, PropKind, Railway, Road, RoadKind, Vec2, WorldData } from './types'
 
 export interface OverpassMember {
   type: 'node' | 'way' | 'relation'
@@ -118,6 +118,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const props: Prop[] = []
   const benches: Vec2[] = []
   const busStops: Vec2[] = []
+  const pois: Poi[] = []
   for (const el of json.elements) {
     if (el.type === 'node' && el.lat !== undefined && el.lon !== undefined) {
       const local = projector.toLocal({ lat: el.lat, lon: el.lon })
@@ -126,6 +127,8 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       if (tags?.natural === 'tree') trees.push(local)
       else if (tags?.amenity === 'bench') benches.push(local)
       else if (tags?.highway === 'bus_stop') busStops.push(local)
+      else if (tags?.amenity === 'cafe') pois.push({ x: local.x, z: local.z, kind: 'cafe' })
+      else if (tags?.amenity === 'fuel') pois.push({ x: local.x, z: local.z, kind: 'fuel' })
       else {
         const kind = classifyProp(tags ?? {})
         if (kind) props.push({ at: local, kind })
@@ -244,7 +247,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  return { roads, buildings, water, green, parking, fields, trees, props, coast, railways, benches, busStops }
+  return { roads, buildings, water, green, parking, fields, trees, props, coast, railways, benches, busStops, pois }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */

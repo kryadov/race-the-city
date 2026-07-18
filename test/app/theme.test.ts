@@ -35,7 +35,9 @@ function makeWorld() {
   roadDetail.add(new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.1, 4), new THREE.MeshStandardMaterial({ color: 0x9a9ea6 }), 4))
   const streetFurniture = new THREE.Group()
   streetFurniture.add(new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x565a5f }), 3))
-  return { ground, buildings, roads, greenery, roadDetail, streetFurniture }
+  const poiMarkers = new THREE.Group()
+  poiMarkers.add(new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.07, 2.2, 6), new THREE.MeshStandardMaterial({ color: 0x8b8e94 }), 2))
+  return { ground, buildings, roads, greenery, roadDetail, streetFurniture, poiMarkers }
 }
 
 const lineCount = (scene: THREE.Scene) =>

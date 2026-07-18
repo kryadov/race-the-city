@@ -172,7 +172,8 @@ print what it actually did. Delete the page afterwards.
 
 **Versioning / releases.** `package.json` version is injected as `__APP_VERSION__` (Vite
 `define`) and shown as a UI badge. Per feature: bump the version (semver — minor for features,
-patch for fixes), merge to `main`, then tag `vX.Y.Z` and push the tag —
+patch for fixes), add a `CHANGELOG.md` entry (and update `FEATURES.md` if the feature is
+player-visible), merge to `main`, then tag `vX.Y.Z` and push the tag —
 `.github/workflows/release.yml` cuts the GitHub Release.
 
 ## Docs
@@ -181,4 +182,7 @@ patch for fixes), merge to `main`, then tag `vX.Y.Z` and push the tag —
   it current: when you add a feature or change an existing one, update the relevant section of
   `FEATURES.md` in the SAME change** (the way you also bump the version and tick `TODO.md`). A
   feature that ships without a line in `FEATURES.md` is a feature players can't discover.
+- **`CHANGELOG.md`** is the per-version list — how the user finds what to play-test in a new
+  build. **Every release adds an entry at the top in the SAME change as the version bump**, with
+  a 👀 "what to look for" line for anything visible. Newest first.
 - Design spec and the full implementation plan are in `docs/superpowers/`.
