@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.106.0 — manholes, bigger, rarer, off to the side
+- Manholes are bigger again (~1.2m across), much **rarer** (50–100m apart), and now sit **off the
+  centreline into a lane** (a random side) rather than in a dead-centre line down the road — far
+  more natural.
+
 ## v0.105.0 — the taxi fare, made clearer
 - The taxi HUD shows the **street** of the pickup / drop-off (📍), so you know where you're headed.
 - The **minimap marker is coloured by phase** — green for the pickup, amber for the drop-off, to

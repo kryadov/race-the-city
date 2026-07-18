@@ -18,8 +18,8 @@ import type { ElevationProvider } from '../terrain/provider'
  */
 
 /** Nearest and furthest a cover sits from the last one down the same road. */
-const MIN_GAP = 32
-const MAX_GAP = 55
+const MIN_GAP = 50
+const MAX_GAP = 100
 /**
  * No two covers closer than this, across the whole city, in metres.
  *
@@ -37,9 +37,12 @@ const DEDUP_MIN = 8
  */
 const MAX_COVERS = 6000
 
-const COVER_R = 0.45 // ~0.9m across — a big cast-iron cover you can actually spot
+const COVER_R = 0.6 // ~1.2m across — a big cast-iron cover you can't miss
 const SEGMENTS = 16 // low-poly, but round enough that the dome doesn't read as a gem
-const DOME_RISE = 0.14 // how far the dome stands proud of the tarmac — convex, not a puck
+const DOME_RISE = 0.17 // how far the dome stands proud of the tarmac — convex, not a puck
+/** How far off the centreline a cover sits, metres — into a lane, not dead centre. */
+const OFF_CENTRE_MIN = 1.4
+const OFF_CENTRE_MAX = 2.8
 const IRON = 0x3a3d42 // dark iron grey
 
 /**
@@ -131,8 +134,13 @@ function collectSpots(roads: Road[], rand: () => number): Vec2[] {
       if (len < 1e-6) continue
       const ux = dx / len
       const uz = dz / len
+      const px = -uz // perpendicular to the road, to sit a cover off the centreline
+      const pz = ux
       let d = carry
-      for (; d < len; d += gap()) out.push({ x: a.x + ux * d, z: a.z + uz * d })
+      for (; d < len; d += gap()) {
+        const off = (OFF_CENTRE_MIN + rand() * (OFF_CENTRE_MAX - OFF_CENTRE_MIN)) * (rand() < 0.5 ? -1 : 1)
+        out.push({ x: a.x + ux * d + px * off, z: a.z + uz * d + pz * off })
+      }
       carry = d - len // carry the overshoot into the next segment
     }
   }

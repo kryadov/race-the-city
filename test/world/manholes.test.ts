@@ -8,8 +8,9 @@ const flat = { heightAt: () => 0 }
 /** The road ribbon sits 0.15 above ground (roads.ts ROAD_Y_OFFSET); covers ride on top. */
 const ROAD_SURFACE = 0.15
 const DEDUP_MIN = 8 // must match manholes.ts
-const MIN_GAP = 32
-const MAX_GAP = 55
+const MIN_GAP = 50
+const MAX_GAP = 100
+const OFF_CENTRE_MAX = 2.8 // must match manholes.ts
 
 const road = (points: Vec2[], extra: Partial<Road> = {}): Road => ({ points, kind: 'residential', ...extra })
 const straight = (len: number, extra: Partial<Road> = {}): Road =>
@@ -71,12 +72,14 @@ describe('buildManholes', () => {
     expect(mesh.count).toBeGreaterThan(0)
   })
 
-  it('lays every cover on a road centreline', () => {
-    // An L-shaped road: covers must sit on its segments, never off in the grass.
+  it('lays every cover on the road but off the centreline, into a lane', () => {
+    // An L-shaped road: covers sit within a lane of its segments, never off in the grass.
     const roads = [road([{ x: 0, z: 0 }, { x: 300, z: 0 }, { x: 300, z: 200 }])]
     const pts = positions(buildManholes(roads, flat, makeRng(7)))
     expect(pts.length).toBeGreaterThan(0)
-    for (const p of pts) expect(distToRoads(p.x, p.z, roads)).toBeLessThan(1e-4)
+    for (const p of pts) expect(distToRoads(p.x, p.z, roads)).toBeLessThan(OFF_CENTRE_MAX + 0.01)
+    // and genuinely off the centreline, not sitting on it
+    expect(pts.some((p) => distToRoads(p.x, p.z, roads) > 1)).toBe(true)
   })
 
   it('sits the cover on the road surface, a touch proud, following the terrain', () => {
@@ -93,10 +96,10 @@ describe('buildManholes', () => {
     }
   })
 
-  it('spaces covers 32-55m apart down a straight road', () => {
+  it('spaces covers 50-100m apart down a straight road', () => {
     // Single road, so the junction dedupe never fires — the gaps are purely the spacing.
     const pts = positions(buildManholes([straight(1000)], flat, makeRng(11)))
-    expect(pts.length).toBeGreaterThan(20)
+    expect(pts.length).toBeGreaterThan(8)
     const xs = pts.map((p) => p.x).sort((a, b) => a - b)
     for (let i = 1; i < xs.length; i++) {
       const gap = xs[i] - xs[i - 1]
