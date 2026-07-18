@@ -9,7 +9,7 @@ export const DENSITIES: readonly Density[] = ['low', 'normal', 'high']
  * These are bounded by the map — a city has the railways it has — so 'many'
  * quickly runs out of lines to put them on, and a few of them go a long way.
  */
-const SCALE: Record<Density, number> = { low: 0.4, normal: 1, high: 2 }
+const SCALE: Record<Density, number> = { low: 1, normal: 2, high: 4 }
 
 /**
  * The multiplier for the crowd: cars and people.
@@ -18,7 +18,7 @@ const SCALE: Record<Density, number> = { low: 0.4, normal: 1, high: 2 }
  * on a big map a couple of dozen vanish into it. They also cost far less each —
  * instanced, no physics — so 'many' can mean many.
  */
-const CROWD_SCALE: Record<Density, number> = { low: 0.4, normal: 1, high: 4 }
+const CROWD_SCALE: Record<Density, number> = { low: 1, normal: 4, high: 8 }
 
 /** `base` scaled to this setting, never below one. */
 export function countFor(density: Density, base: number): number {

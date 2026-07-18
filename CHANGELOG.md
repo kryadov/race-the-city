@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.101.0 — manholes, flowerbeds, and busier streets
+- **Manholes** are now **convex iron domes** (not flat pucks), bigger (~0.9m across), and spaced
+  further apart (32–55m) so they don't carpet the road.
+- **Flowerbeds** got a proper **bed of pink/gold/white flower heads** over green inside a stone
+  kerb — instead of a flat pink disc.
+- **Density rescaled**: the old "many" is the new "normal", the old "normal" is the new "few", and
+  "many" is now double the old "many" — traffic and crowds go up a notch at every setting.
+- 👀 Drive a well-mapped city: domed manholes down the lanes, flowerbeds that read as flowers, and
+  noticeably more cars/people at the same setting. (Manholes are visual for now — the car doesn't
+  yet feel the dome; deferred as a poor cost/benefit at 14cm.)
+
 ## v0.100.2 — fuel gauge moved to the bottom-right
 - The fuel bar moved out from under the speedometer to its own spot at the **bottom-right**, with a
   ⛽ icon — a warning light where the eye lands, not tucked under the dial.

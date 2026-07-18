@@ -8,8 +8,8 @@ const flat = { heightAt: () => 0 }
 /** The road ribbon sits 0.15 above ground (roads.ts ROAD_Y_OFFSET); covers ride on top. */
 const ROAD_SURFACE = 0.15
 const DEDUP_MIN = 8 // must match manholes.ts
-const MIN_GAP = 18
-const MAX_GAP = 30
+const MIN_GAP = 32
+const MAX_GAP = 55
 
 const road = (points: Vec2[], extra: Partial<Road> = {}): Road => ({ points, kind: 'residential', ...extra })
 const straight = (len: number, extra: Partial<Road> = {}): Road =>
@@ -93,7 +93,7 @@ describe('buildManholes', () => {
     }
   })
 
-  it('spaces covers 18-30m apart down a straight road', () => {
+  it('spaces covers 32-55m apart down a straight road', () => {
     // Single road, so the junction dedupe never fires — the gaps are purely the spacing.
     const pts = positions(buildManholes([straight(1000)], flat, makeRng(11)))
     expect(pts.length).toBeGreaterThan(20)

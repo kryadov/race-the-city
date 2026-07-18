@@ -142,15 +142,19 @@ const VARIANTS: Record<PropKind, PropVariant[]> = {
       ],
     },
   ],
-  // A low kerb of soil with a bloom of colour on top.
+  // A low stone kerb round a bed of soil and greenery, with flower heads in three
+  // colours poking up out of it — a bed of flowers, not a flat pink disc.
   flowerbed: [
     {
       radius: 1.7,
-      top: 0.55,
+      top: 0.6,
       parts: () => [
-        { geo: ring(1.6, 0.22), mat: stone(0x9c9384) },
-        { geo: disc(1.45, 0.14, 0.2), mat: soil() },
-        { geo: disc(1.35, 0.22, 0.3), mat: bloom() },
+        { geo: ring(1.62, 0.3), mat: stone(0x9c9384) }, // kerb
+        { geo: disc(1.5, 0.18, 0.13), mat: soil() }, // soil
+        { geo: disc(1.44, 0.12, 0.26), mat: foliage() }, // green base under the blooms
+        { geo: blooms(1.28, 0.36, 0.19, 21, 0, 3), mat: petalPink() },
+        { geo: blooms(1.28, 0.37, 0.18, 21, 1, 3), mat: petalGold() },
+        { geo: blooms(1.28, 0.36, 0.17, 21, 2, 3), mat: petalWhite() },
       ],
     },
   ],
@@ -229,7 +233,10 @@ const jet = (): THREE.Material =>
     depthWrite: false,
   })
 const soil = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x4a3728, flatShading: true })
-const bloom = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xc8477e, flatShading: true })
+const foliage = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0x3f7d3a, flatShading: true })
+const petalPink = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xe0568a, flatShading: true })
+const petalGold = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xe8c23f, flatShading: true })
+const petalWhite = (): THREE.Material => new THREE.MeshStandardMaterial({ color: 0xece7dd, flatShading: true })
 
 const boxGeo = (w: number, h: number, d: number, y: number): THREE.BufferGeometry => {
   const g = new THREE.BoxGeometry(w, h, d)
@@ -250,6 +257,25 @@ const sphere = (r: number, y: number): THREE.BufferGeometry => {
   const g = new THREE.SphereGeometry(r, 8, 6)
   g.translate(0, y, 0)
   return g
+}
+/**
+ * A cluster of little flower heads scattered over a bed — every `mod`-th one of a
+ * golden-angle spiral (so `k=0,1,2` interleave three colours instead of clumping),
+ * merged into a single geometry so the whole bed is one instanced draw per colour.
+ */
+const blooms = (bedR: number, y: number, size: number, total: number, k: number, mod: number): THREE.BufferGeometry => {
+  const GOLD = Math.PI * (3 - Math.sqrt(5))
+  const parts: THREE.BufferGeometry[] = []
+  for (let i = 0; i < total; i++) {
+    if (i % mod !== k) continue
+    const rad = bedR * Math.sqrt((i + 0.5) / total)
+    const ang = i * GOLD
+    const g = new THREE.SphereGeometry(size, 5, 4)
+    g.scale(1, 0.8, 1) // squashed a touch — a bloom, not a ball
+    g.translate(Math.cos(ang) * rad, y + (i % 3) * 0.045, Math.sin(ang) * rad)
+    parts.push(g)
+  }
+  return mergeGeometries(parts)
 }
 /**
  * Arcs of water thrown from the rim toward the middle.

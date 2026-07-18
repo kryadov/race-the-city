@@ -18,8 +18,8 @@ import type { ElevationProvider } from '../terrain/provider'
  */
 
 /** Nearest and furthest a cover sits from the last one down the same road. */
-const MIN_GAP = 18
-const MAX_GAP = 30
+const MIN_GAP = 32
+const MAX_GAP = 55
 /**
  * No two covers closer than this, across the whole city, in metres.
  *
@@ -37,19 +37,17 @@ const DEDUP_MIN = 8
  */
 const MAX_COVERS = 6000
 
-const COVER_R = 0.34 // ~0.68m across — the size of a real cast-iron cover
-const COVER_SIDES = 12 // low-poly disc: a dodecagon reads as round and stays cheap
-const COVER_H = 0.06 // a short flat disc, not a drum
+const COVER_R = 0.45 // ~0.9m across — a big cast-iron cover you can actually spot
+const SEGMENTS = 16 // low-poly, but round enough that the dome doesn't read as a gem
+const DOME_RISE = 0.14 // how far the dome stands proud of the tarmac — convex, not a puck
 const IRON = 0x3a3d42 // dark iron grey
 
 /**
  * The road ribbon sits this far above the ground (roads.ts ROAD_Y_OFFSET, which
- * is module-private there). A cover has to clear that surface, or it fights the
- * tarmac for the same pixels and flickers.
+ * is module-private there). The cover's equator sits on that surface and the
+ * dome curves up out of it; the lower half is buried under the opaque tarmac.
  */
 const ROAD_SURFACE = 0.15
-/** Lift the disc's centre a touch past the tarmac so its top stands a few cm proud. */
-const LIFT = 0.02
 
 const UP = new THREE.Vector3(0, 1, 0)
 
@@ -74,7 +72,10 @@ export function buildManholes(
   const spots = dedupe(collectSpots(roads, rand))
   const kept = subsample(spots, MAX_COVERS)
 
-  const geo = new THREE.CylinderGeometry(COVER_R, COVER_R, COVER_H, COVER_SIDES)
+  // A shallow convex dome: a sphere squashed to a lens. Its equator sits on the
+  // road and the top curves up DOME_RISE proud; the bottom half is under the tarmac.
+  const geo = new THREE.SphereGeometry(COVER_R, SEGMENTS, 6)
+  geo.scale(1, DOME_RISE / COVER_R, 1)
   const mat = new THREE.MeshStandardMaterial({
     color: IRON,
     flatShading: true,
@@ -90,8 +91,8 @@ export function buildManholes(
   const col = new THREE.Color()
   for (let i = 0; i < kept.length; i++) {
     const s = kept[i]
-    // Sit the cover on the road surface (which follows the terrain), a hair proud.
-    pos.set(s.x, provider.heightAt(s.x, s.z) + ROAD_SURFACE + LIFT, s.z)
+    // Equator on the road surface (which follows the terrain); the dome pokes up.
+    pos.set(s.x, provider.heightAt(s.x, s.z) + ROAD_SURFACE, s.z)
     q.setFromAxisAngle(UP, rand() * Math.PI * 2) // spin each one so the facets don't line up
     mesh.setMatrixAt(i, m.compose(pos, q, one))
     // A little brightness variety around the base iron so a street of them does
