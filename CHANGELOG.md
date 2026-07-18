@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.6 — bridge railings look like railings
+- The bridge railings were a solid parapet wall; they're now a proper **see-through balustrade** —
+  thin posts every ~2.5m with a top and a mid rail spanning between them, following the deck's arch.
+  Still merged into the one railing draw call.
+- 👀 Drive a bridge: you can see through the railings between the posts.
+
 ## v0.110.5 — emergency beacons flash
 - The police car's (and ambulance's / fire-truck's) roof beacons now **strobe red↔blue** instead of
   glowing steady, so an emergency vehicle reads at a glance.

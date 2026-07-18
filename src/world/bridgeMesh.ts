@@ -8,6 +8,16 @@ const DECK_COLOR = 0x6e6f77
 const RAIL_COLOR = 0x9aa0a8
 const PIER_COLOR = 0x7b7d85
 const RAIL_H = 1.0
+/**
+ * The railing is a balustrade of thin bars, not a filled parapet. RAIL_T is how
+ * thick a single bar reads — a post's square footprint and a rail's section are
+ * both this — kept thin so daylight finds the gaps between the posts. The posts
+ * march along the edge every POST_SPACING metres; a top rail caps them flush and
+ * a mid rail crosses at MID_FRAC of the height, with air above and below it.
+ */
+const RAIL_T = 0.1
+const POST_SPACING = 2.5
+const MID_FRAC = 0.5
 const PIER_MIN = 2.0 // don't prop up a deck that is already on the ground
 /**
  * How thick the deck slab is. It used to be a single plane — a couple of pixels
@@ -38,6 +48,109 @@ function emitWall(
     const bt = yTop(i + 1)
     out.push(a.x, ab, a.z, a.x, at, a.z, b.x, bt, b.z)
     out.push(a.x, ab, a.z, b.x, bt, b.z, b.x, bb, b.z)
+  }
+}
+
+/**
+ * One thin box — a bar — written straight into a triangle soup: a rectangular
+ * section `2*half` wide, running in plan from `a` to `b`, its bottom rising
+ * `ab`→`bb` and its top `at`→`bt`. Heights are given per end so a rail can lean
+ * along with the deck's arch while a post stands plumb. The balustrade's posts
+ * and rails are all just bars, so they share this one primitive and land in the
+ * same buffer. Wound either way — the rail mesh is drawn double-sided — so we
+ * skip the winding bookkeeping and let flat shading light whichever face turns
+ * to the sun.
+ */
+function emitBar(
+  out: number[],
+  a: Vec2,
+  b: Vec2,
+  half: number,
+  ab: number,
+  at: number,
+  bb: number,
+  bt: number,
+): void {
+  // Unit perpendicular to the bar in plan, scaled to the half-thickness: the two
+  // long faces sit this far to either side of the a→b centre line.
+  const dx = b.x - a.x
+  const dz = b.z - a.z
+  const len = Math.hypot(dx, dz) || 1
+  const nx = (-dz / len) * half
+  const nz = (dx / len) * half
+  // The four plan corners: each end, offset to the minus and plus side.
+  const am = { x: a.x - nx, z: a.z - nz }
+  const ap = { x: a.x + nx, z: a.z + nz }
+  const bm = { x: b.x - nx, z: b.z - nz }
+  const bp = { x: b.x + nx, z: b.z + nz }
+  const quad = (
+    p: Vec2, py: number, q: Vec2, qy: number,
+    r: Vec2, ry: number, s: Vec2, sy: number,
+  ): void => {
+    out.push(p.x, py, p.z, q.x, qy, q.z, r.x, ry, r.z)
+    out.push(p.x, py, p.z, r.x, ry, r.z, s.x, sy, s.z)
+  }
+  quad(am, ab, ap, ab, ap, at, am, at) // end cap at a
+  quad(bm, bb, bp, bb, bp, bt, bm, bt) // end cap at b
+  quad(am, ab, am, at, bm, bt, bm, bb) // minus-side face
+  quad(ap, ab, ap, at, bp, bt, bp, bb) // plus-side face
+  quad(am, at, ap, at, bp, bt, bm, bt) // top face
+  quad(am, ab, ap, ab, bp, bb, bm, bb) // bottom face
+}
+
+/**
+ * A see-through balustrade standing on one deck edge, in place of the old filled
+ * parapet that read as a solid wall of colour: plumb posts a stride apart, tied
+ * by a top rail and a mid rail that lean along with the arch.
+ *
+ * The posts are walked out by DISTANCE, not one per deck point — the deck is
+ * densified to a point every few metres, so posts-per-point would thin out or
+ * bunch up with the mesh instead of the eye, and a fixed spacing keeps them even
+ * over the whole span. Everything is a thin bar pushed into `out`, so the whole
+ * railing merges into a single mesh and a single draw.
+ */
+function emitBalustrade(out: number[], line: Vec2[], dy: number[]): void {
+  // Rails: one bar per deck segment, so they follow every kink of the arch. The
+  // top rail hangs just under the post tops (capping them flush); the mid rail
+  // is centred at MID_FRAC of the height with open air on both sides.
+  for (let i = 0; i < line.length - 1; i++) {
+    const a = line[i]
+    const b = line[i + 1]
+    const ta = dy[i] + RAIL_H
+    const tb = dy[i + 1] + RAIL_H
+    emitBar(out, a, b, RAIL_T / 2, ta - RAIL_T, ta, tb - RAIL_T, tb)
+    const ma = dy[i] + RAIL_H * MID_FRAC
+    const mb = dy[i + 1] + RAIL_H * MID_FRAC
+    emitBar(out, a, b, RAIL_T / 2, ma - RAIL_T / 2, ma + RAIL_T / 2, mb - RAIL_T / 2, mb + RAIL_T / 2)
+  }
+
+  // Posts: step along the edge at a fixed spacing, standing a plumb bar wherever
+  // we land. `next` carries across segment boundaries so the rhythm is even over
+  // the whole span rather than restarting at every deck point.
+  let dist = 0
+  let next = 0
+  for (let i = 0; i < line.length - 1; i++) {
+    const a = line[i]
+    const b = line[i + 1]
+    const segLen = Math.hypot(b.x - a.x, b.z - a.z) || 1
+    while (next <= dist + segLen) {
+      const f = (next - dist) / segLen
+      const cx = a.x + (b.x - a.x) * f
+      const cz = a.z + (b.z - a.z) * f
+      const cy = dy[i] + (dy[i + 1] - dy[i]) * f // deck height under this post
+      const hx = ((b.x - a.x) / segLen) * (RAIL_T / 2) // half a post, along the edge
+      const hz = ((b.z - a.z) / segLen) * (RAIL_T / 2)
+      emitBar(
+        out,
+        { x: cx - hx, z: cz - hz },
+        { x: cx + hx, z: cz + hz },
+        RAIL_T / 2,
+        cy, cy + RAIL_H,
+        cy, cy + RAIL_H,
+      )
+      next += POST_SPACING
+    }
+    dist += segLen
   }
 }
 
@@ -79,11 +192,11 @@ export function buildBridges(decks: Deck[], provider: ElevationProvider): THREE.
     emitWall(deckPos, sides.map((s) => s.left), (i) => under[i], (i) => d.y[i])
     emitWall(deckPos, sides.map((s) => s.right), (i) => under[i], (i) => d.y[i])
 
-    // Railings: a wall standing ON each deck edge, base at deck level rising to
-    // RAIL_H. As a flat ribbon they floated a metre above the deck instead.
+    // A see-through balustrade on each deck edge, in place of the old filled
+    // parapet: posts a couple of metres apart tied by a top and a mid rail. Both
+    // edges feed the one railPos buffer, so it all stays a single merged mesh.
     for (const edge of ['left', 'right'] as const) {
-      const line = sides.map((s) => s[edge])
-      emitWall(railPos, line, (i) => d.y[i], (i) => d.y[i] + RAIL_H)
+      emitBalustrade(railPos, sides.map((s) => s[edge]), d.y)
     }
 
     for (let i = 0; i < pts.length; i++) {
