@@ -352,6 +352,7 @@ let queued: string | null = null
 // enters this mode once the car exists.
 let playAfterLoad: StartMode | null = null
 let startMode: StartMode = 'free' // the mode picked on the start menu, recorded via onMode
+let errorDismiss: ReturnType<typeof setTimeout> | undefined // clears a load-failed notice after a few seconds
 let currentCity = '' // the loaded city query, for session save/restore
 let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
 let lastRailways: import('../geo/types').Railway[] = []
@@ -363,6 +364,10 @@ async function loadCity(query: string): Promise<void> {
     return
   }
   loading_ = true
+  if (errorDismiss) {
+    clearTimeout(errorDismiss) // a fresh load supersedes any lingering failure notice
+    errorDismiss = undefined
+  }
   replay.clear() // the recorded poses belong to the outgoing city
   hud.setCity(query)
   try {
@@ -821,6 +826,13 @@ async function loadCity(query: string): Promise<void> {
   } catch (e) {
     const key = e instanceof Error && e.message === 'city not found' ? 'error.cityNotFound' : 'error.loadFailed'
     loading.error(t(key))
+    // Don't leave the failure notice — and, on a menu-driven load, the loading
+    // screen — hanging forever: clear it after 5s and bring the start menu back
+    // so another city can be tried.
+    errorDismiss = setTimeout(() => {
+      loading.hide()
+      startMenu.show()
+    }, 5000)
   } finally {
     loading_ = false
     if (queued !== null) {
@@ -1125,7 +1137,7 @@ function startPlay(mode: StartMode): void {
  * click during the opening backdrop load did nothing at all.
  */
 function playCity(query: string): void {
-  startMenu.hide()
+  startMenu.enterLoading() // keep the animated backdrop up as a loading screen
   replayControls.setVisible(true)
   audio.resume() // user gesture — safe to start audio
   playAfterLoad = startMode
@@ -1135,7 +1147,7 @@ function startContinue(): void {
   const sess = getSession()
   if (!sess) return
   attract = false
-  startMenu.hide()
+  startMenu.enterLoading() // backdrop stays up as a loading screen while the city comes in
   replayControls.setVisible(true)
   audio.resume()
   autopilot.setEnabled(getDemo())

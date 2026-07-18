@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.108.5 — Random keeps the loading screen; load errors clear themselves
+- Clicking **Random city** (or searching one) used to drop the whole menu and leave a **black screen**
+  while the new city loaded. Now the animated **synthwave backdrop stays up as a loading screen** —
+  like the splash — and fades into the live city once it's ready.
+- A failed load ("couldn't load the city") no longer **hangs forever**: the notice clears after 5s
+  and the start menu returns, so you can try another city.
+
 ## v0.108.4 — pause shows your exact position, for bug reports
 - Pausing now prints the car's **world x/z and heading** above the city name. Screenshot a glitch
   with the game paused and it carries the exact spot and facing, so the view can be reproduced and

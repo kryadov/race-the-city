@@ -23,6 +23,9 @@ export interface StartMenuHandle {
   hide(): void
   /** Fade the animated boot backdrop out — a city is on the canvas now. */
   revealCity(): void
+  /** Drop the menu controls but keep the animated backdrop up as a loading
+   *  screen (Random / city-search), until revealCity() hands over to the city. */
+  enterLoading(): void
   /** Offer (or hide) the Continue button. */
   setContinueAvailable(on: boolean): void
   /** Reflect the current backdrop car in the strip. */
@@ -213,20 +216,47 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
   // already has this car, and the callback runs before the first city loads.
   for (const [type, b] of carBtns) b.style.background = type === vehicle ? ACTIVE : IDLE
 
+  let loadingMode = false // true while a Random/search load runs behind the backdrop
+  let revealTimer: ReturnType<typeof setTimeout> | undefined
+
   return {
     show() {
+      // Bring the interactive menu back (e.g. after a failed load), leaving the
+      // synthwave backdrop up behind it.
+      loadingMode = false
+      panel.style.display = ''
       overlay.style.display = 'flex'
       applyText()
     },
     hide() {
+      loadingMode = false
+      panel.style.display = ''
       overlay.style.display = 'none'
     },
+    enterLoading() {
+      // Random / city-search: drop the menu controls but keep the animated
+      // backdrop up as a loading screen — no black void — until revealCity().
+      loadingMode = true
+      clearTimeout(revealTimer)
+      panel.style.display = 'none'
+      backdrop.style.display = 'block'
+      backdrop.style.opacity = '1'
+      overlay.style.display = 'flex'
+    },
     revealCity() {
-      if (backdrop.style.opacity === '0') return
+      clearTimeout(revealTimer)
       backdrop.style.opacity = '0'
-      // Stop the floor/sun animating once it's invisible behind the live city.
-      setTimeout(() => {
+      const wasLoading = loadingMode
+      loadingMode = false
+      // Stop the floor/sun animating once it's invisible; if this load came from
+      // a Play/Random pick, dismiss the whole menu now its city is up (the idle
+      // backdrop load instead leaves the menu in place over the live demo).
+      revealTimer = setTimeout(() => {
         backdrop.style.display = 'none'
+        if (wasLoading) {
+          overlay.style.display = 'none'
+          panel.style.display = ''
+        }
       }, 900)
     },
     setContinueAvailable(on) {

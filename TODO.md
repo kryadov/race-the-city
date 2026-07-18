@@ -31,6 +31,9 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Bench-sitting by the water** — place benches beside lakes and have pedestrians **walk up,
       sit down, sit a while, stand and leave** (a small state machine: approach → sit → idle → rise →
       wander off). Ties into the water-avoidance work above and the existing `streetFurniture` benches.
+- [ ] **Flowerbed stems** — the beds read better now, but grow the blooms on **stems of slightly
+      varied (or shaped/patterned) length**, randomised, so they look tended rather than a flat mat.
+      A small per-bloom height jitter on the existing instanced flowers in `props.ts`.
 - [ ] **Colour-coded nitro** — nitro bottles come in **different colours**, and the colour sets the
       boost: a **different acceleration effect and/or a different duration** per colour (e.g. a short
       hard punch vs a long gentle push). Needs a small table of nitro types (colour → boost strength
@@ -46,6 +49,10 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       the runner) or the runner (goal: avoid being touched)**. AI drives the other role on the road
       graph; win/lose on contact or a timer. Slots into the start-menu mode list + `applyTrial`/
       `applyTaxi`-style wiring, reusing rivals/traffic AI for the opponent.
+- [ ] **Traffic lights + obey them** — **signals at junctions**, and both **cars and pedestrians go
+      only on green** (stop line on red/amber). A per-junction light phase clock; `traffic.ts` and
+      `pedestrians.ts` agents check the light for the edge they're entering and hold at the stop line.
+      Keep the check O(1) per agent (light state cached per node).
 - [ ] **Level-crossing barriers** — drop **boom barriers (шлагбаумы) at railway crossings** that
       lower when a train approaches and raise after it passes. Reuse `trains.ts` timing + the road/rail
       intersection points; a hinged bar mesh + a simple down/up animation gated on train proximity.
@@ -83,6 +90,16 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
 - [ ] **Bike lanes + cyclists** — paint a **cycle-lane stripe as a texture on the existing road
       ribbon** (no new mesh — same draw call as the road markings), and add **cyclists** riding it
       (instanced, reuse the pedestrian/traffic graph on `cycleway`/pavement). Keep it cheap.
+- [ ] **Manhole detail + open covers** — add **four small fixings around the rim** (like real cast
+      covers), and make **some covers sit ajar / offset** as if not fully closed. Driving over an open
+      one **drops the wheel in and tilts the car** — a physics dip at that spot (per-wheel height /
+      a brief suspension pothole), not just a visual. Keep it cheap (instanced covers already).
+- [ ] **Signage text** — real **labels on building nameplates, monuments and signposts** (street
+      names, POI names, monument names from OSM). Rendered text (canvas-texture atlas or SDF) on the
+      existing sign/nameplate meshes; cap how many render at once and fade by distance for cost.
+- [ ] **Minimap zoom buttons** — **+ / − buttons on the minimap** to zoom it in/out, working with
+      **touch** (pointer events, not just mouse) for mobile. Adjust the minimap's world-to-pixel
+      scale; persist the level via prefs.
 - [ ] **People use doors** — pedestrians currently pop out through walls anywhere on a building.
       They should **enter and leave only through a door**, and the **door should open as they pass
       and close behind them**. Needs a door position per building (a facade feature already exists —
