@@ -43,6 +43,17 @@ export function classifyProp(tags: Record<string, string>): PropKind | null {
   return null
 }
 
+// Sights worth a beacon: the tourist and historic tags a visitor would detour
+// for. A few (monument, memorial, artwork) also raise a statue prop — the model
+// is the sight, the beacon marks it — so this is checked alongside, not instead.
+const LANDMARK_TOURISM = new Set(['attraction', 'museum', 'artwork', 'viewpoint', 'gallery'])
+const LANDMARK_HISTORIC = new Set(['monument', 'memorial', 'castle', 'ruins'])
+
+/** True when this tagging names a landmark to signpost. */
+export function isLandmark(tags: Record<string, string>): boolean {
+  return LANDMARK_TOURISM.has(tags.tourism) || LANDMARK_HISTORIC.has(tags.historic)
+}
+
 const FIELD_LANDUSE = new Set(['farmland', 'farmyard', 'animal_keeping', 'meadow', 'orchard'])
 
 /** Open country — grazing land, near enough. */
@@ -119,11 +130,15 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const benches: Vec2[] = []
   const busStops: Vec2[] = []
   const pois: Poi[] = []
+  // Landmark points from nodes and ways, gathered raw here and only deduped and
+  // capped once every element has been seen (a sight is often tagged twice).
+  const landmarkPts: Vec2[] = []
   for (const el of json.elements) {
     if (el.type === 'node' && el.lat !== undefined && el.lon !== undefined) {
       const local = projector.toLocal({ lat: el.lat, lon: el.lon })
       nodes.set(el.id, local)
       const tags = el.tags
+      if (tags && isLandmark(tags)) landmarkPts.push(local)
       if (tags?.natural === 'tree') trees.push(local)
       else if (tags?.amenity === 'bench') benches.push(local)
       else if (tags?.highway === 'bus_stop') busStops.push(local)
@@ -156,15 +171,11 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     const points = el.nodes.map((id) => nodes.get(id)).filter((p): p is Vec2 => !!p)
     if (points.length < 2) continue
 
+    if (isLandmark(tags)) landmarkPts.push(centroid(points))
+
     const propKind = classifyProp(tags)
     if (propKind) {
-      let cx = 0
-      let cz = 0
-      for (const p of points) {
-        cx += p.x
-        cz += p.z
-      }
-      props.push({ at: { x: cx / points.length, z: cz / points.length }, kind: propKind })
+      props.push({ at: centroid(points), kind: propKind })
       continue
     }
     if (tags.natural === 'coastline') {
@@ -247,11 +258,49 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
+  // One sight is often tagged twice — a museum node inside its building outline,
+  // a monument node on the ruins around it — so snap to a coarse grid and keep
+  // one beacon per cell. Then cap the lot, the way trees and props are capped,
+  // so a monument-dense old town doesn't sprout a forest of signposts.
+  for (const at of dedupeByCell(landmarkPts, LANDMARK_MERGE_M).slice(0, MAX_LANDMARKS)) {
+    pois.push({ x: at.x, z: at.z, kind: 'landmark' })
+  }
+
   return { roads, buildings, water, green, parking, fields, trees, props, coast, railways, benches, busStops, pois }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */
 export const MAX_RELATION_MEMBERS = 600
+
+/** How far apart two landmark points must be to count as separate sights. */
+const LANDMARK_MERGE_M = 15
+/** A budget cap on landmark beacons — sparse in most cities, dense in old towns. */
+const MAX_LANDMARKS = 300
+
+/** The average of a ring's vertices — near enough its middle for a marker. */
+function centroid(points: Vec2[]): Vec2 {
+  let cx = 0
+  let cz = 0
+  for (const p of points) {
+    cx += p.x
+    cz += p.z
+  }
+  return { x: cx / points.length, z: cz / points.length }
+}
+
+/** Drop points that share a grid cell, keeping the first seen — a cheap spatial
+ * dedupe so two taggings of one sight don't stack two markers on the same spot. */
+function dedupeByCell(points: Vec2[], cell: number): Vec2[] {
+  const seen = new Set<string>()
+  const out: Vec2[] = []
+  for (const p of points) {
+    const key = `${Math.round(p.x / cell)},${Math.round(p.z / cell)}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(p)
+  }
+  return out
+}
 
 /**
  * Stitch a multipolygon's member ways into closed rings.

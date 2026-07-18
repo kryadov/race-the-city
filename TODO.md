@@ -6,6 +6,32 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎮 Play-test backlog — 2026-07-19 (live session)
 Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
 
+- [ ] **BUG — benches gone from streets** — across several cities the user no longer sees any
+      street benches (park ones may be ok). Regression suspect: `streetFurniture.ts` roadside
+      placement caps/`nearestRoad`/ROADSIDE_DIST — check they're actually being placed and drawn
+      (and that `world.benches` is populated from OSM `amenity=bench`). Not touched by any live agent.
+- [ ] **BUG — water floats above the ground** in places (screenshot): a river/lake plane sits higher
+      than the terrain of its bank, hovering with a visible edge. Suspect `waterLevel(ring, provider)`
+      in `src/world/water.ts` picking too high a level (e.g. a max instead of the bank minimum), or
+      the water plane not being lowered to the bed. Measure the sampled level vs the surrounding
+      ground, then seat the surface at/just below the bank. (Water module — free of the live agents.)
+- [ ] **Waterfront railings + curb** — where a lake/river has an **embankment/quay (набережная)**,
+      fence it with a **railing** and a **curb the car can't cross into the water**; but if the car
+      DID get in, it can drive back out (one-way soft barrier). Ties into the pedestrian water-avoid
+      work and boats.
+- [ ] **Boats: better hull + rower** — make the rowboat **more boat-shaped** and give it a **little
+      figure rowing with oars** (animated stroke). `boats.ts` rowboat model + a per-boat oar animation
+      in the update loop; keep it cheap.
+- [ ] **BUG — São Paulo (and maybe other dense cities) render almost no buildings.** FINDINGS so
+      far: the geocode is FINE — "São Paulo" → -23.5507,-46.6334, dense downtown, RADIUS 1000m, so
+      buildings exist in OSM there. The suspect is `src/geo/overpass.ts` `overpassQuery`: ONE heavy
+      combined query (highway+building+water+greenery+tourism/historic+…) at `[timeout:25]`. On a very
+      dense city that likely **times out or gets truncated**, dropping most buildings. NEXT: measure
+      in headless — run the real `fetchOsm` for São Paulo, log the building element count and whether
+      Overpass returns an error/partial. Likely fix: **split buildings into their own query** (and/or
+      raise the timeout, add a retry, or shrink the bbox for dense areas). Hold until the
+      landmark-marker agent frees overpass.ts.
+
 > **Hard constraint on every item below: it must not cost frame rate.** New ambience/props are
 > instanced or capped and culled; anything per-frame (crowd AI, water tests, weather) stays O(few)
 > and async where it touches the network. If a feature can't be done cheaply, it doesn't ship as-is.

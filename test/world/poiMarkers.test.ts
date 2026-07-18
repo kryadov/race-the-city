@@ -67,6 +67,19 @@ describe('poi markers', () => {
     expect(f.g, 'fuel is green').toBeGreaterThan(f.r)
   })
 
+  it('gives a landmark its own warm-gold panel, distinct from café and fuel', () => {
+    const g = buildPoiMarkers([poi(0, 0, 'cafe'), poi(5, 0, 'fuel'), poi(10, 0, 'landmark')], flat)
+    const land = findMesh(g, 'poi-landmark-panel')
+    expect(land, 'a landmark panel exists').not.toBeNull()
+    const l = colorOf(land!)
+    // gold reads warm and bright: red and green well above blue
+    expect(l.r, 'gold is warm').toBeGreaterThan(l.b)
+    expect(l.g, 'gold is bright').toBeGreaterThan(l.b)
+    // and it is not the café's brown-red nor the fuel's green
+    expect(l.getHex()).not.toBe(colorOf(findMesh(g, 'poi-cafe-panel')!).getHex())
+    expect(l.getHex()).not.toBe(colorOf(findMesh(g, 'poi-fuel-panel')!).getHex())
+  })
+
   it('gives the panel glyph a day glow, so it reads at a distance', () => {
     const g = buildPoiMarkers([poi(0, 0, 'cafe')], flat)
     const glyph = findMesh(g, 'poi-cafe-glyph')!

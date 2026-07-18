@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.109.0 — glowing markers over landmarks
+- Tourism and historic sights — attractions, museums, artwork, viewpoints, monuments, memorials,
+  castles, ruins — now get a **glowing gold beacon**, the same instanced signpost the game already
+  uses for cafés and fuel. One draw for the whole city, so no frame-rate cost. (Also the groundwork
+  for a future "tour" mode.)
+- 👀 Drive a city centre: landmarks glow gold, distinct from the café/fuel markers.
+
 ## v0.108.7 — flowerbeds grow on stems
 - The flowerbeds were a flat mat of blooms; each flower now stands on its own **stem of varied
   length** — a gentle dome, tallest in the middle, with a per-flower wobble — so a bed reads as

@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import type { ElevationProvider } from '../terrain/provider'
 
-/** The two kinds of point-of-interest the city labels: cafés and fuel stations. */
-export type PoiKind = 'cafe' | 'fuel'
+/** The kinds of point-of-interest the city labels: cafés, fuel stations and landmarks. */
+export type PoiKind = 'cafe' | 'fuel' | 'landmark'
 
 /** A place worth a signpost: where it stands (local metres) and what it is. */
 export interface PoiMarker {
@@ -31,9 +31,9 @@ const GLYPH_Z = PANEL_T / 2 + GLYPH_T / 2
 /** A budget cap: POIs are sparse, but a huge dense city shouldn't run away. */
 const MAX_MARKERS = 400
 
-/** Per-kind colouring. Café = warm brown/red, fuel = muted green — the panel
- * carries the distinction from every angle (a box shows its colour on all faces),
- * and the glyph echoes it, brighter and glowing. */
+/** Per-kind colouring. Café = warm brown/red, fuel = muted green, landmark =
+ * warm gold/amber — the panel carries the distinction from every angle (a box
+ * shows its colour on all faces), and the glyph echoes it, brighter and glowing. */
 interface KindStyle {
   panel: number
   glyph: number
@@ -42,16 +42,18 @@ interface KindStyle {
 const STYLES: Record<PoiKind, KindStyle> = {
   cafe: { panel: 0x8f4a38, glyph: 0xf0d2a6, glyphEmissive: 0xff9a4a },
   fuel: { panel: 0x2f7d3b, glyph: 0xd0efb2, glyphEmissive: 0x5bd070 },
+  landmark: { panel: 0xc8912a, glyph: 0xf6e2a0, glyphEmissive: 0xffc23a },
 }
-const KINDS: PoiKind[] = ['cafe', 'fuel']
+const KINDS: PoiKind[] = ['cafe', 'fuel', 'landmark']
 
 /**
- * Small signpost markers for points of interest (cafés and fuel stations), so
- * the city has a few labelled spots.
+ * Small signpost markers for points of interest (cafés, fuel stations and
+ * landmarks), so the city has a few labelled spots.
  *
  * One instanced draw covers every post (they are all the same grey); the panel
  * and its glyph are instanced once per kind so each carries its own colour. So
- * the whole city's markers cost five draw calls, not one mesh per signpost.
+ * the whole city's markers cost seven draw calls (the posts, plus a panel and a
+ * glyph for each of the three kinds), not one mesh per signpost.
  *
  * Every marker sits on the terrain via `provider.heightAt`, with the post base
  * on the ground and the structure built upward from it.
@@ -81,7 +83,7 @@ export function buildPoiMarkers(pois: PoiMarker[], provider: ElevationProvider):
 
   // Panel + glyph, one instanced draw each per kind so the colour comes from a
   // distinct material the neon theme can restyle (rather than per-instance colour).
-  const buckets: Record<PoiKind, PoiMarker[]> = { cafe: [], fuel: [] }
+  const buckets: Record<PoiKind, PoiMarker[]> = { cafe: [], fuel: [], landmark: [] }
   for (const p of list) buckets[p.kind].push(p)
 
   for (const kind of KINDS) {

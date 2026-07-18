@@ -87,3 +87,33 @@ describe('parseOsm', () => {
     expect(hasOrigin).toBe(true)
   })
 })
+
+describe('landmark POIs', () => {
+  const world = parseOsm(
+    {
+      elements: [
+        // a museum node, plus a second museum tagged on the same spot: one sight
+        { type: 'node', id: 1, lat: 41.7151, lon: 44.8271, tags: { tourism: 'museum' } },
+        { type: 'node', id: 2, lat: 41.7151, lon: 44.8271, tags: { tourism: 'museum' } },
+        // a monument node, ~110m north — also a statue prop
+        { type: 'node', id: 3, lat: 41.7161, lon: 44.8271, tags: { historic: 'monument' } },
+        // a castle mapped as a way, off to the side
+        { type: 'node', id: 10, lat: 41.7156, lon: 44.8286 },
+        { type: 'node', id: 11, lat: 41.7157, lon: 44.8287 },
+        { type: 'node', id: 12, lat: 41.7158, lon: 44.8286 },
+        { type: 'way', id: 100, nodes: [10, 11, 12, 10], tags: { historic: 'castle' } },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+  const landmarks = world.pois.filter((p) => p.kind === 'landmark')
+
+  it('marks museums, monuments and castles (node or way) as landmarks', () => {
+    // museum + monument + castle = 3; the duplicate museum is merged away
+    expect(landmarks.length).toBe(3)
+  })
+
+  it('still raises a statue prop for the monument the beacon marks', () => {
+    expect(world.props.some((p) => p.kind === 'statue')).toBe(true)
+  })
+})
