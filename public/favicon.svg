@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#0b0e13"/>
+  <!-- road stripe -->
+  <rect x="8" y="45" width="48" height="5" rx="2.5" fill="#2a3340"/>
+  <rect x="14" y="46.5" width="8" height="2" rx="1" fill="#e6b23a"/>
+  <rect x="42" y="46.5" width="8" height="2" rx="1" fill="#e6b23a"/>
+  <!-- car body -->
+  <path d="M12 38 q1-9 8-10 l4-6 q1-2 4-2 h12 q3 0 4 2 l4 6 q7 1 8 10 v3 q0 2-2 2 H14 q-2 0-2-2 z" fill="#e63946"/>
+  <!-- windscreen -->
+  <path d="M25 23 h14 l3 5 H22 z" fill="#9fc4e8"/>
+  <!-- headlight -->
+  <circle cx="49" cy="34" r="2" fill="#fff2c0"/>
+  <!-- wheels -->
+  <circle cx="23" cy="42" r="5.5" fill="#12151b"/>
+  <circle cx="23" cy="42" r="2.3" fill="#5a6472"/>
+  <circle cx="45" cy="42" r="5.5" fill="#12151b"/>
+  <circle cx="45" cy="42" r="2.3" fill="#5a6472"/>
+</svg>

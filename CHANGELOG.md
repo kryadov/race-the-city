@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.49 — a favicon for the browser tab
+- The page had no icon — it now ships a crisp **SVG favicon**: a little red car on a strip of road, in
+  the game's palette, so the tab and bookmarks are recognisable.
+- 👀 Look at the browser tab — a red car icon instead of the blank default.
+
 ## v0.110.48 — bot motorcycles thread through the traffic
 - Bot **motorcycles** now ride the streets alongside the cars — narrower and nippier, a rider on a
   low-poly bike with a **headlight that glows at night**, following the road graph like the other
