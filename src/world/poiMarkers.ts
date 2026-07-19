@@ -21,10 +21,19 @@ const PANEL_H = 0.68
 const PANEL_T = 0.09
 // The panel's centre height, near a passing driver's eyeline so it reads.
 const PANEL_CY = 2.39
-// The post rises behind the panel and stops flush with its top edge, so no bare
-// pole pokes up above the sign (co-centred, it used to spike straight through
-// the plate — палка пронизывала табличку).
-const POST_H = PANEL_CY + PANEL_H / 2
+// How far the post rises up behind the panel's LOWER edge before it stops — a
+// short bolt into the bottom of the plate, not a run all the way up to its top.
+const POST_PANEL_BOLT = 0.12
+// The post stops just past the panel's LOWER edge; it does NOT back the whole
+// plate up to its top. Ending it flush with the panel *top* is not enough: the
+// pole is co-centred behind the plate at the same height, and the chase camera
+// looks slightly DOWN at a sign as you drive up to it, so perspective lifts the
+// far (grey) top rim above the near plate's top edge and it peeks over — the
+// very "post poking through the sign" the plate is meant to hide (co-centred, it
+// used to spike straight through the plate — палка пронизывала табличку). Ending
+// the pole down at the panel's lower edge tucks it wholly behind the plate from
+// every angle; the bolt overlap meets the plate's bottom with no hairline gap.
+const POST_H = PANEL_CY - PANEL_H / 2 + POST_PANEL_BOLT
 // Bolt the panel to the post's FRONT (+z) face rather than centring it on the
 // post: the round pole then sits wholly *behind* the plate instead of piercing
 // through its readable face. POST_R_TOP is the post radius up where it mounts.

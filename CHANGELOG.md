@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.63 — signpost pole no longer pokes through the sign
+- On POI / landmark signposts the pole rose to the very top of the panel, and because the camera
+  looks slightly down as you approach, its grey top peeked over the plate. The pole now stops down at
+  the panel's lower edge, tucked wholly behind the plate, so it never shows above the sign from any
+  angle. Panel, glyph and instancing are unchanged.
+- 👀 Drive up to a café / fuel / landmark signpost — no pole tip peeking over the top of the sign.
+
 ## v0.110.62 — parked cars look like cars, sat on the tarmac
 - Parked cars were dark boxes sunk into the tarmac, packed in one dense line. They now have four
   wheels, a glass cabin and head/tail lamp dabs, ride ON the surface (a band of tyre shows beneath),

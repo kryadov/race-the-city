@@ -98,14 +98,20 @@ describe('poi markers', () => {
     expect(b.max.y, 'the sign stands up off the ground').toBeGreaterThan(42)
   })
 
-  it('caps the post behind the panel — no bare pole pierces or pokes above it', () => {
+  it('stops the post down at the panel, not up at its top — so no rim peeks over it', () => {
     const g = buildPoiMarkers([poi(0, 0, 'cafe')], flat)
     const post = new THREE.Box3().setFromObject(findMesh(g, 'poi-posts')!)
     const panel = new THREE.Box3().setFromObject(findMesh(g, 'poi-cafe-panel')!)
-    // the post's top ends at (or below) the panel's top edge — no pole spikes
-    // up above the sign it carries.
-    expect(post.max.y, 'post top not above panel top').toBeLessThanOrEqual(panel.max.y + 1e-6)
-    // and the pole sits behind the panel's readable (+z) face, not through it.
+    // The pole must end DOWN by the panel's lower edge, well below its top. A pole
+    // capped flush with the panel *top* is co-centred behind the plate at the same
+    // height, so a camera looking slightly down at the sign (the chase cam as you
+    // drive up to it) catches the grey top rim peeking above the plate through
+    // perspective — the very poke-through the plate is meant to hide.
+    const panelMidY = (panel.min.y + panel.max.y) / 2
+    expect(post.max.y, 'pole ends in the panel lower half, not at its top edge').toBeLessThan(panelMidY)
+    // but it does rise far enough to bolt into the plate's bottom, not float free.
+    expect(post.max.y, 'pole reaches up behind the panel bottom').toBeGreaterThan(panel.min.y)
+    // and it sits behind the panel's readable (+z) face, never through it.
     expect(post.max.z, 'pole stays behind the panel face').toBeLessThanOrEqual(panel.max.z + 1e-6)
   })
 
