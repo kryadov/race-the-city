@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.36 — knockbacks swing out smoothly instead of snapping
+- The bot/pedestrian knockback (v0.110.31) jumped the whole distance in a single frame, which read as
+  a hard snap. A shove now sets a **target** the bot eases toward, and the target relaxes home — so a
+  rammed car or person **swings aside and back smoothly** over about a second instead of teleporting.
+- 👀 Ram a bot: it slides away and settles back, no instant jerk.
+
 ## v0.110.35 — nitro strung along the highways, right across the map
 - Where a long, near-straight arterial runs across the city, nitro bottles are now laid in a **spaced
   chain along it** (about every 110m, only on the major roads), so you can boost the whole way across

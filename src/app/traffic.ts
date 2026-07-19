@@ -45,15 +45,17 @@ const FOLLOW_GAP = 7
 const BRAKE_ZONE = 6
 
 /**
- * Ramming knockback. When the player's car shoves a bot (see `shove`), the bot
- * takes a displacement off its route that eases back to zero — knocked aside,
- * then it drives on from wherever it ended up rather than teleporting home.
- * KNOCK_DECAY is the framerate-independent relax rate (e^-k*t: k=5 is mostly
- * gone in ~0.6s), MAX_KNOCK caps the offset so even a full-speed hit can't fling
- * a car across the street, and SHOVE_REACH is how close to the impact point a
- * car has to be to feel it — a car's length or so, enough to catch the one hit.
+ * Ramming knockback. When the player's car shoves a bot (see `shove`), it sets a
+ * knockback *target* off the bot's route; the drawn offset then eases toward that
+ * target and the target relaxes back to zero — so the bot swings aside and back
+ * smoothly rather than snapping there in one frame. KNOCK_EASE is how fast the
+ * offset chases the target (the ramp-out), KNOCK_DECAY how fast the target relaxes
+ * home (e^-k*t), MAX_KNOCK caps it so even a full-speed hit can't fling a car
+ * across the street, and SHOVE_REACH is how close to the impact a car must be to
+ * feel it — a car's length or so, enough to catch the one hit.
  */
-const KNOCK_DECAY = 5
+const KNOCK_EASE = 6
+const KNOCK_DECAY = 4
 const MAX_KNOCK = 3
 const SHOVE_REACH = 6
 
@@ -120,10 +122,13 @@ interface Agent {
   /** The heading actually drawn, eased toward the edge direction, so the car
    *  arcs through a junction instead of snapping 90 degrees on the spot. */
   yaw: number
-  /** Ramming knockback: a displacement (metres) off the route, added to the
-   *  drawn position and eased back to zero each frame. Zero when undisturbed. */
+  /** Ramming knockback: the drawn offset (metres) off the route (kx/kz), and the
+   *  target it eases toward (tx/tz) which itself relaxes to zero. All zero when
+   *  undisturbed; a shove sets the target, not the offset, so the lurch is smooth. */
   kx: number
   kz: number
+  tx: number
+  tz: number
 }
 
 interface Placed {
@@ -190,7 +195,7 @@ export function createTraffic(
     const A = graph.nodes[at]
     const B = graph.nodes[to]
     const yaw = Math.atan2(B.z - A.z, B.x - A.x)
-    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw, kx: 0, kz: 0 }
+    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw, kx: 0, kz: 0, tx: 0, tz: 0 }
   }
 
   for (let i = 0; i < count; i++) {
@@ -353,14 +358,16 @@ export function createTraffic(
         const dx = p.x + a.kx - x
         const dz = p.z + a.kz - z
         if (dx * dx + dz * dz > SHOVE_REACH * SHOVE_REACH) continue
-        a.kx += ux * strength
-        a.kz += uz * strength
-        // Cap the offset so even a full-speed shunt only shoves a car aside, not
+        // Set the target the offset eases toward, not the offset itself — that's
+        // what keeps the lurch smooth. A second shove stacks onto the target.
+        a.tx += ux * strength
+        a.tz += uz * strength
+        // Cap the target so even a full-speed shunt only shoves a car aside, not
         // clean across the road.
-        const k = Math.hypot(a.kx, a.kz)
+        const k = Math.hypot(a.tx, a.tz)
         if (k > MAX_KNOCK) {
-          a.kx *= MAX_KNOCK / k
-          a.kz *= MAX_KNOCK / k
+          a.tx *= MAX_KNOCK / k
+          a.tz *= MAX_KNOCK / k
         }
       }
     },
@@ -466,11 +473,14 @@ export function createTraffic(
           }
         }
 
-        // Ease any ramming knockback back toward zero — framerate-independent —
-        // and draw the car offset by what's left, so a shoved bot lurches aside
-        // and then drives on from there rather than snapping back to its route.
-        a.kx *= Math.exp(-KNOCK_DECAY * dt)
-        a.kz *= Math.exp(-KNOCK_DECAY * dt)
+        // Ramming knockback, framerate-independent: the drawn offset eases toward
+        // its target (a smooth ramp-out, no one-frame snap) while the target itself
+        // relaxes to zero, so the bot swings aside and settles back onto its route.
+        const ease = 1 - Math.exp(-KNOCK_EASE * dt)
+        a.kx += (a.tx - a.kx) * ease
+        a.kz += (a.tz - a.kz) * ease
+        a.tx *= Math.exp(-KNOCK_DECAY * dt)
+        a.tz *= Math.exp(-KNOCK_DECAY * dt)
         const px = p.x + a.kx
         const pz = p.z + a.kz
 

@@ -21,14 +21,16 @@ const SPEED_MIN = 1.1 // m/s: a walk
 const SPEED_MAX = 1.8
 
 /**
- * Ramming knockback. When the player's car clips someone (see `shove`), they
- * take a displacement off the pavement that eases back to zero over the next
- * second or so — knocked aside, then they carry on from where they staggered
- * to. KNOCK_DECAY is the framerate-independent relax rate (e^-k*t: k=5 is mostly
- * gone in ~0.6s), MAX_KNOCK caps the offset so a hit only shoves them clear, and
- * SHOVE_REACH is how close to the impact a walker has to be to feel it.
+ * Ramming knockback. When the player's car clips someone (see `shove`), it sets a
+ * knockback *target* off the pavement; the drawn offset eases toward it and the
+ * target relaxes to zero, so they stagger aside and back smoothly instead of
+ * snapping across in one frame. KNOCK_EASE is how fast the offset chases the
+ * target (the ramp-out), KNOCK_DECAY how fast the target relaxes home (e^-k*t),
+ * MAX_KNOCK caps it so a hit only shoves them clear, and SHOVE_REACH is how close
+ * to the impact a walker has to be to feel it.
  */
-const KNOCK_DECAY = 5
+const KNOCK_EASE = 6
+const KNOCK_DECAY = 4
 const MAX_KNOCK = 2.5
 const SHOVE_REACH = 4
 
@@ -114,10 +116,13 @@ interface Walker {
   speed: number
   side: number // which side of the way they walk
   phase: number // so they don't all bob in step
-  /** Ramming knockback: a displacement (metres) off the pavement, added to the
-   *  drawn position and eased back to zero each frame. Zero when undisturbed. */
+  /** Ramming knockback: the drawn offset (metres) off the pavement (kx/kz), and the
+   *  target it eases toward (tx/tz) which itself relaxes to zero. All zero when
+   *  undisturbed; a shove sets the target, not the offset, so the stagger is smooth. */
   kx: number
   kz: number
+  tx: number
+  tz: number
 }
 
 function makeRng(seed: number): () => number {
@@ -204,6 +209,8 @@ export function createPedestrians(
       phase: rand() * Math.PI * 2,
       kx: 0,
       kz: 0,
+      tx: 0,
+      tz: 0,
     }
   }
 
@@ -338,13 +345,15 @@ export function createPedestrians(
         const dx = wx - x
         const dz = wz - z
         if (dx * dx + dz * dz > SHOVE_REACH * SHOVE_REACH) continue
-        w.kx += ux * strength
-        w.kz += uz * strength
-        // Cap the offset so a hard clip still only shoves them clear of the car.
-        const k = Math.hypot(w.kx, w.kz)
+        // Set the target the offset eases toward, not the offset itself — that's
+        // what keeps the stagger smooth. A second shove stacks onto the target.
+        w.tx += ux * strength
+        w.tz += uz * strength
+        // Cap the target so a hard clip still only shoves them clear of the car.
+        const k = Math.hypot(w.tx, w.tz)
         if (k > MAX_KNOCK) {
-          w.kx *= MAX_KNOCK / k
-          w.kz *= MAX_KNOCK / k
+          w.tx *= MAX_KNOCK / k
+          w.tz *= MAX_KNOCK / k
         }
       }
     },
@@ -417,11 +426,14 @@ export function createPedestrians(
           if (fresh) walkers[i] = fresh
         }
 
-        // Ease any ramming knockback back toward zero — framerate-independent —
-        // and draw them offset by what's left, so someone clipped staggers aside
-        // and then walks on from there rather than snapping back onto the pavement.
-        w.kx *= Math.exp(-KNOCK_DECAY * dt)
-        w.kz *= Math.exp(-KNOCK_DECAY * dt)
+        // Ramming knockback, framerate-independent: the drawn offset eases toward
+        // its target (a smooth stagger, no one-frame snap) while the target relaxes
+        // to zero, so someone clipped is knocked aside and settles back on the kerb.
+        const ease = 1 - Math.exp(-KNOCK_EASE * dt)
+        w.kx += (w.tx - w.kx) * ease
+        w.kz += (w.tz - w.kz) * ease
+        w.tx *= Math.exp(-KNOCK_DECAY * dt)
+        w.tz *= Math.exp(-KNOCK_DECAY * dt)
         x += w.kx
         z += w.kz
 

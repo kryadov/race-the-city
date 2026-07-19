@@ -502,8 +502,12 @@ describe('ramming knockback', () => {
     // ram the first car square along +x
     const [car] = a.obstacles()
     a.shove(car.x, car.z, 1, 0, 3)
-    a.update(1 / 60, 0, 0, 0)
-    b.update(1 / 60, 0, 0, 0)
+    // the knockback ramps in smoothly, peaking after ~0.2s rather than snapping
+    // to the offset in one frame — so let it build before measuring the lurch
+    for (let f = 0; f < 15; f++) {
+      a.update(1 / 60, 0, 0, 0)
+      b.update(1 / 60, 0, 0, 0)
+    }
     expect(spread(ba, bb), 'no car budged when rammed').toBeGreaterThan(1)
   })
 
@@ -523,8 +527,11 @@ describe('ramming knockback', () => {
     b.update(1 / 60, 0, 0, 0)
     const [car] = a.obstacles()
     a.shove(car.x, car.z, 1, 0, 3)
-    a.update(1 / 60, 0, 0, 0)
-    b.update(1 / 60, 0, 0, 0)
+    // let the smooth knockback ramp to its peak first
+    for (let f = 0; f < 15; f++) {
+      a.update(1 / 60, 0, 0, 0)
+      b.update(1 / 60, 0, 0, 0)
+    }
     const shoved = spread(ba, bb)
     // let the knockback decay: after a couple of seconds the twins line back up
     for (let f = 0; f < 150; f++) {
@@ -564,8 +571,11 @@ describe('pedestrians shoved aside', () => {
     b.update(1 / 60, 0, 0)
     const [person] = a.obstacles()
     a.shove(person.x, person.z, 1, 0, 2.5)
-    a.update(1 / 60, 0, 0)
-    b.update(1 / 60, 0, 0)
+    // the stagger ramps in smoothly, peaking after ~0.2s — let it build first
+    for (let f = 0; f < 15; f++) {
+      a.update(1 / 60, 0, 0)
+      b.update(1 / 60, 0, 0)
+    }
     expect(spread(ba, bb), 'nobody moved when clipped').toBeGreaterThan(1)
   })
 
@@ -585,8 +595,11 @@ describe('pedestrians shoved aside', () => {
     b.update(1 / 60, 0, 0)
     const [person] = a.obstacles()
     a.shove(person.x, person.z, 1, 0, 2.5)
-    a.update(1 / 60, 0, 0)
-    b.update(1 / 60, 0, 0)
+    // let the smooth stagger ramp to its peak first
+    for (let f = 0; f < 15; f++) {
+      a.update(1 / 60, 0, 0)
+      b.update(1 / 60, 0, 0)
+    }
     const shoved = spread(ba, bb)
     for (let f = 0; f < 150; f++) {
       a.update(1 / 60, 0, 0)
