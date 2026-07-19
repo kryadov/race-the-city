@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.53 — holiday fireworks, and pedestrians up on the bridges
+- Load the game on a **firework holiday** — New Year's Eve/Day, the 4th of July, Bonfire Night — and
+  **fireworks rise over the skyline** as you drive, paced to a pleasant cadence around the car. A pure
+  date table decides the day; ordinary days are unchanged.
+- **Pedestrians now walk over bridge decks** instead of trailing along the ground under them: a walker
+  on a bridge road is seated on the deck (and river bridges carry people now, rather than blanking).
+- 👀 Set your clock to Dec 31 and reload for fireworks; and walk the map to a bridge — people cross it.
+
 ## v0.110.52 — you can't drive through the waterfront railing now
 - The embankment railing (набережная) was decoration — the car drove straight through it into the
   water. Each **embanked edge now has a solid barrier** in the physics grid, so the quayside stops the

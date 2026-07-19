@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { dressForSeason } from '../../src/app/pedestrians'
+import { createPedestrians, dressForSeason } from '../../src/app/pedestrians'
+import { buildDecks, createDeckIndex } from '../../src/world/bridge'
+import type { Road, Vec2 } from '../../src/geo/types'
 import type { SeasonName } from '../../src/world/season'
 
 // The winter warm anchor, mirrored from pedestrians.ts (season.test.ts likewise
@@ -67,5 +69,50 @@ describe('dressForSeason', () => {
       expect(c).toBeGreaterThanOrEqual(0)
       expect(c).toBeLessThanOrEqual(0xffffff)
     }
+  })
+})
+
+describe('walking bridges', () => {
+  const v = (x: number, z: number): Vec2 => ({ x, z })
+  const flat = { heightAt: () => 0 } // terrain sits at y=0, so the bridge is what lifts them
+  // A straight road with its middle vertex at the origin, so a walker seeded from
+  // rand()=0.5 lands there (spawn picks node floor(0.5*3) = 1, the middle) — on the
+  // crown of the arch on the bridge case, on flat ground on the ground case.
+  const span: Vec2[] = [v(-100, 0), v(0, 0), v(100, 0)]
+
+  /** The y of every body instance, read back out of the InstancedMesh. */
+  function bodyYs(scene: THREE.Scene): number[] {
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    const m = new THREE.Matrix4()
+    const ys: number[] = []
+    for (let i = 0; i < bodies.count; i++) {
+      bodies.getMatrixAt(i, m)
+      ys.push(new THREE.Vector3().setFromMatrixPosition(m).y)
+    }
+    return ys
+  }
+
+  it('seats a walker on a bridge road up on the deck, not the ground under it', () => {
+    // layer 2 forces an arch over flat ground: the deck rises to ~10m mid-span.
+    const bridge: Road[] = [{ points: span, kind: 'primary', bridge: true, layer: 2 }]
+    const decks = createDeckIndex(buildDecks(bridge, flat))
+    const deckY = decks.heightAt(0, 0) // the crown height, well above the ground
+    expect(deckY).not.toBeNull()
+    expect(deckY!).toBeGreaterThan(5)
+
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, bridge, flat, () => 0.5, 6, [], 0, decks)
+    p.update(0, 0, 0) // dt=0: hold them at the seeded vertex so base = (0,0)
+    // Every walker spawned at the crown vertex rides the deck, bob aside.
+    for (const y of bodyYs(scene)) expect(Math.abs(y - deckY!)).toBeLessThan(0.05)
+  })
+
+  it('leaves a walker on a plain ground road on the terrain', () => {
+    // The same geometry, but not a bridge and no decks: they stay at ground y=0.
+    const ground: Road[] = [{ points: span, kind: 'primary' }]
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, ground, flat, () => 0.5, 6)
+    p.update(0, 0, 0)
+    for (const y of bodyYs(scene)) expect(Math.abs(y)).toBeLessThan(0.05)
   })
 })

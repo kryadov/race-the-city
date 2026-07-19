@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
+import type { DeckIndex } from '../world/bridge'
 import { buildRoadGraph, nextNode, type RoadGraph } from '../world/roadGraph'
 import { pointInPolygon, type Circle } from '../physics/collide'
 import { season, type SeasonName } from '../world/season'
@@ -116,6 +117,10 @@ interface Walker {
   speed: number
   side: number // which side of the way they walk
   phase: number // so they don't all bob in step
+  /** True while the current segment belongs to a bridge road, so they're seated
+   *  on the deck overhead rather than the ground beneath it. Resolved once per
+   *  segment from the road-edge lookup, not scanned per frame. */
+  bridge: boolean
   /** Ramming knockback: the drawn offset (metres) off the pavement (kx/kz), and the
    *  target it eases toward (tx/tz) which itself relaxes to zero. All zero when
    *  undisturbed; a shove sets the target, not the offset, so the stagger is smooth. */
@@ -157,6 +162,11 @@ export function createPedestrians(
   // `center.lat` to hand (it already passes it to buildGreenery) and should
   // forward it here as a follow-up so Sydney dresses for summer in January.
   lat = 0,
+  // Where the bridge decks are, so a walker on a bridge road rides the deck
+  // instead of trailing along the ground under it. Defaults to a no-op index
+  // (the same shape main.ts holds before a city loads), so nothing breaks when
+  // a city has no bridges or a caller passes none.
+  decks: DeckIndex = { heightAt: () => null },
 ): Pedestrians {
   const group = new THREE.Group()
   scene.add(group)
@@ -174,6 +184,23 @@ export function createPedestrians(
   const graph: RoadGraph = buildRoadGraph(roads.map((r) => (r.kind === 'path' ? { ...r, kind: 'service' as const } : r)))
   const rng = makeRng(0xbeef11)
   const walkers: Walker[] = []
+  // Which welded graph edges belong to a bridge road, so a walker on one is
+  // seated on the deck rather than the ground below. The graph itself carries no
+  // bridge flag, so we recover it here from the roads: each bridge road's points
+  // are graph vertices, so `nearest` resolves them to node ids, keyed as an
+  // unordered pair. A one-off at construction — a city has a handful of bridges.
+  const bridgeEdges = new Set<string>()
+  const edgeKey = (a: number, b: number): string => (a < b ? `${a},${b}` : `${b},${a}`)
+  for (const road of roads) {
+    if (!road.bridge || road.points.length < 2) continue
+    let prev = -1
+    for (const p of road.points) {
+      const id = graph.nearest(p.x, p.z)
+      if (id >= 0 && prev >= 0 && id !== prev) bridgeEdges.add(edgeKey(prev, id))
+      prev = id
+    }
+  }
+  const onBridge = (a: number, b: number): boolean => bridgeEdges.has(edgeKey(a, b))
   // True where (x,z) falls inside a lake/river outline — a walker standing there
   // would be down on the bed under the surface, so we steer them off it or hide
   // them (in the walk loop below).
@@ -207,6 +234,7 @@ export function createPedestrians(
       speed: SPEED_MIN + rand() * (SPEED_MAX - SPEED_MIN),
       side: rand() < 0.5 ? 1 : -1,
       phase: rand() * Math.PI * 2,
+      bridge: onBridge(at, to),
       kx: 0,
       kz: 0,
       tx: 0,
@@ -380,6 +408,7 @@ export function createPedestrians(
         // Walk by arc length, carrying the overshoot on — see the note in
         // traffic.ts: a fixed arrival radius fires instantly on the short edges
         // a dense city is made of, and they jitter instead of walking.
+        let hopped = false
         for (let hop = 0; hop < MAX_HOPS; hop++) {
           const a0 = graph.nodes[w.at]
           const b0 = graph.nodes[w.to]
@@ -388,6 +417,7 @@ export function createPedestrians(
             w.at = w.to
             w.to = nextNode(graph, w.at, w.to, rng)
             w.s = 0
+            hopped = true
             continue
           }
           if (w.s < l) break
@@ -395,7 +425,12 @@ export function createPedestrians(
           const next = nextNode(graph, w.at, w.to, rng)
           w.at = w.to
           w.to = next
+          hopped = true
         }
+        // A fresh segment may cross onto or off a bridge; resolve that here, once
+        // per segment (a set lookup, not a deck scan), so the height below knows
+        // whether to seat them on the deck or the ground.
+        if (hopped) w.bridge = onBridge(w.at, w.to)
         const A = graph.nodes[w.at]
         const B = graph.nodes[w.to]
         const len = Math.hypot(B.x - A.x, B.z - A.z) || 1
@@ -408,8 +443,10 @@ export function createPedestrians(
         // The pavement offset can push a lakeside walker off the road onto the
         // water, where they'd stand on the bed under the surface. Keep them on
         // land: if this side is wet, cross to the other pavement and stay there;
-        // if BOTH sides are water — a causeway or bridge deck — hide them.
-        if (overWater(x, z)) {
+        // if BOTH sides are water — a causeway with no deck — hide them. A bridge
+        // road is exempt: its walkers ride the deck above the water (see the
+        // height below), so the water beneath is no reason to cross or hide them.
+        if (!w.bridge && overWater(x, z)) {
           const fx = baseX - Math.sin(angle) * KERB * w.side
           const fz = baseZ + Math.cos(angle) * KERB * w.side
           if (overWater(fx, fz)) {
@@ -441,7 +478,13 @@ export function createPedestrians(
         // A gentle bob, out of step with the next person, so a crowd doesn't march.
         const stride = clock * w.speed * 4 + w.phase
         const bob = Math.sin(stride * 2) * 0.025
-        pos.set(x, provider.heightAt(x, z) + bob, z)
+        // On a bridge they walk the deck, not the ground under it. The deck is
+        // flat across its width, so its height at the centreline is its height at
+        // the pavement too; sampling the centreline (baseX, baseZ) keeps the query
+        // on the deck however far the kerb offset pushes them toward its edge. Fall
+        // back to the ground if there's somehow no deck here (or none were passed).
+        const groundY = w.bridge ? decks.heightAt(baseX, baseZ) ?? provider.heightAt(x, z) : provider.heightAt(x, z)
+        pos.set(x, groundY + bob, z)
         q.setFromAxisAngle(up, -angle)
         m.compose(pos, q, one)
         bodies.setMatrixAt(i, m)

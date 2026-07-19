@@ -21,6 +21,7 @@ import { burn, speedFactor, CAN_WORTH } from '../vehicle/fuel'
 import { createNitro } from './nitro'
 import { createCans } from './cans'
 import { createFireworks } from './fireworks'
+import { celebration, makeFireworkTimer, type FireworkTimer } from '../world/celebration'
 import { createBubbles } from '../fx/bubbles'
 import { createNitroFlame } from './nitroFlame'
 import { withRetry, LOAD_ATTEMPTS } from './retry'
@@ -246,6 +247,7 @@ const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
 const trial = createTimeTrial(stage.scene)
 const fireworks = createFireworks(stage.scene)
+let partyTimer: FireworkTimer | null = null // non-null only while a firework holiday is on
 const bubbles = createBubbles(stage.scene)
 const trialHud = createTrialHud(ui)
 const taxi = createTaxi(stage.scene)
@@ -601,7 +603,7 @@ async function loadCity(query: string): Promise<void> {
     traffic?.dispose()
     traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16))
     people?.dispose()
-    people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat)
+    people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat, decks)
     boats?.dispose()
     boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4))
     buses?.dispose()
@@ -618,6 +620,9 @@ async function loadCity(query: string): Promise<void> {
     birds = makeBirds()
     lastWater = world.water
     lastLat = center.lat
+    // On a firework holiday (New Year, the 4th…) light up the skyline all session.
+    const party = celebration(new Date())
+    partyTimer = party?.firework ? makeFireworkTimer(Math.random) : null
     autopilot.reset(world.roads, car)
     trial.reset(world.roads, provider, car)
     rivals.reset(world.roads, grid, provider, car, trial.course())
@@ -913,6 +918,10 @@ async function loadCity(query: string): Promise<void> {
           }
         }
         weather.update(stage.camera.position, dt)
+        if (partyTimer && car) {
+          const burst = partyTimer.tick(dt)
+          if (burst) fireworks.fire(car.x + burst.x, car.y + burst.y, car.z + burst.z)
+        }
         fireworks.update(dt)
         clouds.update(stage.camera.position, dt, car.y) // clouds ride above the land, not above sea level
         minimap.update(
@@ -1084,7 +1093,7 @@ const menu = createSettingsMenu(
       traffic?.dispose()
       traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16))
       people?.dispose()
-      people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat)
+      people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat, decks)
       boats?.dispose()
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
       buses?.dispose()
