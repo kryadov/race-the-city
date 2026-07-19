@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.44 — no more phantom collisions from above or across a bridge
+- Bot/pedestrian/train collision circles were 2D, so you'd **hit a bot you were flying 10m over** on
+  a slope, or one on the road **beneath a bridge you were driving across**. Each obstacle is now gated
+  by height: if the gap between the car and the ground under that obstacle is more than a few metres,
+  it isn't solid to you. Normal driving (and the 1m hover) still collides as before.
+- 👀 Jump/fly over a pedestrian, or drive a bridge deck over traffic — no invisible collision now.
+
 ## v0.110.43 — a Cancel button on the loading screen
 - The "загружаю карту OSM" overlay now carries a localized **Cancel / Отмена** button. Press it and
   the in-flight load aborts at once (not retried) and you're dropped back to the start menu — or, if a

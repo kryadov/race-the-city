@@ -269,6 +269,15 @@ function showVehicle(type: VehicleType): void {
  */
 const ROOF_SNAP = 2.0
 /**
+ * Vertical clearance (m) above which a bot/pedestrian/train is "cleared" and no
+ * longer solid to the car: flying over someone, or riding a bridge deck over the
+ * traffic on the road beneath, must not collide. The obstacle circles are 2D, so
+ * we gate them by the gap between the car's height and the obstacle's ground. Big
+ * enough to still catch normal driving (incl. the 1m hover) and minor slope
+ * differences, small enough that a real fly-over clears.
+ */
+const HAZARD_CLEAR = 3
+/**
  * How far the sight line must pass under a roof before the camera counts it as
  * blocked, and over one before it counts as clear again — metres.
  */
@@ -685,12 +694,16 @@ async function loadCity(query: string): Promise<void> {
             audio.thud() // meter ran out
           }
         }
-        // Everything solid that moves: traffic, people, trains.
+        // Everything solid that moves: traffic, people, trains — but only those at
+        // roughly the car's height. The circles are 2D, so without this you'd hit a
+        // bot while flying 10m over it, or one on the road below while up on a bridge
+        // deck. Bots sit on the terrain, so gauge the gap against the ground beneath.
+        const carY = car.y // local const: a closure over the mutable `car` would de-narrow it
         const hazards: Circle[] = [
           ...(traffic?.obstacles() ?? []),
           ...(people?.obstacles() ?? []),
           ...(trains?.obstacles() ?? []),
-        ]
+        ].filter((h) => Math.abs(carY - provider.heightAt(h.x, h.z)) < HAZARD_CLEAR)
         // The demo drives with the same three inputs a player has, through the
         // same physics — so it drifts, it hits things, and it sounds right. Any
         // touch of the controls hands the wheel straight back. It reads the
