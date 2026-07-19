@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.61 — wide-river bridges read as solid decks, not floating slabs
+- A bridge across a wide river planted a pier under every densified deck point — ~50 thin stilts under
+  a shallow slab, which read as a thin, floating deck. Piers now stand about every 25m (a handful, not
+  a comb), and the deck girder deepens with the span it carries, so a long crossing reads as a solid
+  beam. The drivable surface and the arch profile are unchanged; the railings keep their posts+rails.
+- 👀 Cross a bridge over a wide river (e.g. Santiago) — the deck sits solid on a few piers, not a
+  forest of stilts.
+
 ## v0.110.60 — birds perch in the crown, not the air above it
 - A perched bird sat at a fixed 4.5m over its tree, but trees are built at a random scale (0.7–1.4×),
   so on a short tree the bird floated in clear air above the canopy (the horizontal clamp never fixed

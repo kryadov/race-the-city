@@ -20,12 +20,39 @@ const POST_SPACING = 2.5
 const MID_FRAC = 0.5
 const PIER_MIN = 2.0 // don't prop up a deck that is already on the ground
 /**
- * How thick the deck slab is. It used to be a single plane — a couple of pixels
+ * The BASE depth of the deck slab — the drop from its drivable top to its
+ * underside on a short span. It used to be a single plane — a couple of pixels
  * edge-on — so a bridge seen from the side had no depth at all. Now the deck has
- * a drivable top at the profiled height and an underside this far below it, and
- * the piers stop at that underside instead of poking through the top.
+ * a drivable top at the profiled height and an underside at least this far below
+ * it, and the piers stop at that underside instead of poking through the top.
  */
 const DECK_THICKNESS = 0.6
+/**
+ * A wide river crossing at that same shallow 0.6m read as a thin sheet floating
+ * over the water: 0.6m of depth is nothing seen across a couple of hundred
+ * metres. Real viaducts carry a deep girder, so the slab deepens with the span —
+ * DECK_DEEPEN_PER_M of extra depth for every metre past DECK_SHALLOW_SPAN, capped
+ * at DECK_DEPTH_MAX so it never turns into a wall. Only the underside, fascia and
+ * pier tops follow it; the drivable top stays on the profile, so nothing the car
+ * (or the deck index in bridge.ts) rides on moves a millimetre.
+ */
+const DECK_SHALLOW_SPAN = 100
+const DECK_DEEPEN_PER_M = 0.02
+const DECK_DEPTH_MAX = 3.0
+/**
+ * Distance between piers along the span. A pier under every densified deck point
+ * (one every DECK_STEP ≈ 4m) turned a wide crossing into a centipede of thin
+ * stilts — most of why the span looked flimsy and afloat. A real viaduct stands
+ * on a handful of piers tens of metres apart, so we walk the deck by distance and
+ * raise one only this often.
+ */
+const PIER_SPACING = 25
+
+/** The structural depth of a deck slab spanning `span` metres end to end. */
+export function deckDepth(span: number): number {
+  const extra = Math.max(0, span - DECK_SHALLOW_SPAN) * DECK_DEEPEN_PER_M
+  return Math.min(DECK_DEPTH_MAX, DECK_THICKNESS + extra)
+}
 
 /**
  * A vertical quad strip standing on a polyline: a wall from `yBot(i)` up to
@@ -154,6 +181,51 @@ function emitBalustrade(out: number[], line: Vec2[], dy: number[]): void {
   }
 }
 
+/** Total length of a polyline in metres. */
+function polylineLength(pts: Vec2[]): number {
+  let s = 0
+  for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z)
+  return s
+}
+
+/**
+ * Piers spaced evenly along a deck, in place of one under every densified point.
+ *
+ * We walk the centreline by DISTANCE and drop a pier every `spacing` metres,
+ * interpolating the deck underside (`under`) and the ground between points, so a
+ * wide span stands on a handful of piers like a real viaduct rather than a comb
+ * of stilts. `next` carries across segment boundaries, keeping the rhythm even
+ * over the whole span rather than restarting at each point. A pier is raised only
+ * where the deck stands clear of the ground by more than PIER_MIN — the
+ * abutments, where the deck has already settled onto the bank (there `under`
+ * equals the ground), need none.
+ */
+function emitPiers(
+  out: { x: number; z: number; top: number; ground: number }[],
+  pts: Vec2[],
+  under: number[],
+  ground: number[],
+  spacing: number,
+): void {
+  let dist = 0
+  let next = spacing / 2 // start half a bay in, so piers sit between the ends
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i]
+    const b = pts[i + 1]
+    const segLen = Math.hypot(b.x - a.x, b.z - a.z) || 1
+    while (next <= dist + segLen) {
+      const f = (next - dist) / segLen
+      const top = under[i] + (under[i + 1] - under[i]) * f
+      const g = ground[i] + (ground[i + 1] - ground[i]) * f
+      if (top - g > PIER_MIN) {
+        out.push({ x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f, top, ground: g })
+      }
+      next += spacing
+    }
+    dist += segLen
+  }
+}
+
 /**
  * A bridge: its deck at the profiled height, a railing down each side, and piers
  * where it stands clear of the ground.
@@ -177,13 +249,18 @@ export function buildBridges(decks: Deck[], provider: ElevationProvider): THREE.
     // whole deck comes out flat at its first point.
     const sides = offsetsForPolyline(pts, half)
 
-    // The slab's underside sits DECK_THICKNESS below the drivable top, but never
-    // below the ground it spans: at the abutments the deck settles onto the
-    // embankment, so we clamp there and the slab tapers to nothing rather than
-    // burying its underside in the hillside. Sampled once and reused for the
-    // fascia and the piers.
+    // How deep the girder is, from the span it carries: a short overpass keeps
+    // the base slab, a long river crossing gets a deeper beam so it does not read
+    // as a thin sheet afloat over the water.
+    const depth = deckDepth(polylineLength(pts))
+
+    // The slab's underside sits `depth` below the drivable top, but never below
+    // the ground it spans: at the abutments the deck settles onto the embankment,
+    // so we clamp there and the slab tapers to nothing rather than burying its
+    // underside in the hillside. Sampled once and reused for the fascia and the
+    // piers.
     const ground = pts.map((p) => provider.heightAt(p.x, p.z))
-    const under = d.y.map((y, i) => Math.max(y - DECK_THICKNESS, ground[i]))
+    const under = d.y.map((y, i) => Math.max(y - depth, ground[i]))
 
     // A solid slab: drivable top, underside, and a fascia down each edge — so the
     // deck reads as real depth instead of a plane a couple of pixels thick.
@@ -199,13 +276,11 @@ export function buildBridges(decks: Deck[], provider: ElevationProvider): THREE.
       emitBalustrade(railPos, sides.map((s) => s[edge]), d.y)
     }
 
-    for (let i = 0; i < pts.length; i++) {
-      // Pier TOP at the deck's underside, not its surface: a pier reaching the
-      // profiled height poked up through the deck. It stops beneath the slab and
-      // carries it from below, and only where the deck stands clear of the ground.
-      const top = d.y[i] - DECK_THICKNESS
-      if (top - ground[i] > PIER_MIN) piers.push({ x: pts[i].x, z: pts[i].z, top, ground: ground[i] })
-    }
+    // Piers spaced along the span, their tops at the deck's underside (not its
+    // surface — a pier reaching the profiled height poked up through the deck).
+    // They stop beneath the slab and carry it from below, only where it stands
+    // clear of the ground.
+    emitPiers(piers, pts, under, ground, PIER_SPACING)
   }
 
   group.add(ribbonMesh(deckPos, DECK_COLOR))
