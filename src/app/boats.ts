@@ -297,44 +297,130 @@ function ship(): THREE.Group {
 }
 
 /**
+ * The rowboat's hull in cross-section, stem to stern (−x aft, +x bow).
+ *
+ * Each station gives a half-beam at the gunwale (topHalf) and at the bilge
+ * (botHalf), plus the height of each — the sheer line (topY) and the bottom
+ * (botY). Both half-beams fall to zero at the ends so the planking closes to a
+ * point fore and aft (a double-ender, pointed bow AND stern, not a box with a
+ * cone stuck on), the sheer lifts towards those ends for the classic upswept
+ * look, and the bottom rockers up clear of the water there while dipping below
+ * the waterline amidships — the group sits at y = 0 on the water, so a keel that
+ * goes negative is a boat sitting IN the water rather than on a slab above it.
+ *
+ * Static and shared by both the hull surface and its caprail, so the geometry is
+ * built once and a rowboat is the same rowboat every reload.
+ */
+const ROWBOAT_STATIONS = [
+  { x: -1.7, topHalf: 0.0, botHalf: 0.0, topY: 0.58, botY: 0.22 },
+  { x: -1.25, topHalf: 0.34, botHalf: 0.16, topY: 0.5, botY: -0.02 },
+  { x: -0.5, topHalf: 0.5, botHalf: 0.26, topY: 0.47, botY: -0.12 },
+  { x: 0.35, topHalf: 0.49, botHalf: 0.25, topY: 0.47, botY: -0.11 },
+  { x: 1.15, topHalf: 0.33, botHalf: 0.15, topY: 0.51, botY: 0.0 },
+  { x: 1.9, topHalf: 0.0, botHalf: 0.0, topY: 0.6, botY: 0.22 },
+]
+
+/**
+ * The tapered hull surface: two flaring topsides and a bottom lofted between the
+ * stations, closing to a point at each end. The top is left open — no deck quad
+ * across the beam — so the boat reads as a shell you sit in, which is the whole
+ * difference between a hull and a wooden wedge.
+ */
+function rowboatHull(): THREE.BufferGeometry {
+  const S = ROWBOAT_STATIONS
+  const verts: number[] = []
+  for (const s of S) {
+    // Four corners per station: gunwale L/R at the sheer, bilge L/R at the bottom.
+    verts.push(s.x, s.topY, s.topHalf, s.x, s.topY, -s.topHalf)
+    verts.push(s.x, s.botY, s.botHalf, s.x, s.botY, -s.botHalf)
+  }
+  const idx: number[] = []
+  for (let i = 0; i < S.length - 1; i++) {
+    const a = i * 4
+    const b = (i + 1) * 4
+    const gLa = a, gRa = a + 1, bLa = a + 2, bRa = a + 3
+    const gLb = b, gRb = b + 1, bLb = b + 2, bRb = b + 3
+    idx.push(gLa, bLa, bLb, gLa, bLb, gLb) // left topside
+    idx.push(gRa, gRb, bRb, gRa, bRb, bRa) // right topside
+    idx.push(bLa, bRa, bRb, bLa, bRb, bLb) // bottom
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3))
+  geo.setIndex(idx)
+  geo.computeVertexNormals()
+  return geo
+}
+
+/**
+ * A caprail hugging the sheer, a shade darker than the planking — the gunwale
+ * line that finishes the open top. Built from the same stations, so it follows
+ * the taper and pinches to nothing at bow and stern with the hull.
+ */
+function rowboatRail(): THREE.BufferGeometry {
+  const S = ROWBOAT_STATIONS
+  const inset = 0.12 // how far in from the sheer edge the flat of the rail reaches
+  const verts: number[] = []
+  for (const s of S) {
+    const inner = Math.max(0, s.topHalf - inset)
+    verts.push(s.x, s.topY, s.topHalf, s.x, s.topY, inner)
+    verts.push(s.x, s.topY, -inner, s.x, s.topY, -s.topHalf)
+  }
+  const idx: number[] = []
+  for (let i = 0; i < S.length - 1; i++) {
+    const a = i * 4
+    const b = (i + 1) * 4
+    idx.push(a, a + 1, b + 1, a, b + 1, b) // left rail band
+    idx.push(a + 3, b + 3, b + 2, a + 3, b + 2, a + 2) // right rail band
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3))
+  geo.setIndex(idx)
+  geo.computeVertexNormals()
+  return geo
+}
+
+/**
  * A rowing boat with someone pulling at the oars, pointing +x.
  *
- * Shaped to read as a boat rather than a plank: a shallow hull sitting low in
- * the water, a four-sided cone for a pointed bow (the sailboat's trick, scaled
- * down) with the box's flat -x face left as a squared transom, a gunwale strake
- * down each side and a pair of thwarts across it. Amidships sits a blocky figure
- * — cut from the same cloth as the taxi's little people — with an oar to hand.
+ * A proper tapered low-poly hull — pointed bow and stern, a flaring topside over
+ * a shallow bottom, an upswept sheer capped by a darker gunwale rail, and an
+ * open top you can see down into (see ROWBOAT_STATIONS). Amidships sits a blocky
+ * figure — cut from the same cloth as the taxi's little people — with an oar to
+ * hand, on a thwart, and a second thwart forward for the look of it.
  *
  * The rower and the two oars hang off `userData` so `update` can drive the
  * stroke. Each oar is a child pivot at its oarlock, so one rotation of the pivot
  * swings the whole oar about the gunwale without touching a vertex; `side`
  * (+1 starboard, -1 port) places each and keeps the pair mirror-symmetric.
+ * `hull` is kept on `userData` too so a test can prove the taper.
  */
 function rowboat(): THREE.Group {
   const g = new THREE.Group()
   const wood = 0x9a6a42
   const trim = 0x7c542f // gunwale and thwarts, a shade darker than the planking
 
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.55, 1.1), mat(wood))
-  hull.position.set(-0.2, 0.2, 0)
+  // Open along the top, so every hull panel is seen from both faces — hence
+  // DoubleSide, the price of looking like a boat you sit in from any angle
+  // rather than a shell that vanishes the moment you glance down into it.
+  const hull = new THREE.Mesh(
+    rowboatHull(),
+    new THREE.MeshStandardMaterial({ color: wood, flatShading: true, side: THREE.DoubleSide }),
+  )
   g.add(hull)
-  const bow = new THREE.Mesh(new THREE.ConeGeometry(0.58, 1.5, 4), mat(wood))
-  bow.rotation.z = -Math.PI / 2
-  bow.position.set(1.7, 0.2, 0)
-  g.add(bow)
-  // A gunwale strake down each side — the top edge that turns an open box into
-  // a hull you could climb into.
-  for (const z of [0.52, -0.52]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.12, 0.12), mat(trim))
-    rail.position.set(-0.15, 0.5, z)
-    g.add(rail)
-  }
-  // Two thwarts: the seat the rower is on, and one forward for the look of it.
-  for (const x of [-0.1, 1.0]) {
-    const thwart = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 1.0), mat(trim))
-    thwart.position.set(x, 0.44, 0)
-    g.add(thwart)
-  }
+  const rail = new THREE.Mesh(
+    rowboatRail(),
+    new THREE.MeshStandardMaterial({ color: trim, flatShading: true, side: THREE.DoubleSide }),
+  )
+  g.add(rail)
+
+  // Two thwarts: the seat the rower is on amidships, and one forward — shorter,
+  // since the hull has narrowed by the time it gets there.
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.9), mat(trim))
+  seat.position.set(-0.1, 0.44, 0)
+  g.add(seat)
+  const fwd = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.7), mat(trim))
+  fwd.position.set(0.85, 0.46, 0)
+  g.add(fwd)
 
   // The rower, in its own group so `update` can rock it fore-and-aft with the
   // stroke: torso, head, and two arms reaching out to the oar handles.
@@ -376,6 +462,7 @@ function rowboat(): THREE.Group {
     oars.push(pivot)
   }
 
+  g.userData.hull = hull
   g.userData.rower = rower
   g.userData.oars = oars
   return g

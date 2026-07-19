@@ -1,7 +1,7 @@
 {
   "name": "race-the-city",
   "private": true,
-  "version": "0.110.63",
+  "version": "0.111.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

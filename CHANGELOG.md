@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.111.0 — the rowboat is boat-shaped, with someone rowing
+- The rowboat was a box with a cone bow. It's now a proper tapered low-poly hull — pointed at both bow
+  and stern, open on top like a shell you sit in, with an upswept sheer and a keel that dips amidships —
+  and a figure sits rowing it with two oars in a steady stroke. Static geometry, capped and rare.
+- 👀 Find a small pond with a rowboat — a real hull with a rower pulling the oars, not a floating box.
+
 ## v0.110.63 — signpost pole no longer pokes through the sign
 - On POI / landmark signposts the pole rose to the very top of the panel, and because the camera
   looks slightly down as you approach, its grey top peeked over the plate. The pole now stops down at

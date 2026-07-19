@@ -43,3 +43,66 @@ describe('boats on small water', () => {
     expect(spots(pond(6, 20, 20), wet, 0).length).toBe(0)
   })
 })
+
+/** The one rowboat placed on a pond too small for anything larger. */
+function placeRowboat(): { scene: THREE.Scene; boat: THREE.Group; boats: ReturnType<typeof createBoats> } {
+  const scene = new THREE.Scene()
+  const boats = createBoats(scene, [pond(24, 20, 20)], wet, () => 0.5, 6)
+  const container = scene.children[0] as THREE.Group
+  const boat = container.children.find(
+    (c) => (c as THREE.Object3D).userData.boatKind === 'rowboat',
+  ) as THREE.Group
+  return { scene, boat, boats }
+}
+
+describe('the rowboat', () => {
+  it('has a tapered hull that comes to a point at bow and stern', () => {
+    const { boat, boats } = placeRowboat()
+    expect(boat).toBeDefined()
+    const hull = boat.userData.hull as THREE.Mesh
+    const geo = hull.geometry as THREE.BufferGeometry
+    // Not the old block: a real box hull is uniform-beam end to end.
+    expect(geo).not.toBeInstanceOf(THREE.BoxGeometry)
+
+    const pos = geo.getAttribute('position')
+    let minX = Infinity
+    let maxX = -Infinity
+    let beam = 0
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i)
+      minX = Math.min(minX, x)
+      maxX = Math.max(maxX, x)
+      beam = Math.max(beam, Math.abs(pos.getZ(i)))
+    }
+    // A genuine beam amidships...
+    expect(beam).toBeGreaterThan(0.3)
+    // ...that pinches to a point at each end (a double-ender).
+    let bowBeam = 0
+    let sternBeam = 0
+    for (let i = 0; i < pos.count; i++) {
+      const az = Math.abs(pos.getZ(i))
+      if (Math.abs(pos.getX(i) - maxX) < 0.05) bowBeam = Math.max(bowBeam, az)
+      if (Math.abs(pos.getX(i) - minX) < 0.05) sternBeam = Math.max(sternBeam, az)
+    }
+    expect(bowBeam).toBeLessThan(0.05)
+    expect(sternBeam).toBeLessThan(0.05)
+    boats.dispose()
+  })
+
+  it('has a rower and two oars that sweep with the passing of time', () => {
+    const { boat, boats } = placeRowboat()
+    const oars = boat.userData.oars as THREE.Group[]
+    expect(oars.length).toBe(2)
+    expect(boat.userData.rower).toBeDefined()
+
+    // The stroke is a pure function of accumulated time, so the same boat at two
+    // different moments strikes different oar angles — no wiring, no per-frame
+    // state beyond the shared clock the update already keeps.
+    boats.update(0.1)
+    const before = oars[0].rotation.y
+    boats.update(0.4)
+    const after = oars[0].rotation.y
+    expect(after).not.toBe(before)
+    boats.dispose()
+  })
+})
