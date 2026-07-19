@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.35 — nitro strung along the highways, right across the map
+- Where a long, near-straight arterial runs across the city, nitro bottles are now laid in a **spaced
+  chain along it** (about every 110m, only on the major roads), so you can boost the whole way across
+  the map on one road — without the bottles crowding together. The near-car scatter stays as before.
+- 👀 Find a long straight highway and follow it — a line of evenly-spaced nitro bottles runs down it.
+
 ## v0.110.34 — the sky helicopter looks like a helicopter now
 - The ambient **helicopter** over the city was a plain body with a rotor; it's rebuilt with a rounded
   cabin, a **glass nose canopy**, a tapering **tail boom** with a fin, an engine housing and mast, and

@@ -561,6 +561,7 @@ async function loadCity(query: string): Promise<void> {
       provider,
       car.x,
       car.z,
+      normalRoads, // lay a spaced nitro corridor along long straight arterials
     )
     hud.setDistance(odometer)
     trains?.dispose() // the outgoing city's trains ran on its railways

@@ -1,7 +1,32 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createNitro, NEAR_MIN, NEAR_MAX, FAR, APART } from '../../src/app/nitro'
-import type { Vec2 } from '../../src/geo/types'
+import {
+  createNitro,
+  corridorSpots,
+  CORRIDOR_SPACING,
+  CORRIDOR_MIN_APART,
+  NEAR_MIN,
+  NEAR_MAX,
+  FAR,
+  APART,
+} from '../../src/app/nitro'
+import type { Road, Vec2 } from '../../src/geo/types'
+
+/** A straight road along the x-axis, densified to `step`-metre vertices like OSM. */
+function straightRoad(x0: number, x1: number, step: number, kind: Road['kind']): Road {
+  const points: Vec2[] = []
+  for (let x = x0; x <= x1; x += step) points.push({ x, z: 0 })
+  if (points[points.length - 1].x !== x1) points.push({ x: x1, z: 0 })
+  return { points, kind }
+}
+
+const closestPair = (pts: Vec2[]): number => {
+  let closest = Infinity
+  for (let i = 0; i < pts.length; i++)
+    for (let j = i + 1; j < pts.length; j++)
+      closest = Math.min(closest, Math.hypot(pts[i].x - pts[j].x, pts[i].z - pts[j].z))
+  return closest
+}
 
 const flat = { heightAt: () => 0 }
 
@@ -124,5 +149,59 @@ describe('bottles keep their distance', () => {
     n.setSpots([{ x: 60, z: 0 }, { x: 65, z: 0 }], flat, 0, 0)
     const out = (scene.children[0] as THREE.Group).children.filter((c) => c.visible)
     expect(out.length).toBeGreaterThan(0)
+  })
+})
+
+describe('nitro corridors', () => {
+  it('lays a spaced chain the length of a long straight arterial', () => {
+    // A primary road straight across most of the map.
+    const road = straightRoad(-900, 900, 10, 'primary')
+    const chain = corridorSpots([road])
+
+    // count ≈ length / spacing — a bottle you can hop between all the way across
+    expect(chain.length).toBeGreaterThanOrEqual(Math.floor(1800 / CORRIDOR_SPACING) - 1)
+    expect(chain.length).toBeLessThanOrEqual(Math.ceil(1800 / CORRIDOR_SPACING) + 1)
+    // ...but never crowded
+    expect(closestPair(chain)).toBeGreaterThanOrEqual(CORRIDOR_MIN_APART)
+  })
+
+  it('leaves a short road, or a curvy one, without a corridor', () => {
+    const short = straightRoad(-100, 100, 10, 'primary') // well under CORRIDOR_MIN_SPAN
+    expect(corridorSpots([short])).toEqual([])
+
+    // A long road that keeps turning: plenty of arc length, no straight run.
+    const zigzag: Vec2[] = []
+    for (let i = 0; i < 40; i++) zigzag.push({ x: i * 50, z: i % 2 === 0 ? 0 : 200 })
+    expect(corridorSpots([{ points: zigzag, kind: 'primary' }])).toEqual([])
+  })
+
+  it('ignores minor roads however straight and long they run', () => {
+    const lane = straightRoad(-900, 900, 10, 'residential')
+    expect(corridorSpots([lane])).toEqual([])
+  })
+
+  it('keeps every corridor spot inside the ±RADIUS map', () => {
+    // A motorway running well past both edges of the world.
+    const road = straightRoad(-1500, 1500, 10, 'motorway')
+    const chain = corridorSpots([road])
+    expect(chain.length).toBeGreaterThan(0)
+    for (const p of chain) {
+      expect(Math.abs(p.x)).toBeLessThanOrEqual(1000)
+      expect(Math.abs(p.z)).toBeLessThanOrEqual(1000)
+    }
+  })
+
+  it('is deterministic — the same roads give the same chain', () => {
+    const roads: Road[] = [straightRoad(-900, 900, 10, 'primary')]
+    expect(corridorSpots(roads)).toEqual(corridorSpots(roads))
+  })
+
+  it('places bottles when handed the roads, and keeps the near-car scatter too', () => {
+    const scene = new THREE.Scene()
+    const n = createNitro(scene)
+    const roads: Road[] = [straightRoad(-900, 900, 10, 'primary')]
+    // car sitting on the arterial, with the usual scatter pool around it
+    n.setSpots(citySpots(), flat, 0, 0, roads)
+    expect(bottles(scene).filter((b) => b.visible).length).toBeGreaterThan(0)
   })
 })

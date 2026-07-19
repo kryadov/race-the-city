@@ -1,8 +1,138 @@
 import * as THREE from 'three'
+import type { Road, RoadKind, Vec2 } from '../geo/types'
+import type { ElevationProvider } from '../terrain/provider'
 import { createPickups, type Pickups } from './pickups'
 
-export type { Pickups as Nitro }
 export { NEAR_MIN, NEAR_MAX, FAR, APART, APART_MIN } from './pickups'
+
+/**
+ * The world is a ±RADIUS square around the car (see main.ts). A corridor spot
+ * laid past that edge floats off the ground, so we never place one out there.
+ */
+const RADIUS = 1000
+
+/**
+ * Which tiers count as a through-road worth a nitro corridor. These are the
+ * arterials that actually cross a city end to end; `trunk` folds into `motorway`
+ * and `tertiary` into `secondary` in the parser, so this is the top of the tree.
+ */
+export const CORRIDOR_KINDS: readonly RoadKind[] = ['motorway', 'primary']
+/**
+ * Metres between two bottles in a corridor chain. Generous on purpose: close
+ * enough that the run reads as one boostable line across the map, far enough
+ * that you are never staring at a wall of them. (The near-car scatter uses its
+ * own, tighter spacing — this is only the highway run.)
+ */
+export const CORRIDOR_SPACING = 110
+/**
+ * How straight a run must be to seed a corridor: end-to-end distance over the
+ * arc length actually walked, where 1 is a dead-straight ruler. A gently curving
+ * arterial still clears this; a road that doubles back does not.
+ */
+export const CORRIDOR_STRAIGHT = 0.94
+/**
+ * The shortest run, end to end, that earns a corridor. A large fraction of the
+ * 2·RADIUS-wide map — a chain shorter than this is a side street, not a highway
+ * you fly across.
+ */
+export const CORRIDOR_MIN_SPAN = 700
+/**
+ * The gap the chain never gives up, in metres. Two corridors that cross or run
+ * in parallel must not pile their bottles into one spot; this is the minimum any
+ * two chained bottles may stand apart. Sits below CORRIDOR_SPACING so a chain's
+ * own, evenly spaced bottles all survive.
+ */
+export const CORRIDOR_MIN_APART = 99
+/**
+ * When a corridor overlays the scatter, the arterial's own densified vertices
+ * (five metres apart) would drown the spaced chain. So a scatter spot this close
+ * to a chain bottle is dropped: on the highway you get the chain, off it the
+ * usual crowd. Roughly half the spacing, so cross-streets keep their scatter.
+ */
+export const CORRIDOR_CLEAR = 55
+
+const dist = (a: Vec2, b: Vec2): number => Math.hypot(a.x - b.x, a.z - b.z)
+
+/**
+ * The near-straight sub-runs of a polyline. Grown greedily: a run keeps swallowing
+ * vertices while its end-to-end distance stays within CORRIDOR_STRAIGHT of the arc
+ * length walked, and closes the moment the next vertex would bend it past that.
+ * A road that curves is thus cut into its straight stretches, each judged on its own.
+ */
+function straightRuns(points: Vec2[]): Vec2[][] {
+  const runs: Vec2[][] = []
+  let i = 0
+  while (i < points.length - 1) {
+    let arc = 0
+    let j = i
+    while (j + 1 < points.length) {
+      const arcNext = arc + dist(points[j], points[j + 1])
+      // reject the next vertex if it bends the run from the start below threshold
+      if (arcNext > 0 && dist(points[i], points[j + 1]) / arcNext < CORRIDOR_STRAIGHT) break
+      arc = arcNext
+      j++
+    }
+    if (j > i && dist(points[i], points[j]) >= CORRIDOR_MIN_SPAN) runs.push(points.slice(i, j + 1))
+    i = Math.max(j, i + 1)
+  }
+  return runs
+}
+
+/** Drop bottles every CORRIDOR_SPACING metres along a run, walking it by arc length. */
+function layAlong(run: Vec2[], radius: number): Vec2[] {
+  const out: Vec2[] = []
+  let carry = 0 // metres to walk into the next segment before the first drop
+  for (let k = 0; k < run.length - 1; k++) {
+    const a = run[k]
+    const b = run[k + 1]
+    const seg = dist(a, b)
+    if (seg === 0) continue
+    let t = carry
+    while (t <= seg) {
+      const f = t / seg
+      const p = { x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f }
+      if (Math.abs(p.x) <= radius && Math.abs(p.z) <= radius) out.push(p)
+      t += CORRIDOR_SPACING
+    }
+    carry = t - seg
+  }
+  return out
+}
+
+/** Thin a chain so no two bottles fall within CORRIDOR_MIN_APART — where two runs meet. */
+function spaced(pts: Vec2[]): Vec2[] {
+  const kept: Vec2[] = []
+  for (const p of pts) {
+    if (kept.every((q) => dist(p, q) >= CORRIDOR_MIN_APART)) kept.push(p)
+  }
+  return kept
+}
+
+/**
+ * A spaced chain of nitro spots laid along every long, near-straight arterial in
+ * range: drive one and you can boost the whole way across the map. Deterministic —
+ * no randomness — and kept inside the ±radius square.
+ */
+export function corridorSpots(roads: Road[], radius: number = RADIUS): Vec2[] {
+  const chain: Vec2[] = []
+  for (const r of roads) {
+    if (!CORRIDOR_KINDS.includes(r.kind)) continue
+    for (const run of straightRuns(r.points)) chain.push(...layAlong(run, radius))
+  }
+  return spaced(chain)
+}
+
+/**
+ * Merge a corridor chain into the near-car scatter. The chain wins its ground:
+ * scatter spots within CORRIDOR_CLEAR of a chain bottle are dropped, so the
+ * arterial reads as the evenly spaced line rather than the five-metre vertex
+ * crowd it was densified into. Everything off the corridor is left untouched.
+ */
+function withCorridor(scatter: Vec2[], chain: Vec2[]): Vec2[] {
+  if (!chain.length) return scatter
+  const clear = scatter.filter((s) => chain.every((c) => dist(c, s) >= CORRIDOR_CLEAR))
+  return [...chain, ...clear]
+}
 
 /** A glowing NOS-style bottle used as a speed-boost pickup. */
 function bottleMesh(): THREE.Group {
@@ -20,7 +150,24 @@ function bottleMesh(): THREE.Group {
   return g
 }
 
-/** Speed-boost pickups scattered on the roads. */
-export function createNitro(scene: THREE.Scene): Pickups {
-  return createPickups(scene, bottleMesh)
+/**
+ * Speed-boost pickups, scattered on the roads. Same ring-around-the-car scatter
+ * as every pickup, plus a highway extra: hand `setSpots` the full road list and
+ * it lays a spaced chain along each long straight arterial, so an arterial you
+ * find becomes a corridor you can boost the whole way across.
+ */
+export interface Nitro extends Pickups {
+  setSpots(spots: Vec2[], provider: ElevationProvider, carX?: number, carZ?: number, roads?: Road[]): void
+}
+
+/** Build the nitro field. */
+export function createNitro(scene: THREE.Scene): Nitro {
+  const base = createPickups(scene, bottleMesh)
+  return {
+    ...base,
+    setSpots(spots, provider, carX = 0, carZ = 0, roads) {
+      const merged = roads ? withCorridor(spots, corridorSpots(roads)) : spots
+      base.setSpots(merged, provider, carX, carZ)
+    },
+  }
 }
