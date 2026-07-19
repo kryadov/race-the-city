@@ -119,6 +119,7 @@ import { buildParking } from '../world/parking'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildStreetFurniture } from '../world/streetFurniture'
+import { buildInfill } from '../world/infill'
 import { buildPoiMarkers } from '../world/poiMarkers'
 import { buildSea } from '../world/sea'
 import { rectBounds, confineToBounds } from '../world/bounds'
@@ -484,6 +485,8 @@ async function loadCity(query: string): Promise<void> {
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
     const poiMesh = buildPoiMarkers(world.pois, provider)
     const greenMesh = buildGreenery(world.green, world.trees, provider, center.lat, world.forests)
+    // Fill the bare ground between buildings with the odd bench and clump of trees.
+    const infillMesh = buildInfill(world.buildings, world.roads, world.trees, world.water, provider, Math.random)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
     ground.receiveShadow = true
     roadsMesh.receiveShadow = true
@@ -494,7 +497,7 @@ async function loadCity(query: string): Promise<void> {
     greenMesh.traverse((o) => {
       o.castShadow = true
     })
-    for (const obj of [ground, seaMesh, greenMesh, waterMesh, parkingMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
+    for (const obj of [ground, seaMesh, greenMesh, infillMesh, waterMesh, parkingMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }

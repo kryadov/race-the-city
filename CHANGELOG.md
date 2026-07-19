@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.41 — benches and trees fill the gaps between houses
+- The bare ground between buildings was empty. It's now scattered with the odd **bench** and small
+  **clumps of trees** — placed only in genuine inter-building gaps: never inside a footprint, off the
+  roads, clear of water and of anything already there. Capped and instanced, built once at load.
+- 👀 Look at the space between houses where there's no road — a bench or a little stand of trees now.
+
 ## v0.110.40 — doors get natural colours and handles
 - The door brown looked unnatural. Doors are recoloured to a **natural palette** — honey-oak houses,
   painted slate apartments, heritage-green civic, glazed shopfronts — and every door now carries a
