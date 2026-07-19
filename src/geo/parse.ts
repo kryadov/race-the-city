@@ -125,7 +125,7 @@ export function buildingHeight(tags: Record<string, string>): number {
 
 export function parseOsm(json: OverpassResponse, projector: Projector): WorldData {
   const nodes = new Map<number, Vec2>()
-  const trees: Vec2[] = []
+  let trees: Vec2[] = []
   const props: Prop[] = []
   const benches: Vec2[] = []
   const busStops: Vec2[] = []
@@ -266,6 +266,25 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     pois.push({ x: at.x, z: at.z, kind: 'landmark' })
   }
 
+  // A monument arrives as a statue prop, and OSM often maps a tree on or beside
+  // the very same spot (a node a metre over, or the greenery the monument stands
+  // in) — so a statue can end up planted inside a tree. Drop any tree that falls
+  // within a statue's clear radius; the statue stays exactly where it is and the
+  // world is otherwise identical. Statues are a sparse subset of props (only
+  // monuments, memorials and artworks — a handful even in an old town), so this
+  // statues×trees guarded pass is cheap and runs once, here at parse time.
+  const statues = props.filter((p) => p.kind === 'statue')
+  if (statues.length && trees.length) {
+    const clearSq = STATUE_TREE_CLEAR_M * STATUE_TREE_CLEAR_M
+    trees = trees.filter((t) =>
+      !statues.some((s) => {
+        const dx = t.x - s.at.x
+        const dz = t.z - s.at.z
+        return dx * dx + dz * dz < clearSq
+      }),
+    )
+  }
+
   return { roads, buildings, water, green, parking, fields, trees, props, coast, railways, benches, busStops, pois }
 }
 
@@ -276,6 +295,11 @@ export const MAX_RELATION_MEMBERS = 600
 const LANDMARK_MERGE_M = 15
 /** A budget cap on landmark beacons — sparse in most cities, dense in old towns. */
 const MAX_LANDMARKS = 300
+
+/** How close a tree may stand to a statue before it is cleared away, in metres —
+ * a bit more than the widest statue footprint, so a monument never grows out of
+ * a trunk (see props.ts VARIANTS: the equestrian plinth, the widest, is ~1.3m). */
+const STATUE_TREE_CLEAR_M = 2.5
 
 /** The average of a ring's vertices — near enough its middle for a marker. */
 function centroid(points: Vec2[]): Vec2 {

@@ -106,6 +106,42 @@ describe('poi markers', () => {
     expect(b.min.y, 'lifted to the slope height at x=100').toBeGreaterThan(49.9)
   })
 
+  it('steps a landmark plaque to the side of its POI, off the monument it marks', () => {
+    // The landmark POI sits on the very node that raises the statue prop, so a
+    // marker planted on it would grow through the monument. It must stand beside.
+    const g = buildPoiMarkers([poi(0, 0, 'landmark')], flat)
+    const m = new THREE.Matrix4()
+    findMesh(g, 'poi-posts')!.getMatrixAt(0, m)
+    const p = new THREE.Vector3().setFromMatrixPosition(m)
+    const d = Math.hypot(p.x, p.z)
+    expect(d, 'stands beside the point, not on it').toBeGreaterThan(1)
+    expect(d, 'but only a step aside, not across the plaza').toBeLessThan(5)
+  })
+
+  it('leaves café and fuel markers on their own node — only landmarks step aside', () => {
+    const g = buildPoiMarkers([poi(3, 4, 'cafe')], flat)
+    const m = new THREE.Matrix4()
+    findMesh(g, 'poi-posts')!.getMatrixAt(0, m)
+    const p = new THREE.Vector3().setFromMatrixPosition(m)
+    expect(p.x).toBeCloseTo(3)
+    expect(p.z).toBeCloseTo(4)
+  })
+
+  it('steps to the same side on every build — deterministic, not per-frame random', () => {
+    const posAt = (): THREE.Vector3 => {
+      const g = buildPoiMarkers([poi(12, -7, 'landmark')], flat)
+      const m = new THREE.Matrix4()
+      findMesh(g, 'poi-posts')!.getMatrixAt(0, m)
+      return new THREE.Vector3().setFromMatrixPosition(m)
+    }
+    const a = posAt()
+    const b = posAt()
+    expect(a.x).toBeCloseTo(b.x)
+    expect(a.z).toBeCloseTo(b.z)
+    // and it genuinely moved off the POI point (12, -7)
+    expect(Math.hypot(a.x - 12, a.z + 7)).toBeGreaterThan(1)
+  })
+
   it('draws a fixed number of meshes however many markers there are', () => {
     // Instancing: the mesh count depends on the kinds present, not the marker
     // count. Both builds have both kinds, so both are posts + 2×(panel+glyph).

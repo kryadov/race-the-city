@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.25 — landmark signs stand beside the monument, not through it
+- The glowing landmark sign sat on the **same OSM point as the monument statue**, growing straight
+  through it — it now stands a couple of metres **to the side** (a deterministic offset). And a
+  statue no longer **stands inside a tree**: any tree within ~2.5m of a monument is cleared away.
+- 👀 Find a monument: its beacon is beside it, and it's not sprouting a tree.
+
 ## v0.110.24 — the title is localized (Мчись по городу)
 - The start-screen title now **switches with the language**: EN "RACE THE CITY", RU "МЧИСЬ ПО
   ГОРОДУ", updating live when you flip EN / RU. The gradient logo styling is unchanged; it was the

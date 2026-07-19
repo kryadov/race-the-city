@@ -117,3 +117,33 @@ describe('landmark POIs', () => {
     expect(world.props.some((p) => p.kind === 'statue')).toBe(true)
   })
 })
+
+describe('statues clear of trees', () => {
+  const world = parseOsm(
+    {
+      elements: [
+        // a monument (a statue prop) with a tree mapped ~1m over — through it
+        { type: 'node', id: 1, lat: 41.7151, lon: 44.8271, tags: { historic: 'monument' } },
+        { type: 'node', id: 2, lat: 41.71511, lon: 44.8271, tags: { natural: 'tree' } },
+        // a second tree ~110m north, well clear of the statue
+        { type: 'node', id: 3, lat: 41.7161, lon: 44.8271, tags: { natural: 'tree' } },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+  const statue = world.props.find((p) => p.kind === 'statue')!
+
+  it('keeps the statue itself — only the tree is cleared', () => {
+    expect(statue).toBeDefined()
+  })
+
+  it('leaves no tree standing inside a statue', () => {
+    for (const t of world.trees) {
+      expect(Math.hypot(t.x - statue.at.x, t.z - statue.at.z)).toBeGreaterThan(2)
+    }
+  })
+
+  it('drops only the overlapping tree, sparing the far one', () => {
+    expect(world.trees.length).toBe(1)
+  })
+})

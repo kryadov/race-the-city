@@ -31,6 +31,34 @@ const GLYPH_Z = PANEL_T / 2 + GLYPH_T / 2
 /** A budget cap: POIs are sparse, but a huge dense city shouldn't run away. */
 const MAX_MARKERS = 400
 
+// A landmark POI sits on the very node that also raises the statue prop, so a
+// marker planted at the point grows straight up through the monument. Step the
+// plaque a fixed distance to one side so it reads as standing *beside* the
+// sight, not skewered through it. Café and fuel markers stand on their own
+// nodes with nothing to clash with, so only landmarks are stepped aside.
+/** How far to one side a landmark plaque stands from its POI point, in metres —
+ * a bit more than the widest statue footprint (see props.ts VARIANTS), so the
+ * post clears the monument rather than brushing it. */
+const SIGN_OFFSET_M = 2.6
+/** Fixed seed so a landmark steps to the same side on every reload and browser:
+ * the direction is hashed from the POI's position, not a running RNG, so it
+ * never depends on array order (which OSM parsing does not fix), and never
+ * jitters per frame. Matches the position-hash idiom in props.ts (pickVariant). */
+const SIGN_SEED = 0x9e3779b1
+
+/** Where a marker actually stands: its POI point, except a landmark, which is
+ * stepped a fixed distance along a deterministic per-POI angle so its plaque
+ * clears the statue it marks. */
+function markerPos(p: PoiMarker): { x: number; z: number } {
+  if (p.kind !== 'landmark') return { x: p.x, z: p.z }
+  let h = SIGN_SEED
+  h = Math.imul(h ^ Math.floor(p.x * 131), 0x85ebca6b)
+  h = Math.imul(h ^ Math.floor(p.z * 131), 0xc2b2ae35)
+  h ^= h >>> 15
+  const angle = ((h >>> 0) / 0x100000000) * Math.PI * 2
+  return { x: p.x + Math.cos(angle) * SIGN_OFFSET_M, z: p.z + Math.sin(angle) * SIGN_OFFSET_M }
+}
+
 /** Per-kind colouring. Café = warm brown/red, fuel = muted green, landmark =
  * warm gold/amber — the panel carries the distinction from every angle (a box
  * shows its colour on all faces), and the glyph echoes it, brighter and glowing. */
@@ -71,7 +99,8 @@ export function buildPoiMarkers(pois: PoiMarker[], provider: ElevationProvider):
   // All posts in a single instanced draw — they are identical grey cylinders.
   const posts = new THREE.InstancedMesh(postGeo(), postMat(), list.length)
   list.forEach((p, i) => {
-    pos.set(p.x, provider.heightAt(p.x, p.z), p.z)
+    const q = markerPos(p)
+    pos.set(q.x, provider.heightAt(q.x, q.z), q.z)
     posts.setMatrixAt(i, m.compose(pos, noRot, one))
   })
   posts.instanceMatrix.needsUpdate = true
@@ -93,7 +122,8 @@ export function buildPoiMarkers(pois: PoiMarker[], provider: ElevationProvider):
     const panels = new THREE.InstancedMesh(panelGeo(), panelMat(style.panel), bucket.length)
     const glyphs = new THREE.InstancedMesh(glyphGeo(), glyphMat(style.glyph, style.glyphEmissive), bucket.length)
     bucket.forEach((p, i) => {
-      pos.set(p.x, provider.heightAt(p.x, p.z), p.z)
+      const q = markerPos(p)
+      pos.set(q.x, provider.heightAt(q.x, q.z), q.z)
       m.compose(pos, noRot, one)
       panels.setMatrixAt(i, m)
       glyphs.setMatrixAt(i, m)
