@@ -23,6 +23,13 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       sectors you pass over turn to **mown stubble**, and a few sectors behind, **haystacks / hay
       bales** form in the harvested strip. Field sectors track a mown state; harvester lays bales in
       its wake.
+- [ ] **Doors — natural colour + varied handles** — the door brown looks unnatural; replace it with
+      a more natural palette (a few wood/painted tones) and add **a couple of different handle types**
+      (knob, lever/bar) so doors read properly. (Door geometry lives with the building facades /
+      entrances — `src/world/entrances.ts` / `buildings.ts`.)
+- [ ] **Fill the gaps between houses** — where there are no roads or other objects between buildings
+      it's bare; scatter at least **a couple of benches and some trees** into those empty inter-building
+      gaps so the space isn't blank. Place only where nothing else already is (roads/props/water).
 
 - [ ] **BUG — nitro spawns beyond the map edge** — nitro (and probably fuel) pickups appear outside
       the drivable map. They scatter on road vertices (`pickups.ts` setSpots / pickSpot), and some
