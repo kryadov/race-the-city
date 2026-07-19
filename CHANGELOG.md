@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.19 — manholes with rim bolts, and some left ajar
+- Manhole covers gain **four small bolts around the rim** (baked into the shared cover geometry, so
+  still one instanced draw for the whole city), and about **one in eight now sits ajar** — tilted and
+  nudged off-seat as if not fully closed. (The wheel dropping into an open one is still to come.)
+- 👀 Look closely at the covers: bolts round the edge, and the odd one lifted at a corner.
+
 ## v0.110.18 — a railing along the waterfront
 - The stone embankments now carry a low **balustrade along the shore** — thin posts every few metres
   with a top rail — seated on the embankment lip. Distance-spaced and capped, so even a kilometre of

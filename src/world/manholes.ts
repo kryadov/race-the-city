@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 
@@ -48,6 +49,27 @@ const OFF_CENTRE_MAX = 2.8
 const IRON = 0x55565d
 
 /**
+ * Four cast fixings around the rim, at N/E/S/W — the bolts that hold a real cover
+ * down. Little low-poly studs standing proud of the lid, baked into the SHARED
+ * dome geometry so they ride every instance for free (zero extra draw calls).
+ */
+const BOLT_R = 0.05 // stud radius, ~10cm across
+const BOLT_H = 0.1 // how tall the stud stands off the road
+const BOLT_RING = 0.52 // how far from centre the ring of four sits — just inside the rim
+const BOLT_SIDES = 6 // low-poly studs, in keeping with the 16-facet dome
+
+/**
+ * A deterministic ~1-in-8 of the covers sit *ajar*: shoved a touch off their seat
+ * and tipped a few degrees, as if a wheel or a work crew left the lid half-open.
+ * The nudge is small (stays on the road), the tilt is a few degrees; both come off
+ * the existing per-instance `rand`, so the same lids are ajar on every reload.
+ */
+const AJAR_CHANCE = 0.125 // ~1 in 8
+const AJAR_TILT_MIN = 0.09 // radians (~5°) — the gentlest lean that still reads as tipped
+const AJAR_TILT_MAX = 0.22 // radians (~13°) — lifted at one edge, not flipped over
+const AJAR_NUDGE_MAX = 0.18 // metres it slides off-seat — off-centre, never flung off the road
+
+/**
  * The road ribbon sits this far above the ground (roads.ts ROAD_Y_OFFSET, which
  * is module-private there). The cover's equator sits on that surface and the
  * dome curves up out of it; the lower half is buried under the opaque tarmac.
@@ -60,6 +82,8 @@ const UP = new THREE.Vector3(0, 1, 0)
  * Round low-poly iron covers scattered along every drivable road's centreline.
  *
  * Returns a single InstancedMesh — one draw call for every manhole in the city.
+ * The four rim fixings are baked into the shared dome geometry, so they ride that
+ * same draw for free; a deterministic ~1 in 8 lids sit ajar (tipped and nudged).
  * Its material is a `MeshStandardMaterial` so the neon theme can flip it to a
  * glowing wireframe like the other instanced road furniture; per-instance shade
  * variety goes through `setColorAt`, never `vertexColors` (a Box/Cylinder has no
@@ -77,10 +101,7 @@ export function buildManholes(
   const spots = dedupe(collectSpots(roads, rand))
   const kept = subsample(spots, MAX_COVERS)
 
-  // A shallow convex dome: a sphere squashed to a lens. Its equator sits on the
-  // road and the top curves up DOME_RISE proud; the bottom half is under the tarmac.
-  const geo = new THREE.SphereGeometry(COVER_R, SEGMENTS, 6)
-  geo.scale(1, DOME_RISE / COVER_R, 1)
+  const geo = coverGeo()
   const mat = new THREE.MeshStandardMaterial({
     color: IRON,
     flatShading: true,
@@ -91,6 +112,8 @@ export function buildManholes(
 
   const m = new THREE.Matrix4()
   const q = new THREE.Quaternion()
+  const tiltQ = new THREE.Quaternion()
+  const axis = new THREE.Vector3()
   const pos = new THREE.Vector3()
   const one = new THREE.Vector3(1, 1, 1)
   const col = new THREE.Color()
@@ -99,6 +122,19 @@ export function buildManholes(
     // Equator on the road surface (which follows the terrain); the dome pokes up.
     pos.set(s.x, provider.heightAt(s.x, s.z) + ROAD_SURFACE, s.z)
     q.setFromAxisAngle(UP, rand() * Math.PI * 2) // spin each one so the facets don't line up
+    // ~1 in 8 sit ajar: tip the lid a few degrees about a horizontal axis and slide
+    // it off-seat the same way, so one edge lifts as if it were left half-open.
+    if (rand() < AJAR_CHANCE) {
+      const dir = rand() * Math.PI * 2 // which way it lists
+      const c = Math.cos(dir)
+      const sn = Math.sin(dir)
+      axis.set(-sn, 0, c) // horizontal axis square to `dir`, so the rim rises on the `dir` side
+      tiltQ.setFromAxisAngle(axis, AJAR_TILT_MIN + rand() * (AJAR_TILT_MAX - AJAR_TILT_MIN))
+      q.premultiply(tiltQ) // tip in world space, on top of the spin
+      const nudge = rand() * AJAR_NUDGE_MAX // shoved off-seat, but stays on the road
+      pos.x += c * nudge
+      pos.z += sn * nudge
+    }
     mesh.setMatrixAt(i, m.compose(pos, q, one))
     // A little brightness variety around the base iron so a street of them does
     // not read as one stamp repeated. instanceColor multiplies the material
@@ -113,6 +149,27 @@ export function buildManholes(
   // correct for the life of the batch. (The cull-blink gotcha is about instances
   // that MOVE after that sphere is baked.)
   return mesh
+}
+
+/**
+ * The shared cover geometry: a shallow convex dome with four rim fixings baked in.
+ *
+ * The dome is a sphere squashed to a lens — its equator sits on the road and the
+ * top curves up DOME_RISE proud; the bottom half is under the tarmac. The four
+ * studs stand at N/E/S/W just inside the rim, straddling the dome flank so they
+ * read as cast bolts. Merged into one geometry, so every instance draws the lid
+ * *and* its fixings in a single instanced draw — no second batch for the bolts.
+ */
+function coverGeo(): THREE.BufferGeometry {
+  const dome = new THREE.SphereGeometry(COVER_R, SEGMENTS, 6)
+  dome.scale(1, DOME_RISE / COVER_R, 1)
+  const parts: THREE.BufferGeometry[] = [dome]
+  for (const [bx, bz] of [[BOLT_RING, 0], [-BOLT_RING, 0], [0, BOLT_RING], [0, -BOLT_RING]]) {
+    const bolt = new THREE.CylinderGeometry(BOLT_R, BOLT_R, BOLT_H, BOLT_SIDES)
+    bolt.translate(bx, BOLT_H / 2, bz) // stand it on the road surface, proud of the flank
+    parts.push(bolt)
+  }
+  return mergeGeometries(parts)
 }
 
 /** Every candidate spot down every drivable road, before deduping. */

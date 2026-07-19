@@ -11,6 +11,7 @@ const DEDUP_MIN = 8 // must match manholes.ts
 const MIN_GAP = 90
 const MAX_GAP = 180
 const OFF_CENTRE_MAX = 2.8 // must match manholes.ts
+const AJAR_NUDGE_MAX = 0.18 // must match manholes.ts — how far an ajar lid slides off its seat
 
 const road = (points: Vec2[], extra: Partial<Road> = {}): Road => ({ points, kind: 'residential', ...extra })
 const straight = (len: number, extra: Partial<Road> = {}): Road =>
@@ -77,7 +78,8 @@ describe('buildManholes', () => {
     const roads = [road([{ x: 0, z: 0 }, { x: 300, z: 0 }, { x: 300, z: 200 }])]
     const pts = positions(buildManholes(roads, flat, makeRng(7)))
     expect(pts.length).toBeGreaterThan(0)
-    for (const p of pts) expect(distToRoads(p.x, p.z, roads)).toBeLessThan(OFF_CENTRE_MAX + 0.01)
+    // +AJAR_NUDGE_MAX: an ajar lid may be shoved a touch further out than the base off-centre.
+    for (const p of pts) expect(distToRoads(p.x, p.z, roads)).toBeLessThan(OFF_CENTRE_MAX + AJAR_NUDGE_MAX + 0.01)
     // and genuinely off the centreline, not sitting on it
     expect(pts.some((p) => distToRoads(p.x, p.z, roads) > 1)).toBe(true)
   })
@@ -101,10 +103,12 @@ describe('buildManholes', () => {
     const pts = positions(buildManholes([straight(1000)], flat, makeRng(11)))
     expect(pts.length).toBeGreaterThan(3)
     const xs = pts.map((p) => p.x).sort((a, b) => a - b)
+    // Both ends of a gap may be nudged (the ~1-in-8 ajar lids), so allow 2×AJAR_NUDGE_MAX slop.
+    const slop = 2 * AJAR_NUDGE_MAX + 1e-6
     for (let i = 1; i < xs.length; i++) {
       const gap = xs[i] - xs[i - 1]
-      expect(gap).toBeGreaterThanOrEqual(MIN_GAP - 1e-6)
-      expect(gap).toBeLessThanOrEqual(MAX_GAP + 1e-6)
+      expect(gap).toBeGreaterThanOrEqual(MIN_GAP - slop)
+      expect(gap).toBeLessThanOrEqual(MAX_GAP + slop)
     }
   })
 
@@ -174,5 +178,29 @@ describe('buildManholes', () => {
 
     const empty = buildManholes([], flat, makeRng(4))
     expect(empty.count).toBe(0)
+  })
+
+  it('sets a deterministic few covers ajar (tilted off-flat) while most sit flush — all in ≤2 instanced draws', () => {
+    const mesh = buildManholes([straight(6000)], flat, makeRng(21))
+    // One InstancedMesh for the lot: the four rim fixings are baked into its shared
+    // geometry, not a second batch — so the whole thing is ≤2 instanced draws (in fact 1).
+    expect(mesh).toBeInstanceOf(THREE.InstancedMesh)
+    expect(mesh.count).toBeGreaterThan(20)
+
+    const up = new THREE.Vector3(0, 1, 0)
+    const m = new THREE.Matrix4()
+    const p = new THREE.Vector3()
+    const rot = new THREE.Quaternion()
+    const sc = new THREE.Vector3()
+    let tilted = 0
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, m)
+      m.decompose(p, rot, sc)
+      // A flush lid only spins about Y, so its up-vector stays dead vertical (y = 1);
+      // a tilted one tips its up-vector off vertical. cos(~3°) ≈ 0.9986 is the cutoff.
+      if (up.clone().applyQuaternion(rot).y < 0.9986) tilted++
+    }
+    expect(tilted).toBeGreaterThan(0) // some are ajar...
+    expect(tilted).toBeLessThan(mesh.count / 2) // ...but most sit flush
   })
 })
