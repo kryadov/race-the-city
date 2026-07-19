@@ -6,6 +6,29 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎮 Play-test backlog — 2026-07-19 (live session)
 Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
 
+### ✅ Shipped this session (v0.110.26 → v0.110.53) — see CHANGELOG for detail
+Fixes: bridge arch launch/judder (real-city measured); collisions gated by height (fly-over / bridge
+decks / slopes); smooth ram knockback; **Overpass 429 / infinite load** (30s timeout + 3rd mirror +
+stale-cache fallback) + **Cancel button**; signpost pole through panel; benches/flowerbeds/monuments
+(were the 429 features-query stall). Features: day/night lock, underwater bubbles, fuel toggle,
+nitro-along-highways, forests, seasonal clothing, level-crossing barriers (road×rail), bot buses,
+bot motorcycles, natural door colours + handles, benches/trees between houses, RPM tacho, bird
+colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfront railing collision,
+holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
+
+### ⏳ Still open / bigger — need design or a review pass
+- [ ] **Menu refactor + arcade "find a car"** — modes reachable via Esc; drive up to a car of another
+      type on the map and swap into it. (User: "оба — в план".) Design first.
+- [ ] **Combine harvester mows fields** — drive a combine over tall grass/wheat → mown stubble, hay
+      bales form behind. Fields need a mown state + the harvester in its wake. Design-level.
+- [ ] **Neon mode skips the car & bots** — in neon view the player car, bot cars and pedestrians stay
+      SOLID, not wireframe-neon. Needs the dynamic groups folded into theme's neon flip (a cross-cutting
+      refactor across theme.ts + every bot module) — best done where the aesthetic can be reviewed.
+- [ ] **Bigger map ×2, adaptive** — see note below. Brainstorm.
+- [ ] **Relation-buildings (Boston)** — parse multipolygon `relation["building"]`. NOTE: adding it to
+      the Overpass query changes the cache-key hash and evicts every cached city — hold until the
+      rate-limit situation is comfortable, since cache is the offline lifeline right now.
+
 - [ ] **Cancel button on the "загружаю карту OSM" overlay** — add a localized **Отмена/Cancel**
       button to the loading plate that aborts the in-flight load (fetchOsm now takes an AbortSignal —
       wire an AbortController from loadCity to it) and returns to the menu / stays on the current map.
