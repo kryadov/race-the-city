@@ -789,6 +789,13 @@ async function loadCity(query: string): Promise<void> {
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
         hud.setSpeed(Math.abs(fwd) * 3.6)
+        // Engine revs for the tacho: revs climb through a gear then drop at each
+        // "shift" as speed builds, with a throttle blip when stationary — same
+        // 0..1 load the engine audio uses, just made to look alive on the dial.
+        const revLoad = Math.min(1, Math.abs(fwd) / spec.maxSpeed)
+        const revGear = revLoad * 5
+        const inGear = revGear >= 5 ? 1 : revGear - Math.floor(revGear)
+        hud.setRpm(900 + inGear * 5600 + Math.max(0, input.throttle) * 1300 * (1 - revLoad))
         odometer += Math.hypot(car.vx, car.vz) * dt // ground distance travelled
         hud.setDistance(odometer)
         // Paused? Surface the exact pose so a bug screenshot is reproducible.

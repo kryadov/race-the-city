@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.47 — an RPM tachometer above the speedometer
+- A second round dial — an **engine-rev counter** in the same style as the speedometer — sits **above
+  it**, so the two read as one instrument cluster. The needle sweeps up through a gear and drops on
+  each "shift" as speed builds, blips when you rev on the spot, and kisses a **redline** near the top.
+- 👀 Watch the tacho above the speedo as you accelerate — revs climb and reset through the gears.
+
 ## v0.110.46 — birds come in natural colours, with the odd white crow
 - The flock was all one near-black tone. Birds now draw from a **natural plumage palette** — sparrow
   brown, tan, slate grey, a muted jay blue, crow black, starling and dove — per bird, and about **1 in

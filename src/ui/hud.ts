@@ -8,6 +8,8 @@ const MI_PER_KM = 0.621371
 
 export interface Hud {
   setSpeed(kmh: number): void
+  /** Engine speed in revolutions per minute, 0..MAX_RPM. */
+  setRpm(rpm: number): void
   /** How full the tank is, 0..1. */
   setFuel(fuel: number): void
   /** Total distance driven, in metres. */
@@ -31,6 +33,14 @@ const R = 48
 const START = 135 // degrees (bottom-left of the gap)
 const SWEEP = 270 // degrees, clockwise through the top
 const MAX_KMH = 200
+// The tachometer's full scale and where the redline arc begins. The sim has no
+// real crankshaft, so these are just the dial's own range — main.ts feeds a
+// speed-and-throttle-derived rev that lives inside it.
+const MAX_RPM = 8000
+const REDLINE = 6500
+
+/** Where the tacho needle points along its sweep, 0 (idle) to 1 (full scale), clamped. */
+export const rpmFraction = (rpm: number): number => Math.max(0, Math.min(1, rpm / MAX_RPM))
 
 const svgEl = (tag: string, attrs: Record<string, string | number>): SVGElement => {
   const e = document.createElementNS(NS, tag)
@@ -42,10 +52,79 @@ const polar = (deg: number, r: number): [number, number] => {
   return [CX + r * Math.cos(a), CY + r * Math.sin(a)]
 }
 
+interface Dial {
+  svg: SVGElement
+  needle: SVGElement
+  num: SVGElement
+  unit: SVGElement
+}
+// One round gauge — arc track, tick marks, needle and centre readout. Both the
+// speedometer and the tachometer are the same dial; `ticks` cuts the sweep into
+// that many marks and `redFrom` (0..1 along the sweep, or null) paints a redline.
+const buildDial = (ticks: number, redFrom: number | null): Dial => {
+  const svg = svgEl('svg', { width: DISPLAY, height: DISPLAY, viewBox: `0 0 ${SIZE} ${SIZE}` })
+  const [tx0, ty0] = polar(START, R)
+  const [tx1, ty1] = polar(START + SWEEP, R)
+  svg.appendChild(
+    svgEl('path', {
+      d: `M ${tx0} ${ty0} A ${R} ${R} 0 1 1 ${tx1} ${ty1}`,
+      fill: 'none',
+      stroke: 'rgba(255,255,255,.25)',
+      'stroke-width': 5,
+      'stroke-linecap': 'round',
+    }),
+  )
+  // Redline: the tail of the sweep re-drawn in warning red over the track.
+  if (redFrom !== null) {
+    const [rx0, ry0] = polar(START + SWEEP * redFrom, R)
+    const [rx1, ry1] = polar(START + SWEEP, R)
+    const large = SWEEP * (1 - redFrom) > 180 ? 1 : 0
+    svg.appendChild(
+      svgEl('path', {
+        d: `M ${rx0} ${ry0} A ${R} ${R} 0 ${large} 1 ${rx1} ${ry1}`,
+        fill: 'none',
+        stroke: '#e0503a',
+        'stroke-width': 5,
+        'stroke-linecap': 'round',
+      }),
+    )
+  }
+  for (let i = 0; i <= ticks; i++) {
+    const [ox, oy] = polar(START + (SWEEP * i) / ticks, R)
+    const [ix, iy] = polar(START + (SWEEP * i) / ticks, R - 6)
+    svg.appendChild(svgEl('line', { x1: ox, y1: oy, x2: ix, y2: iy, stroke: 'rgba(255,255,255,.4)', 'stroke-width': 2 }))
+  }
+  const needle = svgEl('line', {
+    x1: CX,
+    y1: CY,
+    x2: CX,
+    y2: CY,
+    stroke: '#e63946',
+    'stroke-width': 3,
+    'stroke-linecap': 'round',
+  })
+  svg.appendChild(needle)
+  svg.appendChild(svgEl('circle', { cx: CX, cy: CY, r: 4, fill: '#e63946' }))
+  const num = svgEl('text', {
+    x: CX,
+    y: CY + 26,
+    'text-anchor': 'middle',
+    fill: '#fff',
+    'font-size': 20,
+    'font-weight': 700,
+  })
+  num.textContent = '0'
+  svg.appendChild(num)
+  const unit = svgEl('text', { x: CX, y: CY + 38, 'text-anchor': 'middle', fill: 'rgba(255,255,255,.6)', 'font-size': 9 })
+  svg.appendChild(unit)
+  return { svg, needle, num, unit }
+}
+
 /** Compact speedometer gauge (fixed size) under the ⚙ button, with the city name. */
 export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   let units = initialUnits
   let kmh = 0
+  let rpm = 0
   let metres = 0
   let fuel = 1
   const box = document.createElement('div')
@@ -65,49 +144,15 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     'font-size:12px;color:rgba(255,255,255,.8);margin-bottom:2px;overflow:hidden;' +
     'text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.7)'
 
-  const svg = svgEl('svg', { width: DISPLAY, height: DISPLAY, viewBox: `0 0 ${SIZE} ${SIZE}` })
+  // The tachometer rides directly above the speedometer — same size and style,
+  // so the two dials read as one instrument cluster. Its needle and readout are
+  // driven by setRpm; the redline sits at REDLINE/MAX_RPM along the sweep.
+  const tacho = buildDial(8, REDLINE / MAX_RPM)
+  tacho.unit.textContent = 'rpm'
+  tacho.svg.style.cssText = 'display:block;margin-bottom:-30px' // pull it down over the speedo's empty crown
 
-  const [tx0, ty0] = polar(START, R)
-  const [tx1, ty1] = polar(START + SWEEP, R)
-  svg.appendChild(
-    svgEl('path', {
-      d: `M ${tx0} ${ty0} A ${R} ${R} 0 1 1 ${tx1} ${ty1}`,
-      fill: 'none',
-      stroke: 'rgba(255,255,255,.25)',
-      'stroke-width': 5,
-      'stroke-linecap': 'round',
-    }),
-  )
-  for (let i = 0; i <= 5; i++) {
-    const [ox, oy] = polar(START + (SWEEP * i) / 5, R)
-    const [ix, iy] = polar(START + (SWEEP * i) / 5, R - 6)
-    svg.appendChild(svgEl('line', { x1: ox, y1: oy, x2: ix, y2: iy, stroke: 'rgba(255,255,255,.4)', 'stroke-width': 2 }))
-  }
-
-  const needle = svgEl('line', {
-    x1: CX,
-    y1: CY,
-    x2: CX,
-    y2: CY,
-    stroke: '#e63946',
-    'stroke-width': 3,
-    'stroke-linecap': 'round',
-  })
-  svg.appendChild(needle)
-  svg.appendChild(svgEl('circle', { cx: CX, cy: CY, r: 4, fill: '#e63946' }))
-
-  const num = svgEl('text', {
-    x: CX,
-    y: CY + 26,
-    'text-anchor': 'middle',
-    fill: '#fff',
-    'font-size': 20,
-    'font-weight': 700,
-  })
-  num.textContent = '0'
-  svg.appendChild(num)
-  const unit = svgEl('text', { x: CX, y: CY + 38, 'text-anchor': 'middle', fill: 'rgba(255,255,255,.6)', 'font-size': 9 })
-  svg.appendChild(unit)
+  const speedo = buildDial(5, null)
+  const { svg, needle, num, unit } = speedo
 
   // Odometer: total distance driven, under the gauge.
   const odo = document.createElement('div')
@@ -144,6 +189,12 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     const [nx, ny] = polar(START + SWEEP * frac, R - 12)
     needle.setAttribute('x2', String(nx))
     needle.setAttribute('y2', String(ny))
+    // The tacho reads its own rev, always in rpm — units only touch the speedo.
+    const rfrac = rpmFraction(rpm)
+    const [rx, ry] = polar(START + SWEEP * rfrac, R - 12)
+    tacho.needle.setAttribute('x2', String(rx))
+    tacho.needle.setAttribute('y2', String(ry))
+    tacho.num.textContent = String(Math.round(rpm))
     const imperial = units === 'mi'
     num.textContent = String(Math.round(imperial ? kmh * MI_PER_KM : kmh))
     unit.textContent = t(imperial ? 'hud.mph' : 'hud.kmh')
@@ -157,13 +208,17 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   paint()
   onLangChange(paint)
 
-  box.append(debug, city, svg)
+  box.append(debug, city, tacho.svg, svg)
   root.appendChild(box)
   root.appendChild(fuelBox)
 
   return {
     setSpeed(v) {
       kmh = v
+      paint()
+    },
+    setRpm(v) {
+      rpm = v
       paint()
     },
     setDistance(v) {
