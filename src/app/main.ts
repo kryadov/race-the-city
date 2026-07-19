@@ -545,7 +545,7 @@ async function loadCity(query: string): Promise<void> {
     )
     hud.setDistance(odometer)
     trains?.dispose() // the outgoing city's trains ran on its railways
-    trains = createTrains(stage.scene, world.railways, provider, Math.random, countFor(density, 5))
+    trains = createTrains(stage.scene, world.railways, provider, Math.random, countFor(density, 5), world.roads)
     traffic?.dispose()
     traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16))
     people?.dispose()
@@ -976,7 +976,7 @@ const menu = createSettingsMenu(
       // heavier way to do it.
       if (!car) return
       trains?.dispose()
-      trains = createTrains(stage.scene, lastRailways, provider, Math.random, countFor(density, 5))
+      trains = createTrains(stage.scene, lastRailways, provider, Math.random, countFor(density, 5), lastRoads)
       traffic?.dispose()
       traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16))
       people?.dispose()

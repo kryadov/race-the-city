@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { createTrains } from '../../src/app/trains'
 import { createAircraft } from '../../src/app/aircraft'
-import type { Railway, Vec2 } from '../../src/geo/types'
+import type { Railway, Road, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
 const v = (x: number, z: number): Vec2 => ({ x, z })
@@ -232,6 +232,76 @@ describe('trains', () => {
     expect(scene.children.length).toBe(1)
     t.dispose()
     expect(scene.children.length, 'trains from the old city must not pile up').toBe(0)
+  })
+})
+
+describe('level crossings', () => {
+  // A ROAD cutting square across the main line at its start: the rail runs east
+  // from (0, 0), this road runs north-south through x = 0, so they cross at
+  // (0, 0) — where the rand=0 train also starts, so the boom is asked to drop on
+  // frame one. A level crossing the code should find and put booms on.
+  const acrossRoad: Road = { points: [v(0, -400), v(0, 400)], kind: 'residential' }
+
+  // Every boom is a Group hung under a `barrier` mount; grab them all.
+  const armsOf = (scene: THREE.Scene): THREE.Group[] => {
+    const out: THREE.Group[] = []
+    for (const c of (scene.children[0] as THREE.Group).children) {
+      if (c.userData.barrier) {
+        for (const a of c.children) if (a.type === 'Group') out.push(a as THREE.Group)
+      }
+    }
+    return out
+  }
+
+  it('stands two booms at a crossing of two lines', () => {
+    const scene = new THREE.Scene()
+    createTrains(scene, [mainLine], flat, () => 0, 8, [acrossRoad])
+    // One crossing, a boom on each side of the tracks.
+    expect(armsOf(scene).length).toBe(2)
+  })
+
+  it('builds no barrier where nothing crosses the line', () => {
+    // A lone line has no crossing on it, so no booms — and the old single-line
+    // tests, which count everything on the scene, must stay undisturbed.
+    const scene = new THREE.Scene()
+    createTrains(scene, [mainLine], flat, () => 0)
+    expect(armsOf(scene).length).toBe(0)
+  })
+
+  it('drops the boom as a train nears and raises it once the line is clear', () => {
+    const scene = new THREE.Scene()
+    // maxTrains = 1 puts the single train on the main line (nearest the middle),
+    // running through the crossing at (0, 0); rand = 0 starts it there, dir east.
+    // As it pulls away the crossing clears, and it returns each time it turns back.
+    const t = createTrains(scene, [mainLine], flat, () => 0, 1, [acrossRoad])
+    expect(armsOf(scene).length, 'no barrier was built at the crossing').toBe(2)
+    let lo = Infinity
+    let hi = -Infinity
+    // 200s of half-frames: several passes of the crossing, near and clear both.
+    for (let i = 0; i < 4000; i++) {
+      t.update(0.05, 0)
+      for (const a of armsOf(scene)) {
+        lo = Math.min(lo, a.rotation.z)
+        hi = Math.max(hi, a.rotation.z)
+      }
+    }
+    // Lowered flat (~0) at least once while the train sat on the crossing...
+    expect(lo, 'the boom never dropped for the approaching train').toBeLessThan(0.3)
+    // ...and lifted back up (~vertical) once it had gone.
+    expect(hi, 'the boom never lifted once the train had passed').toBeGreaterThan(1.2)
+  })
+
+  it('sweeps the boom rather than snapping it in one frame', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0, 1, [acrossRoad])
+    const arm = armsOf(scene)[0]
+    // A train sitting on the crossing wants the boom fully down; one small frame
+    // must move it only part of the way, not slam it flat.
+    const before = arm.rotation.z
+    t.update(0.05, 0)
+    const moved = before - arm.rotation.z
+    expect(moved, 'the boom did not start to lower').toBeGreaterThan(0)
+    expect(arm.rotation.z, 'the boom snapped straight to flat in a single frame').toBeGreaterThan(0.3)
   })
 })
 

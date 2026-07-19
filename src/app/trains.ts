@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import type { Railway, Vec2 } from '../geo/types'
+import type { Railway, Road, Vec2 } from '../geo/types'
 import type { Circle } from '../physics/collide'
 import { RAILHEAD_Y } from '../world/roads'
 import type { ElevationProvider } from '../terrain/provider'
@@ -37,6 +37,17 @@ const MIN_LINE = 260 // metres of track needed before a train is worth running
 const MIN_TRAM_LINE = 120 // a tram works a shorter run than an intercity
 /** Height of a tunnel mouth's opening, in metres — clears the tallest carriage. */
 const PORTAL_MOUTH = 5
+/** How near a train must come to a crossing before its booms drop, in metres. */
+const CROSS_WARN = 80
+/** Most level crossings to gate — a handful the player meets, nearest first. */
+const MAX_CROSSINGS = 12
+/** Two crossing points nearer than this are the one crossing (parallel tracks). */
+const CROSS_MERGE = 12
+/** Boom travel: flat across the road (down) and lifted just shy of vertical (up). */
+const BOOM_DOWN = 0.06
+const BOOM_UP = 1.45
+/** How fast the boom sweeps, per second — a framerate-independent ease rate. */
+const BOOM_EASE = 2.6
 
 export interface Trains {
   update(dt: number, night: number): void
@@ -88,6 +99,86 @@ function middleGap(rail: { points: Vec2[] }): number {
   let best = Infinity
   for (const p of rail.points) best = Math.min(best, Math.hypot(p.x, p.z))
   return best
+}
+
+/**
+ * Where two segments cross, or null if they don't.
+ *
+ * The usual parametric solve: both `t` and `u` have to land in [0,1] for the hit
+ * to sit on the two segments themselves rather than on the endless lines through
+ * them. A near-zero denominator is a parallel or degenerate pair — no crossing.
+ */
+function segCross(a: Vec2, b: Vec2, c: Vec2, d: Vec2): Vec2 | null {
+  const rx = b.x - a.x
+  const rz = b.z - a.z
+  const sx = d.x - c.x
+  const sz = d.z - c.z
+  const denom = rx * sz - rz * sx
+  if (Math.abs(denom) < 1e-9) return null
+  const t = ((c.x - a.x) * sz - (c.z - a.z) * sx) / denom
+  const u = ((c.x - a.x) * rz - (c.z - a.z) * rx) / denom
+  if (t < 0 || t > 1 || u < 0 || u > 1) return null
+  return { x: a.x + rx * t, z: a.z + rz * t }
+}
+
+/**
+ * Level crossings, taken as the points where two DISTINCT non-tunnel railway
+ * lines cross at grade, each with the bearing of the track running through it.
+ *
+ * A level crossing is where a drivable ROAD meets the rails at grade, so we cross
+ * every road segment against every railway segment (bridge/tunnel ways skipped —
+ * those are grade-separated, not crossings). We stand the booms there, squared
+ * across the road. Two roads meeting a bundle of parallel tracks close together
+ * throws off a cluster of near-identical points, so those are merged; then the
+ * lot is taken nearest-the-middle first and capped — the same reasoning that runs
+ * the trains where you start rather than at the far corner of four square km.
+ *
+ * Cost is a one-off at construction, not per frame: a bounding-box reject skips
+ * any pair of lines that cannot overlap before their segments are ever compared.
+ */
+function findCrossings(roads: Road[], rails: Railway[]): { at: Vec2; dir: Vec2 }[] {
+  const railLines = rails.filter((r) => !r.tunnel && r.points.length >= 2)
+  const roadLines = roads.filter((r) => !r.tunnel && !r.bridge && r.points.length >= 2)
+  if (!railLines.length || !roadLines.length) return []
+  const bbox = (pts: Vec2[]): { minX: number; maxX: number; minZ: number; maxZ: number } => {
+    let minX = Infinity
+    let maxX = -Infinity
+    let minZ = Infinity
+    let maxZ = -Infinity
+    for (const p of pts) {
+      if (p.x < minX) minX = p.x
+      if (p.x > maxX) maxX = p.x
+      if (p.z < minZ) minZ = p.z
+      if (p.z > maxZ) maxZ = p.z
+    }
+    return { minX, maxX, minZ, maxZ }
+  }
+  const rbox = railLines.map((l) => bbox(l.points))
+  const found: { at: Vec2; dir: Vec2 }[] = []
+  for (const road of roadLines) {
+    const rb = bbox(road.points)
+    for (let j = 0; j < railLines.length; j++) {
+      const jb = rbox[j]
+      if (rb.maxX < jb.minX || jb.maxX < rb.minX || rb.maxZ < jb.minZ || jb.maxZ < rb.minZ) continue
+      const A = road.points // road segments
+      const B = railLines[j].points // rail segments
+      for (let a = 1; a < A.length; a++) {
+        for (let b = 1; b < B.length; b++) {
+          const hit = segCross(A[a - 1], A[a], B[b - 1], B[b])
+          if (!hit) continue
+          if (found.some((f) => Math.hypot(f.at.x - hit.x, f.at.z - hit.z) < CROSS_MERGE)) continue
+          const dx = A[a].x - A[a - 1].x // the ROAD's direction through the crossing
+          const dz = A[a].z - A[a - 1].z
+          const len = Math.hypot(dx, dz) || 1
+          // Stored so the barrier build recovers the road direction: it reads
+          // road = (-dir.z, dir.x), so dir = (roadDir.z, -roadDir.x).
+          found.push({ at: hit, dir: { x: dz / len, z: -dx / len } })
+        }
+      }
+    }
+  }
+  found.sort((p, q) => Math.hypot(p.at.x, p.at.z) - Math.hypot(q.at.x, q.at.z))
+  return found.slice(0, MAX_CROSSINGS)
 }
 
 /**
@@ -336,6 +427,7 @@ export function createTrains(
   provider: ElevationProvider,
   rand: () => number = Math.random,
   maxTrains = 8,
+  roads: Road[] = [], // drivable roads, so boom barriers can stand at road/rail crossings
 ): Trains {
   const group = new THREE.Group()
   scene.add(group)
@@ -414,6 +506,71 @@ export function createTrains(
     }
   }
 
+  // Boom barriers at the level crossings. Each crossing gets two hinged booms,
+  // one on either side of the tracks, that this loop keeps a handle on so the
+  // update loop can drop and raise them. Empty when nothing crosses, and the
+  // whole thing is skipped then — most cities have a crossing or two, not none.
+  const barriers: { arms: THREE.Group[]; at: Vec2; t: number }[] = []
+  const crossings = findCrossings(roads, railways)
+  if (crossings.length) {
+    // Every boom is the same striped bar, so its geometry is built once here and
+    // clones of it hang at each crossing: a dozen barriers stay a few small
+    // buffers. The bar runs from the pivot (x=0) out along +x in six equal
+    // stripes, the odd ones red and the even white, merged per colour into two
+    // meshes; a stub counterweight sits behind the pivot, and a post holds it up.
+    const BOOM_LEN = 6
+    const cell = BOOM_LEN / 6
+    const reds: THREE.BufferGeometry[] = []
+    const whites: THREE.BufferGeometry[] = []
+    for (let i = 0; i < 6; i++) {
+      const seg = new THREE.BoxGeometry(cell, 0.16, 0.16)
+      seg.translate(cell * (i + 0.5), 0, 0)
+      ;(i % 2 ? whites : reds).push(seg)
+    }
+    const redGeo = mergeGeometries(reds)
+    const whiteGeo = mergeGeometries(whites)
+    const redMat = mat(0xc0392b)
+    const whiteMat = mat(0xecf0f1)
+    const postGeo = new THREE.BoxGeometry(0.3, 1.4, 0.3)
+    const postMat = mat(0x4a4f57)
+    const weightGeo = new THREE.BoxGeometry(0.5, 0.3, 0.3)
+    const OFFSET = 6.5 // how far each post stands back from the tracks, metres
+    const PIVOT_Y = 1.3 // the hinge height the bar swings about, above the post base
+    for (const c of crossings) {
+      // `dir` was stored so this recovers the ROAD's own direction; a post stands
+      // beside the crossing on each side, and the boom drops square across the road.
+      const road = { x: -c.dir.z, z: c.dir.x }
+      const arms: THREE.Group[] = []
+      for (const side of [1, -1]) {
+        const px = c.at.x + road.x * OFFSET * side
+        const pz = c.at.z + road.z * OFFSET * side
+        const mount = new THREE.Group()
+        mount.position.set(px, provider.heightAt(px, pz), pz)
+        // Face the boom's +x back across the road, toward the tracks, so both
+        // booms lie over the crossing when down and nearly meet in the middle.
+        const inx = -road.x * side
+        const inz = -road.z * side
+        mount.rotation.y = Math.atan2(-inz, inx)
+        const post = new THREE.Mesh(postGeo, postMat)
+        post.position.y = 0.7
+        mount.add(post)
+        const arm = new THREE.Group()
+        arm.position.y = PIVOT_Y
+        arm.add(new THREE.Mesh(redGeo, redMat))
+        arm.add(new THREE.Mesh(whiteGeo, whiteMat))
+        const weight = new THREE.Mesh(weightGeo, postMat)
+        weight.position.x = -0.4
+        arm.add(weight)
+        arm.rotation.z = BOOM_UP // starts raised: the road is open until a train comes
+        mount.add(arm)
+        mount.userData.barrier = true // not a carriage: the tests count what moves
+        group.add(mount)
+        arms.push(arm)
+      }
+      barriers.push({ arms, at: c.at, t: 0 }) // t eases 0 (up) .. 1 (down)
+    }
+  }
+
   const solidAt: Circle[] = []
 
   return {
@@ -432,6 +589,7 @@ export function createTrains(
       })
       running.length = 0
       solidAt.length = 0
+      barriers.length = 0
     },
     update(dt, night) {
       solidAt.length = 0
@@ -508,6 +666,28 @@ export function createTrains(
             }
           })
         })
+      }
+      // Boom barriers: drop when a train is bearing down on the crossing, lift
+      // once the line is clear. Gated on there being any crossing at all, then
+      // O(crossings × trains) — a handful each, so a few dozen distance checks.
+      // The ease is framerate-independent (an exponential approach with `dt` in
+      // the exponent), so the bar sweeps smoothly and never snaps, whatever the
+      // frame time; `t` runs 0 (up) to 1 (down) and both booms follow it.
+      if (barriers.length) {
+        const k = 1 - Math.exp(-BOOM_EASE * dt)
+        for (const bar of barriers) {
+          let near = false
+          for (const tr of running) {
+            const head = at(tr.line, tr.cum, tr.s)
+            if (Math.hypot(head.x - bar.at.x, head.z - bar.at.z) < CROSS_WARN) {
+              near = true
+              break
+            }
+          }
+          bar.t += ((near ? 1 : 0) - bar.t) * k
+          const ang = BOOM_UP + (BOOM_DOWN - BOOM_UP) * bar.t
+          for (const arm of bar.arms) arm.rotation.z = ang
+        }
       }
     },
   }

@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.26 — level-crossing barriers stand where a road meets the rails
+- Crossing booms were hunting for **rail-meets-rail junctions** (vanishingly rare) — they now find
+  the real thing: where a **road crosses a railway** at grade. Each such crossing gets a pair of
+  booms, oriented across the road, that **lower as a train approaches** and lift once it's clear.
+- 👀 Drive along a railway in a city with level crossings — the striped booms drop as a train nears.
+
 ## v0.110.25 — landmark signs stand beside the monument, not through it
 - The glowing landmark sign sat on the **same OSM point as the monument statue**, growing straight
   through it — it now stands a couple of metres **to the side** (a deterministic offset). And a
