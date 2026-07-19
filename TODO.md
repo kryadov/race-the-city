@@ -17,6 +17,9 @@ colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfron
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
 ### 🔧 Bugs in shipped features (fix next)
+- [ ] **Some birds perch in mid-air on nothing** — a few birds sit motionless in the air with nothing
+      under them (regression of the earlier "sitting in the air" fix, or perch points chosen above a
+      surface). Check `src/app/birds.ts` perch/idle placement — perches should sit on a roof/tree/ground.
 - [ ] **Bridges over a wide river render incorrectly** — screenshot (Santiago): the arched bridge
       **railings** are there but the **deck/roadway across the water reads wrong** (decks look thin /
       floating / disconnected from the banks, or the arch is over-humped on a wide span). Check
