@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.30 — bubbles rise when you sink under water
+- Drive off a quay and sink until the car is **fully under water** (surface above the roof) and a
+  stream of **bubbles rises from the car to the surface** — swaying, swelling and popping at the top.
+  One instanced draw, a small pool, only while submerged; each city's water-surface heights are
+  cached once at load so the check costs nothing per frame.
+- 👀 Plunge the car deep into a river or the sea until it's under — bubbles trail up to the surface.
+
 ## v0.110.29 — lock the clock to a day or night drive
 - A new **time-of-day** control in the settings menu (under Weather): leave it on the full
   **day/night cycle**, or lock it to **Always day** (permanent noon) or **Always night** (permanent

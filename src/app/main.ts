@@ -21,6 +21,7 @@ import { burn, speedFactor, CAN_WORTH } from '../vehicle/fuel'
 import { createNitro } from './nitro'
 import { createCans } from './cans'
 import { createFireworks } from './fireworks'
+import { createBubbles } from '../fx/bubbles'
 import { createNitroFlame } from './nitroFlame'
 import { withRetry, LOAD_ATTEMPTS } from './retry'
 import { createLoading } from '../ui/loading'
@@ -110,7 +111,7 @@ import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../wo
 import { buildBridges } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildManholes } from '../world/manholes'
-import { buildWater } from '../world/water'
+import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
@@ -236,6 +237,7 @@ const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
 const trial = createTimeTrial(stage.scene)
 const fireworks = createFireworks(stage.scene)
+const bubbles = createBubbles(stage.scene)
 const trialHud = createTrialHud(ui)
 const taxi = createTaxi(stage.scene)
 const taxiHud = createTaxiHud(ui)
@@ -361,6 +363,8 @@ let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-hom
 let lastRailways: import('../geo/types').Railway[] = []
 let lastWater: import('../geo/types').Vec2[][] = []
 let lastLat = 0 // the loaded city's latitude, so a density rebuild dresses the crowd for its season
+// Each water body's surface height, cached per city (waterLevel samples the whole map — too dear per frame).
+let waterLevels: { ring: import('../geo/types').Vec2[]; level: number }[] = []
 
 async function loadCity(query: string): Promise<void> {
   if (loading_) {
@@ -465,6 +469,10 @@ async function loadCity(query: string): Promise<void> {
     roadDetailMesh = detail
     roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider)
+    // Cache each body's surface height once, so bubbles know how high to rise.
+    waterLevels = world.water
+      .filter((r) => r.length >= 3)
+      .map((ring) => ({ ring, level: waterLevel(ring, provider) }))
     const parkingMesh = buildParking(world.parking, provider)
     const propsMesh = buildProps(world.props, provider)
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
@@ -791,6 +799,13 @@ async function loadCity(query: string): Promise<void> {
         people?.update(dt, car.x, car.z)
         boats?.update(dt)
         herds?.update(dt)
+        // Bubbles stream off the car when it's sunk under water above its roof.
+        const CAR_ROOF = 1.5 // metres from the car's floor to its roof
+        let surfaceY = -Infinity
+        for (const w of waterLevels) {
+          if (w.level > surfaceY && pointInPolygon(car.x, car.z, w.ring)) surfaceY = w.level
+        }
+        bubbles.update(dt, surfaceY > car.y + CAR_ROOF, car, surfaceY)
         if (night > 0) {
           const hx = Math.cos(car.heading), hz = Math.sin(car.heading)
           headlight.position.set(car.x + hx * 2, car.y + 1.3, car.z + hz * 2)
