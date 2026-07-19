@@ -185,8 +185,42 @@ const PECK_RATE = 5 // rad/s of the quick head dips within a bout
 const PECK_DROP = 0.3 // metres the head drops at the bottom of a peck
 const PECK_REACH = 0.15 // metres the head reaches forward as it dips
 
-/** A muted flock palette: silhouettes against the sky, not parrots. */
-const COLORS = [0x2a2a2c, 0x3a3632, 0x232526, 0x46403a]
+/**
+ * A varied but natural flock palette — sparrows, starlings, crows and the like,
+ * not parrots. Enough spread that no two neighbours read as stamped from the
+ * same die, but every tone is one a real bird wears: earthy browns, slate and
+ * blue-greys, a couple of near-blacks. A bird a few pixels across against the
+ * sky still needs some tone to it, so these run a shade lighter than a pure
+ * silhouette would.
+ */
+const COLORS = [
+  0x4a3b2a, // sparrow brown
+  0x6b5a42, // warm tan (house sparrow back)
+  0x5b5f66, // slate grey (pigeon)
+  0x3c4653, // muted blue-grey (jay wash)
+  0x2a2a2c, // crow black
+  0x232526, // near-black (raven)
+  0x463b30, // starling dark-brown
+  0x776b57, // dun / dove
+]
+/** Odds any one bird is a white crow — a rare pale standout in a dark flock. */
+const WHITE_CROW_CHANCE = 0.045
+/** Near-white plumage for that white crow: off-white, not printer paper. */
+const WHITE_CROW = 0xe9e6dd
+
+/**
+ * A bird's fixed plumage colour, as a hex: a natural tone from the palette, or —
+ * rarely — the near-white of a white crow. A pure function of a single rand()
+ * draw, the same one call the old flat pick cost, so plumage stays deterministic
+ * per bird and the flock's random stream is unshifted: the white roll takes the
+ * low slice of [0,1), and the rest of the range is rescaled to a palette index.
+ */
+export function pickPlumage(rand: () => number): number {
+  const r = rand()
+  if (r < WHITE_CROW_CHANCE) return WHITE_CROW
+  const idx = Math.floor(((r - WHITE_CROW_CHANCE) / (1 - WHITE_CROW_CHANCE)) * COLORS.length)
+  return COLORS[Math.min(idx, COLORS.length - 1)]
+}
 
 /** Ground height of 0 everywhere, for the flock that exists before any city
  *  (and its terrain) has loaded. */
@@ -432,7 +466,7 @@ export function createBirds(
       toZ: 0,
       landDur: 1,
     })
-    col.setHex(COLORS[Math.floor(rand() * COLORS.length)])
+    col.setHex(pickPlumage(rand))
     body.setColorAt(i, col)
     rightWing.setColorAt(i, col)
     leftWing.setColorAt(i, col)

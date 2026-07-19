@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.46 — birds come in natural colours, with the odd white crow
+- The flock was all one near-black tone. Birds now draw from a **natural plumage palette** — sparrow
+  brown, tan, slate grey, a muted jay blue, crow black, starling and dove — per bird, and about **1 in
+  22 is a rare white crow**. Still one instanced draw, same flight and flush.
+- 👀 Watch a flock scatter — a mix of browns and greys, and now and then a white one.
+
 ## v0.110.45 — survive Overpass rate-limits, and stop hanging on a bad mirror
 - When `overpass-api.de` started returning **429 Too Many Requests**, loads stalled: the client
   timeout was too long (100s), so a mirror that accepted the connection but never answered dragged the

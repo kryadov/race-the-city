@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createBirds } from '../../src/app/birds'
+import { createBirds, pickPlumage } from '../../src/app/birds'
 
 /** Every instance's world position, read back out of the InstancedMesh. */
 function positions(mesh: THREE.InstancedMesh): THREE.Vector3[] {
@@ -382,6 +382,44 @@ describe('birds', () => {
     }
     const near = positions(wing).filter((p) => Math.abs(p.x - camX) < 400)
     expect(near.length, 'the whole flock was left behind').toBeGreaterThan(0)
+  })
+
+  it('gives the flock varied natural plumage, not one shared colour', () => {
+    const scene = new THREE.Scene()
+    // A diverse but deterministic flock, so the read-back is reproducible.
+    const b = createBirds(scene, makeRand(2024), 8)
+    const body = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    // Read each bird's instance colour straight back off the mesh: proof the
+    // per-instance colour actually took, not just that a palette exists.
+    const seen = new Set<number>()
+    const col = new THREE.Color()
+    for (let i = 0; i < body.count; i++) {
+      body.getColorAt(i, col)
+      seen.add(col.getHex())
+    }
+    expect(seen.size, 'the whole flock is one colour — no per-bird plumage').toBeGreaterThan(1)
+    b.dispose()
+  })
+
+  it('picks natural tones normally and a near-white crow rarely', () => {
+    // pickPlumage returns a raw hex, so read its bytes straight — no sRGB/linear
+    // colour-management conversion to muddy the thresholds.
+    const bytes = (hex: number): [number, number, number] => [(hex >> 16) & 0xff, (hex >> 8) & 0xff, hex & 0xff]
+
+    // A normal draw yields a muted, natural tone — every channel well short of
+    // white. The rare low slice of the range yields the near-white crow.
+    expect(Math.max(...bytes(pickPlumage(() => 0.5))), 'an ordinary bird came out near-white').toBeLessThan(160)
+    expect(Math.min(...bytes(pickPlumage(() => 0.001))), 'the white crow is not pale enough').toBeGreaterThan(200)
+
+    // Swept across the whole [0,1) range, white shows up — but only rarely.
+    let whites = 0
+    const N = 4000
+    for (let i = 0; i < N; i++) {
+      if (Math.min(...bytes(pickPlumage(() => (i + 0.5) / N))) > 200) whites++
+    }
+    expect(whites, 'a white crow never turned up across the whole range').toBeGreaterThan(0)
+    expect(whites / N, 'white crows are supposed to be rare, not common').toBeLessThan(0.1)
   })
 
   it('flushes a perched bird when a car drives right up to it', () => {
