@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.57 — arcade "find a car" mode, and Esc opens the menu
+- New **Arcade** toggle in the settings (🕹): with it on, **pickable cars of other types** appear around
+  the map — a real car, bobbing and turning to mark it collectable. **Drive into one and you become
+  that car** (sedan → sports car → truck…), keeping your spot; the taken car respawns elsewhere as a
+  new type. And **Esc now opens/closes the settings menu**, so the modes are reachable without the mouse.
+- 👀 Open ⚙ (or press Esc), tick **Arcade: find a car**, then drive into one of the cars dotted about.
+
 ## v0.110.56 — traffic lights cycle at the junctions
 - Major road junctions (T-junctions and crossroads) now stand a **traffic-light head** — red/amber/green
   lenses on a pole — that **cycles** green → amber → red and glows, its phase staggered from the next

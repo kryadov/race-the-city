@@ -62,6 +62,7 @@ export interface SettingsCallbacks {
   onRoadDetail: (on: boolean) => void
   onNitro: (on: boolean) => void
   onFuel: (on: boolean) => void
+  onArcade: (on: boolean) => void
   onDemo: (on: boolean) => void
   onTrial: (on: boolean) => void
   onRace: (on: boolean) => void
@@ -83,6 +84,8 @@ export interface SettingsHandle {
   setTrial(on: boolean): void
   setTime(t: number): void
   setZoom(v: number): void
+  /** Open or close the settings panel (wired to Esc). */
+  toggle(): void
 }
 
 function button(): HTMLButtonElement {
@@ -108,6 +111,7 @@ export function createSettingsMenu(
     roadDetail: boolean
     nitro: boolean
     fuel: boolean
+    arcade: boolean
     demo: boolean
     trial: boolean
     race: boolean
@@ -131,6 +135,7 @@ export function createSettingsMenu(
   let roadDetail = initial.roadDetail
   let nitro = initial.nitro
   let fuel = initial.fuel
+  let arcade = initial.arcade
   let demo = initial.demo
   let trial = initial.trial
   let race = initial.race
@@ -152,9 +157,10 @@ export function createSettingsMenu(
     'max-height:calc(100vh - 90px);overflow-y:auto;' +
     'background:rgba(11,14,19,.94);color:#fff;padding:14px;border-radius:12px;' +
     'font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4)'
-  gear.addEventListener('click', () => {
+  const togglePanel = (): void => {
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none'
-  })
+  }
+  gear.addEventListener('click', togglePanel)
 
   const labels: Array<{ el: HTMLElement; key: string }> = []
 
@@ -442,6 +448,14 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(fuelBtn)
+  const arcadeBtn = button()
+  arcadeBtn.style.cssText += ';width:100%;margin-top:4px'
+  arcadeBtn.addEventListener('click', () => {
+    arcade = !arcade
+    cb.onArcade(arcade)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(arcadeBtn)
   const demoBtn = button()
   demoBtn.style.cssText += ';width:100%;margin-top:4px'
   demoBtn.addEventListener('click', () => {
@@ -494,6 +508,7 @@ export function createSettingsMenu(
     roadDetailBtn.textContent = `${roadDetail ? '☑' : '☐'} ${t('menu.roadDetail')}`
     nitroBtn.textContent = `${nitro ? '☑' : '☐'} ${t('menu.nitro')}`
     fuelBtn.textContent = `${fuel ? '☑' : '☐'} ${t('menu.fuel')}`
+    arcadeBtn.textContent = `${arcade ? '🕹' : '☐'} ${t('menu.arcade')}`
     demoBtn.textContent = `${demo ? '☑' : '☐'} ${t('menu.demo')}`
     trialBtn.textContent = `${trial ? '☑' : '☐'} ${t('menu.trial')}`
     raceBtn.textContent = `${race ? '☑' : '☐'} ${t('menu.race')}`
@@ -681,5 +696,6 @@ export function createSettingsMenu(
     setZoom(v: number) {
       if (!zoomDragging) zoomSlider.value = String(v)
     },
+    toggle: togglePanel, // Esc opens/closes the whole settings panel
   }
 }

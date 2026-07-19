@@ -298,6 +298,25 @@ export function setNitro(on: boolean): void {
   }
 }
 
+const ARCADE_KEY = 'rtc.arcade'
+
+/** Whether arcade "find a car" mode is on (off by default). */
+export function getArcade(): boolean {
+  try {
+    return localStorage.getItem(ARCADE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setArcade(on: boolean): void {
+  try {
+    localStorage.setItem(ARCADE_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const FUEL_KEY = 'rtc.fuel'
 
 /** Whether the fuel tank drains as you drive (on by default; off = never runs dry). */

@@ -19,6 +19,7 @@ import { createClouds } from './clouds'
 import { createSky } from './sky'
 import { burn, speedFactor, CAN_WORTH } from '../vehicle/fuel'
 import { createNitro } from './nitro'
+import { createCarPickups, type CarPickups } from './carPickups'
 import { createCans } from './cans'
 import { createFireworks } from './fireworks'
 import { celebration, makeFireworkTimer, type FireworkTimer } from '../world/celebration'
@@ -79,6 +80,8 @@ import {
   setNitro,
   getFuelUse,
   setFuelUse,
+  getArcade,
+  setArcade,
   getDemo,
   setDemo,
   getTrial,
@@ -225,6 +228,8 @@ applyWeatherSetting(getWeather())
 const sky = createSky(stage.scene)
 const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
+const carPickups: CarPickups = createCarPickups(stage.scene)
+carPickups.setEnabled(getArcade()) // arcade "find a car": pickable cars appear when on
 nitro.setEnabled(getNitro())
 const cans = createCans(stage.scene)
 let fuel = 1
@@ -601,6 +606,7 @@ async function loadCity(query: string): Promise<void> {
       car.z,
       normalRoads, // lay a spaced nitro corridor along long straight arterials
     )
+    carPickups.setSpots(scatterOn, provider, car.x, car.z) // pickable cars for arcade mode
     hud.setDistance(odometer)
     trains?.dispose() // the outgoing city's trains ran on its railways
     trains = createTrains(stage.scene, world.railways, provider, Math.random, countFor(density, 5), world.roads)
@@ -676,6 +682,15 @@ async function loadCity(query: string): Promise<void> {
         const handsOn = input.throttle !== 0 || input.steer !== 0 || input.brake
         // nitro: collecting a bottle boosts the top speed for a short window
         if (nitro.update(car.x, car.z, dt)) boostTimer = BOOST_TIME
+        // Arcade "find a car": drive into a pickable car to become that type.
+        const picked = carPickups.update(car.x, car.z, dt)
+        if (picked) {
+          vehicle = picked
+          audio.setVehicle(picked)
+          showVehicle(picked)
+          car.vx = 0 // reset momentum for the new handling, like the vehicle picker
+          car.vz = 0
+        }
         // petrol: a can fills a third of the tank, the throttle empties it
         if (cans.update(car.x, car.z, dt)) {
           fuel = Math.min(1, fuel + CAN_WORTH)
@@ -1035,6 +1050,7 @@ const menu = createSettingsMenu(
     roadDetail: getRoadDetail(),
     nitro: getNitro(),
     fuel: getFuelUse(),
+    arcade: getArcade(),
     demo: getDemo(),
     trial: getTrial(),
     race: getRace(),
@@ -1148,6 +1164,10 @@ const menu = createSettingsMenu(
       fuelUse = on
       setFuelUse(on)
       if (!on) fuel = 1 // switching it off tops the tank up at once
+    },
+    onArcade: (on) => {
+      setArcade(on)
+      carPickups.setEnabled(on) // show/hide the pickable cars right away
     },
     onUnits: (u) => {
       setUnits(u)
@@ -1263,6 +1283,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === '+' || e.key === '=') applyZoom(stage.camDist - CAM_DIST_STEP) // zoom in
   else if (e.key === '-' || e.key === '_') applyZoom(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
+  else if (e.key === 'Escape') menu.toggle() // Esc opens/closes the settings — where the modes live
 })
 // --- start screen: a live city drives itself behind the menu while you pick ---
 function selectVehicle(type: VehicleType): void {
