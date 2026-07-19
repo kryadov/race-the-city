@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.45 — survive Overpass rate-limits, and stop hanging on a bad mirror
+- When `overpass-api.de` started returning **429 Too Many Requests**, loads stalled: the client
+  timeout was too long (100s), so a mirror that accepted the connection but never answered dragged the
+  whole load out for minutes. Fixed three ways: the per-mirror timeout drops to **30s** so it fails
+  over fast; a **third mirror** (private.coffee) is added to dodge a rate-limited one; and if every
+  mirror refuses, the load now **falls back to a cached copy of that city** (even one fetched under an
+  older query) instead of failing — so a place you've visited still loads when Overpass is down.
+- 👀 On a flaky/limited connection, a previously-visited city still loads; new ones fail fast, not hang.
+
 ## v0.110.44 — no more phantom collisions from above or across a bridge
 - Bot/pedestrian/train collision circles were 2D, so you'd **hit a bot you were flying 10m over** on
   a slope, or one on the road **beneath a bridge you were driving across**. Each obstacle is now gated

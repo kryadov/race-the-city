@@ -55,6 +55,39 @@ export async function cacheGet(key: string): Promise<OverpassResponse | undefine
   }
 }
 
+/**
+ * Any cached OSM for this bbox, whatever query it was fetched under — a stale
+ * last resort for when the network is refusing (Overpass 429s every mirror) and
+ * the exact-query entry is a miss. Better a slightly out-of-date city than none.
+ */
+export async function cacheGetStale(b: BBox): Promise<OverpassResponse | undefined> {
+  const prefix = bboxKey(b, '').split('@')[0] + '@' // "s,w,n,e@", any query hash after it
+  try {
+    const db = await openDb()
+    try {
+      return await new Promise((resolve) => {
+        const store = db.transaction(STORE, 'readonly').objectStore(STORE)
+        const keysReq = store.getAllKeys()
+        keysReq.onsuccess = () => {
+          const k = keysReq.result.find((x) => typeof x === 'string' && x.startsWith(prefix))
+          if (typeof k !== 'string') {
+            resolve(undefined)
+            return
+          }
+          const getReq = store.get(k) // same transaction — issued synchronously so it stays open
+          getReq.onsuccess = () => resolve(getReq.result as OverpassResponse | undefined)
+          getReq.onerror = () => resolve(undefined)
+        }
+        keysReq.onerror = () => resolve(undefined)
+      })
+    } finally {
+      db.close()
+    }
+  } catch {
+    return undefined
+  }
+}
+
 export async function cachePut(key: string, value: OverpassResponse): Promise<void> {
   try {
     const db = await openDb()

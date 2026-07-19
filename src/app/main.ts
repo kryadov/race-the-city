@@ -98,7 +98,7 @@ import { AudioEngine } from '../audio/audio'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm, overpassQuery } from '../geo/overpass'
-import { bboxKey, cacheGet, cachePut } from '../geo/cache'
+import { bboxKey, cacheGet, cachePut, cacheGetStale } from '../geo/cache'
 import { parseOsm } from '../geo/parse'
 import { Projector } from '../geo/project'
 import { loadTerrarium } from '../terrain/terrarium'
@@ -415,11 +415,20 @@ async function loadCity(query: string): Promise<void> {
     const key = bboxKey(bbox, overpassQuery(bbox))
     let osm = await cacheGet(key)
     if (!osm) {
-      osm = await withRetry(
-        () => fetchOsm(bbox, loadAbort.signal),
-        (n) => loading.show(`${t('loading.osm')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.2),
-      )
-      await cachePut(key, osm)
+      try {
+        osm = await withRetry(
+          () => fetchOsm(bbox, loadAbort.signal),
+          (n) => loading.show(`${t('loading.osm')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.2),
+        )
+        await cachePut(key, osm)
+      } catch (e) {
+        if (loadAbort.signal.aborted) throw e // a cancel is a cancel, not a cache miss
+        // Every mirror refused (a 429 storm) or timed out. If we've ever cached
+        // this bbox — even under an older query — drive that rather than fail.
+        const stale = await cacheGetStale(bbox)
+        if (!stale) throw e
+        osm = stale
+      }
     }
     loading.show(t('loading.osm'), 0.5)
     const world = parseOsm(osm, projector)

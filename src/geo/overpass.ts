@@ -3,13 +3,14 @@ import type { OverpassResponse } from './parse'
 
 export interface BBox { south: number; west: number; north: number; east: number }
 
-// Two public mirrors, tried in order. overpass-api.de is the busiest instance
-// and the first to make a heavy query hit its timeout wall; kumi.systems is the
-// fallback for when it errors or times out. This app has no backend of its own
-// to proxy through, so resilience has to come from asking a second server.
+// Public mirrors, tried in order. overpass-api.de is the busiest and the first
+// to rate-limit (429) or hit its timeout wall under load; the others are the
+// fallbacks. This app has no backend to proxy through, so resilience comes from
+// asking the next server — more mirrors means better odds of dodging a 429.
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
 ]
 const M_PER_DEG_LAT = 111320
 
@@ -28,10 +29,12 @@ const TIMEOUT_S = 90
  * that a busy Overpass queues (or never answers) would hang until the browser's
  * own ~5-minute wall — the "загружаю карту OSM" that never clears. We abort well
  * before that and fail over to the other mirror / the next withRetry attempt.
- * Comfortably above the server-side TIMEOUT_S so a genuinely slow-but-working
- * query still lands, well below the browser hang.
+ * Kept short enough that a mirror which accepts the connection but never answers
+ * (or sits queued behind a 429'd server) fails over in seconds, not minutes —
+ * the "виснет" the player saw. A working 1km query returns in a few seconds; a
+ * killed heavy one just retries or falls over to the next mirror.
  */
-const REQUEST_TIMEOUT_MS = 100_000
+const REQUEST_TIMEOUT_MS = 30_000
 
 export function bboxAround(center: LatLon, radiusMeters: number): BBox {
   const dLat = radiusMeters / M_PER_DEG_LAT
