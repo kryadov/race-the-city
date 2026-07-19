@@ -84,6 +84,38 @@ describe('flowerbeds', () => {
     expect(colours.size).toBeGreaterThanOrEqual(6)
   })
 
+  it('widens the palette with blue, violet and azure, not just pinks and golds', () => {
+    // colours.size >= 6 above would pass even for six shades of pink; this pins
+    // the three cool tones the bed gained, so a bed that kept only warm blooms
+    // (the old palette) would fail here even while clearing the count.
+    const colours = new Set(
+      buildProps([at(0, 0, 'flowerbed')], flat).children.map((c) =>
+        ((c as THREE.InstancedMesh).material as THREE.MeshStandardMaterial).color.getHex(),
+      ),
+    )
+    for (const cool of [0x4666cf /* blue */, 0x8250c4 /* violet */, 0x35b4e0 /* azure */]) {
+      expect(colours.has(cool), `missing cool bloom 0x${cool.toString(16)}`).toBe(true)
+    }
+  })
+
+  it('builds each head as a ring of petals, not a single squashed dome', () => {
+    // A flower head is PETALS petals merged around a hollow centre, so each
+    // colour's merged geometry carries several petals' worth of vertices per
+    // bloom. The old mushroom cap was one squashed sphere per bloom — roughly
+    // the vertex weight of the single centre-eye sphere that plugs each head.
+    // So the six petal meshes together must outweigh the one eye mesh by a wide
+    // margin (they run ~3.4x); a return to one-dome-per-bloom would collapse
+    // that ratio toward 1 and trip this.
+    const petalHex = new Set([0xe0568a, 0xe8c23f, 0xece7dd, 0x4666cf, 0x8250c4, 0x35b4e0])
+    const kids = buildProps([at(0, 0, 'flowerbed')], flat).children as THREE.InstancedMesh[]
+    const verts = (m: THREE.InstancedMesh) => (m.geometry.attributes.position as THREE.BufferAttribute).count
+    const petalVerts = kids
+      .filter((c) => petalHex.has((c.material as THREE.MeshStandardMaterial).color.getHex()))
+      .reduce((s, c) => s + verts(c), 0)
+    const eye = kids.find((c) => (c.material as THREE.MeshStandardMaterial).color.getHex() === 0xf2b134)!
+    expect(petalVerts).toBeGreaterThan(verts(eye) * 2)
+  })
+
   it('stands its flower heads up on stalks, not flat on the soil', () => {
     // The old flat bed topped out barely above the kerb; the blooms now ride
     // stalks well clear of the soil, which is what stops them reading as a mat.

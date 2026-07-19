@@ -12,6 +12,7 @@ const MIN_GAP = 90
 const MAX_GAP = 180
 const OFF_CENTRE_MAX = 2.8 // must match manholes.ts
 const AJAR_NUDGE_MAX = 0.18 // must match manholes.ts — how far an ajar lid slides off its seat
+const BOLT_RING = 0.52 // must match manholes.ts — radius of the ring the four rim fixings sit on
 
 const road = (points: Vec2[], extra: Partial<Road> = {}): Road => ({ points, kind: 'residential', ...extra })
 const straight = (len: number, extra: Partial<Road> = {}): Road =>
@@ -199,6 +200,34 @@ describe('buildManholes', () => {
       if (Math.abs(pos.getZ(i)) > 0.1) offZ = true
     }
     expect(offX && offZ).toBe(true)
+  })
+
+  it('bakes four rim fixings (bolts) into the shared geometry, at N/E/S/W and only there', () => {
+    // The four cast bolts stand BOLT_H (0.1) proud of the road, but the squashed
+    // dome only reaches ~0.085 out at the bolt ring (planar radius 0.52). So a vertex
+    // sitting within a bolt's small footprint AND above 0.095 can only be a bolt cap:
+    // a clean discriminator that ignores the dome's own ring vertices and the crown
+    // ribs alike. (The geometry is shared and rand-independent, so the seed is moot.)
+    const geo = buildManholes([straight(400)], flat, makeRng(2)).geometry
+    const pos = geo.attributes.position as THREE.BufferAttribute
+    const proudAt = (cx: number, cz: number): number => {
+      let n = 0
+      for (let i = 0; i < pos.count; i++) {
+        if (pos.getY(i) <= 0.095) continue // below the bolt caps: dome or ribs, not a fixing
+        if (Math.hypot(pos.getX(i) - cx, pos.getZ(i) - cz) < 0.06) n++
+      }
+      return n
+    }
+    // A fixing at each of the four cardinal points on the rim...
+    for (const [cx, cz] of [[BOLT_RING, 0], [-BOLT_RING, 0], [0, BOLT_RING], [0, -BOLT_RING]]) {
+      expect(proudAt(cx, cz)).toBeGreaterThan(0)
+    }
+    // ...and nowhere else on the ring: the diagonals between them carry no bolt, so
+    // it reads as four discrete fixings, not a continuous ridge around the rim.
+    const d = BOLT_RING / Math.SQRT2 // the four points 45° off the cardinals, same radius
+    for (const [cx, cz] of [[d, d], [-d, d], [d, -d], [-d, -d]]) {
+      expect(proudAt(cx, cz)).toBe(0)
+    }
   })
 
   it('sets a deterministic few covers ajar (tilted off-flat) while most sit flush — all in ≤2 instanced draws', () => {
