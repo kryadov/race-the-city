@@ -118,6 +118,40 @@ describe('landmark POIs', () => {
   })
 })
 
+describe('wooded areas', () => {
+  const world = parseOsm(
+    {
+      elements: [
+        // a wood mapped as a closed way
+        { type: 'node', id: 1, lat: 41.7151, lon: 44.8271 },
+        { type: 'node', id: 2, lat: 41.7151, lon: 44.8281 },
+        { type: 'node', id: 3, lat: 41.7161, lon: 44.8281 },
+        { type: 'node', id: 4, lat: 41.7161, lon: 44.8271 },
+        { type: 'way', id: 100, nodes: [1, 2, 3, 4, 1], tags: { natural: 'wood' } },
+        // a forest mapped as a multipolygon relation (outer ring on an untagged way)
+        { type: 'node', id: 11, lat: 41.7141, lon: 44.8251 },
+        { type: 'node', id: 12, lat: 41.7141, lon: 44.8261 },
+        { type: 'node', id: 13, lat: 41.7146, lon: 44.8261 },
+        { type: 'node', id: 14, lat: 41.7146, lon: 44.8251 },
+        { type: 'way', id: 200, nodes: [11, 12, 13, 14, 11] },
+        { type: 'relation', id: 300, members: [{ type: 'way', ref: 200, role: 'outer' }], tags: { landuse: 'forest' } },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+
+  it('extracts wooded polygons from both ways and relations', () => {
+    expect(world.forests.length).toBe(2)
+    for (const ring of world.forests) expect(ring.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('keeps woods in green too, so the ground still tints under them', () => {
+    // both the way-wood and the relation-forest carry through to green
+    expect(world.green.length).toBeGreaterThanOrEqual(2)
+    for (const ring of world.forests) expect(world.green).toContain(ring)
+  })
+})
+
 describe('statues clear of trees', () => {
   const world = parseOsm(
     {

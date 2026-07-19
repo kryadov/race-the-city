@@ -37,6 +37,10 @@ export interface WorldData {
   buildings: Building[]
   water: Vec2[][]
   green: Vec2[][]
+  /** Wooded tracts (`natural=wood`, `landuse=forest`) — a subset of `green`, so
+   * the ground still tints under them; carried apart so greenery.ts can fill them
+   * with trees far denser than a park's scatter. */
+  forests: Vec2[][]
   parking: Vec2[][]
   trees: Vec2[]
   /** Ornaments dotted about: fountains, statues, flowerbeds. */

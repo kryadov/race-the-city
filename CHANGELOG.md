@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.28 — forests and woodland fill in with real trees
+- Woods (`natural=wood`, `landuse=forest`) — including multipolygon relations — used to get only the
+  same **sparse scatter** as a small park, so a big forest read as bare green. They're now filled with
+  a **dense canopy**: a jittered grid inside each wood, on its own RNG stream and a global budget
+  (~9 m spacing, capped at 2000 trees map-wide), reusing the seasonal instanced tree meshes — so it's
+  built once at load with no per-frame cost. Parks, scattered trees and seasonal crowns are unchanged.
+- 👀 Drive to a wooded area (e.g. a city with a big forest on its edge) — it's a thick stand of trees now.
+
 ## v0.110.27 — pedestrians dress for the season
 - The crowd's clothing is now **recoloured for today's season**: muted, darker garments in winter,
   bright and light ones in summer, with spring and autumn in between. The city's **latitude** picks

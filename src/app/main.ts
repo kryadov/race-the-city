@@ -465,7 +465,7 @@ async function loadCity(query: string): Promise<void> {
     const propsMesh = buildProps(world.props, provider)
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
     const poiMesh = buildPoiMarkers(world.pois, provider)
-    const greenMesh = buildGreenery(world.green, world.trees, provider, center.lat)
+    const greenMesh = buildGreenery(world.green, world.trees, provider, center.lat, world.forests)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
     ground.receiveShadow = true
     roadsMesh.receiveShadow = true

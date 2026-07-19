@@ -10,6 +10,14 @@ const TREE_AREA = 550 // one scattered tree per ~this many m² of green
 const MAX_PER_AREA = 60 // cap scatter per polygon
 const RNG_SEED = 0x1a2b3c4d // fixed seed → identical trees on every browser and reload
 
+// Forest fill — the dense woodland inside `natural=wood` / `landuse=forest`
+// polygons, kept apart from the sparse park scatter above so a лесомассив reads
+// as a solid canopy without ballooning the tree count.
+const FOREST_GRID_M = 9 // a candidate every ~9m (≈one per 81 m²) → a closed canopy
+const MAX_FOREST_TREES = 2000 // global budget for all forest fill: instanced, so cheap
+const FOREST_CANDIDATE_CAP = 24000 // bound the point-in-polygon scan for a giant tract
+const FOREST_SEED = 0x51e2d3c4 // its own seed → forest fill never perturbs the scatter
+
 /** Deterministic PRNG (mulberry32). Using this instead of Math.random keeps the
  * scattered-tree count and layout identical across browsers — Math.random-based
  * rejection sampling otherwise produced a different tree count on each load. */
@@ -33,11 +41,24 @@ function makeRng(seed: number): () => number {
  */
 /** @param lat the city's latitude — decides which trees grow here *and*, via its
  * sign, which hemisphere's calendar the seasons follow. */
-export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number): THREE.Object3D {
+/** @param forests wooded polygons (`world.forests`) to pack with trees. Optional
+ * and empty by default so the park scatter, mapped trees and seasonal crowns stay
+ * exactly as before when a caller passes only green + trees. */
+export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number, forests: Vec2[][] = []): THREE.Object3D {
   const group = new THREE.Group()
+  const szn = season(new Date(), lat)
   const rng = makeRng(RNG_SEED)
   const spots = collectTreeSpots(green, trees, rng)
-  if (spots.length) group.add(buildTrees(spots, provider, rng, lat, season(new Date(), lat)))
+  if (spots.length) group.add(buildTrees(spots, provider, rng, lat, szn))
+  // A second, far denser pass fills the wooded polygons. It runs on its own seed,
+  // so the scatter above is untouched — the same instanced meshes and seasonal
+  // palette, just packed inside each wood. Capped + subsampled (see below) so a
+  // big forest costs a few thousand instanced trees, never tens of thousands.
+  if (forests.length) {
+    const frng = makeRng(FOREST_SEED)
+    const fspots = collectForestSpots(forests, frng)
+    if (fspots.length) group.add(buildTrees(fspots, provider, frng, lat, szn))
+  }
   return group
 }
 
@@ -63,6 +84,52 @@ function collectTreeSpots(green: Vec2[][], trees: Vec2[], rng: () => number): Ve
   }
   return spots
 }
+
+/**
+ * Dense, deterministic fill of the wooded polygons.
+ *
+ * A jittered grid clipped to each ring: a candidate every FOREST_GRID_M, nudged
+ * off its lattice so rows don't line up into visible files of trees, then
+ * point-in-polygon so none stray outside the wood. Bounded twice over — the scan
+ * stops at FOREST_CANDIDATE_CAP so even a square-kilometre tract is cheap to
+ * sample, and the result is strided down to MAX_FOREST_TREES so every forest on
+ * the map together stays a couple of thousand instanced trees. The stride thins
+ * evenly, so a huge wood reads as sparser rather than clipped to one corner.
+ */
+export function collectForestSpots(forests: Vec2[][], rng: () => number): Vec2[] {
+  const spots: Vec2[] = []
+  for (const ring of forests) {
+    if (ring.length < 3 || spots.length >= FOREST_CANDIDATE_CAP) continue
+    let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity
+    for (const p of ring) {
+      if (p.x < minX) minX = p.x
+      if (p.x > maxX) maxX = p.x
+      if (p.z < minZ) minZ = p.z
+      if (p.z > maxZ) maxZ = p.z
+    }
+    for (let z = minZ; z < maxZ && spots.length < FOREST_CANDIDATE_CAP; z += FOREST_GRID_M) {
+      for (let x = minX; x < maxX && spots.length < FOREST_CANDIDATE_CAP; x += FOREST_GRID_M) {
+        const jx = x + (rng() - 0.5) * FOREST_GRID_M
+        const jz = z + (rng() - 0.5) * FOREST_GRID_M
+        if (pointInPolygon(jx, jz, ring)) spots.push({ x: jx, z: jz })
+      }
+    }
+  }
+  return subsample(spots, MAX_FOREST_TREES)
+}
+
+/** Keep at most `max`, evenly strided through the array — the props/manholes
+ * thinning idiom, so the forest budget holds however big the wood is. */
+function subsample(items: Vec2[], max: number): Vec2[] {
+  if (items.length <= max) return items
+  const stride = items.length / max
+  const out: Vec2[] = []
+  for (let i = 0; out.length < max && Math.floor(i) < items.length; i += stride) out.push(items[Math.floor(i)])
+  return out
+}
+
+/** The forest fill's global tree budget — exported for the count-cap test. */
+export const FOREST_TREE_CAP = MAX_FOREST_TREES
 
 interface TreeVariant {
   name: string

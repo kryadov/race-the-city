@@ -86,6 +86,12 @@ export function isGreen(tags: Record<string, string>): boolean {
   )
 }
 
+/** A wooded tract — a лесомассив, not a lawn. A subset of `isGreen`, singled out
+ * so greenery.ts can pack it with trees instead of scattering a park's handful. */
+export function isForest(tags: Record<string, string>): boolean {
+  return tags.natural === 'wood' || tags.landuse === 'forest'
+}
+
 const HOUSE = new Set(['house', 'detached', 'semidetached_house', 'bungalow', 'terrace', 'hut', 'cabin'])
 const APARTMENTS = new Set(['apartments', 'residential', 'dormitory', 'hotel'])
 const RETAIL = new Set(['retail', 'supermarket', 'shop', 'kiosk', 'commercial', 'restaurant'])
@@ -160,6 +166,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const buildings: Building[] = []
   const water: Vec2[][] = []
   const green: Vec2[][] = []
+  const forests: Vec2[][] = []
   const parking: Vec2[][] = []
   const fields: Vec2[][] = []
   const coast: Vec2[][] = []
@@ -191,6 +198,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       if (ring.length >= 3) {
         green.push(ring)
         if (isField(tags)) fields.push(ring) // still greenery; also grazing
+        if (isForest(tags)) forests.push(ring) // still greenery; also a wood to fill
       }
     } else if (isRailway(tags)) {
       railWays.push({
@@ -227,16 +235,21 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  // Multipolygon relations: the only way big rivers (the Neva, the Moskva) are
-  // mapped — they never arrive as a single closed way.
+  // Multipolygon relations: the only way big rivers (the Neva, the Moskva) and
+  // large forest tracts (a лесомассив) are mapped — they never arrive as a single
+  // closed way. A wood is filed as greenery too (so the ground tints under it) and
+  // as a forest (so greenery.ts plants it densely), exactly as the way loop does.
   for (const el of json.elements) {
     if (el.type !== 'relation' || !el.members) continue
-    if (!isWater(el.tags ?? {})) continue
+    const tags = el.tags ?? {}
+    const asWater = isWater(tags)
+    const asForest = isForest(tags)
+    if (!asWater && !asForest) continue
     if (el.members.length > MAX_RELATION_MEMBERS) continue // a whole-river monster
     const outers: number[][] = []
     for (const mem of el.members) {
       if (mem.type !== 'way') continue
-      if (mem.role && mem.role !== 'outer') continue // inner rings are islands; skip for now
+      if (mem.role && mem.role !== 'outer') continue // inner rings are islands/clearings; skip for now
       const ns = wayNodes.get(mem.ref)
       if (ns && ns.length >= 2) outers.push(ns)
     }
@@ -254,7 +267,12 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
         }
         pts.push(p)
       }
-      if (whole && pts.length >= 3) water.push(pts)
+      if (!whole || pts.length < 3) continue
+      if (asWater) water.push(pts)
+      if (asForest) {
+        green.push(pts)
+        forests.push(pts)
+      }
     }
   }
 
@@ -285,7 +303,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     )
   }
 
-  return { roads, buildings, water, green, parking, fields, trees, props, coast, railways, benches, busStops, pois }
+  return { roads, buildings, water, green, forests, parking, fields, trees, props, coast, railways, benches, busStops, pois }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */

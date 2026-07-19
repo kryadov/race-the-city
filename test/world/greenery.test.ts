@@ -1,6 +1,29 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { variantsFor, frondGeo } from '../../src/world/greenery'
+import { variantsFor, frondGeo, collectForestSpots, FOREST_TREE_CAP } from '../../src/world/greenery'
+import { pointInPolygon } from '../../src/physics/collide'
+import type { Vec2 } from '../../src/geo/types'
+
+/** A deterministic PRNG for the tests, so counts are stable across runs. */
+function testRng(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** An axis-aligned square ring, `size` metres on a side, cornered at the origin. */
+function square(size: number): Vec2[] {
+  return [
+    { x: 0, z: 0 },
+    { x: size, z: 0 },
+    { x: size, z: size },
+    { x: 0, z: size },
+  ]
+}
 
 const names = (lat: number): string[] => variantsFor(lat).map((v) => v.name)
 const hasPalm = (lat: number): boolean => names(lat).includes('palm')
@@ -36,6 +59,39 @@ describe('variantsFor', () => {
     expect(palm.trunk, 'a palm on a stubby 2m trunk is a shrub').toBeDefined()
     const conifer = variantsFor(60).find((v) => v.name === 'conifer')!
     expect(conifer.trunk).toBeUndefined()
+  })
+})
+
+describe('collectForestSpots', () => {
+  it('plants every tree inside the wooded polygon', () => {
+    const ring = square(120) // 14,400 m²
+    const spots = collectForestSpots([ring], testRng(1))
+    expect(spots.length).toBeGreaterThan(0)
+    for (const s of spots) expect(pointInPolygon(s.x, s.z, ring), `${s.x},${s.z}`).toBe(true)
+  })
+
+  it('fills densely — far more than a park would scatter', () => {
+    // A 300×300 wood (90,000 m²). The park scatter caps at 60 per polygon; the
+    // forest fill is meant to be a whole order denser (a ~9m grid → ~1000 here).
+    const spots = collectForestSpots([square(300)], testRng(2))
+    expect(spots.length).toBeGreaterThan(800)
+  })
+
+  it('stays under the global cap for an enormous tract', () => {
+    // 3km × 3km = 9,000,000 m² — a naive 9m grid would be ~110,000 trees.
+    const spots = collectForestSpots([square(3000)], testRng(3))
+    expect(spots.length).toBeLessThanOrEqual(FOREST_TREE_CAP)
+  })
+
+  it('is deterministic for a given seed', () => {
+    const a = collectForestSpots([square(200)], testRng(4))
+    const b = collectForestSpots([square(200)], testRng(4))
+    expect(a.length).toBe(b.length)
+    expect(a[0]).toEqual(b[0])
+  })
+
+  it('does nothing without woods', () => {
+    expect(collectForestSpots([], testRng(5))).toEqual([])
   })
 })
 
