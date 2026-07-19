@@ -13,10 +13,13 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       pedestrians are NOT drawn as neon wireframe lines like the rest of the world; they render solid.
       Bring them into the neon material flip (they're not in `theme.collectNeonMats`, and the car/bot
       models are built separately). 
-- [ ] **BUG — under-bridge traffic collides with the car on the bridge** — driving on a bridge deck,
-      a bot car passing on the road *underneath* is treated as solid and you hit it. Traffic obstacles
-      (`solidAt`) need a height/level so a bot far below the deck isn't collided with. Collision check
-      in main.ts should compare car.y vs the bot's ground height.
+- [ ] **BUG — collisions ignore height (flying / bridges / slopes)** — obstacle circles (`solidAt`)
+      are 2D, so the car collides with a bot even when it's ~10m ABOVE it: flying over a pedestrian on
+      a slope, or driving a bridge deck over traffic on the road beneath. Give each obstacle a y
+      (ground height) and skip the collision when |car.y − obstacle.y| exceeds a clearance. (main.ts
+      collision + traffic/pedestrians obstacle lists.)
+- [ ] **RPM tachometer dial** — above the speedometer, an engine-RPM dial (same round-gauge style),
+      driven from engine load/speed. (`src/ui/hud.ts` + a `hud.setRpm` wired in main.ts.)
 - [ ] **Pedestrians can walk the bridge decks** — let pedestrians route over bridge crossings/decks,
       not just ground roads (they currently stay on the ground under the bridge).
 - [ ] **BUG — car can drive through the waterfront railing** — the new embankment railing (набережная)
