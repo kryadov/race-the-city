@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.58 — remove the broken waterfront collision (invisible walls)
+- The waterfront-railing collision (v0.110.52) was placed on the wrong edges: it threw **invisible
+  walls along whole riverbanks and across bridge approaches** — you couldn't drive the bridge or a
+  wide strip beside the river — while the **visible rails had no collision at all** (you drove through
+  them). The collision condition and the drawn rail had drifted apart. Pulled it out entirely for now,
+  so the map is fully drivable again. The stone embankment and the bubbles are untouched. A correct
+  version (with gaps where roads cross, matched to the drawn rail) is on the plan.
+- 👀 Drive the bridge / riverbank that was blocked — it's clear again.
+
 ## v0.110.57 — arcade "find a car" mode, and Esc opens the menu
 - New **Arcade** toggle in the settings (🕹): with it on, **pickable cars of other types** appear around
   the map — a real car, bobbing and turning to mark it collectable. **Drive into one and you become

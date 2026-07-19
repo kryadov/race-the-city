@@ -16,6 +16,23 @@ bot motorcycles, natural door colours + handles, benches/trees between houses, R
 colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfront railing collision,
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
+### 🔧 Bugs in shipped features (fix next)
+- [ ] **BUG (serious) — waterfront barrier walls off bridges (v0.110.52)** — invisible collision
+      across a bridge approach where a river runs under it (Santiago ~x-192 z-684): you can't drive the
+      bridge/road, only pass well to the side. `waterBarriers` puts a wall along the whole embanked
+      water edge including where a **road/bridge crosses** it. Fix: pass `roads` to `waterBarriers` and
+      **leave a gap** wherever a (non-tunnel) road crosses the edge — never wall a carriageway. Also
+      gate barriers on the SAME condition the mesh actually draws the stone/rail, so no invisible walls.
+- [ ] **Parked cars look wrong (v0.110.50)** — screenshot: they read as dark flat boxes **sunk into
+      the tarmac**, in **one dense line**, too many, **no wheels / head- or tail-lights**. Fix
+      `src/world/parkedCars.ts`: give them a proper low-poly car body (wheels, glass, lamp dabs), seat
+      them ON the surface (BODY_Y too low — they're sinking), lay them in **proper bay rows** across
+      the lot (not a single kerb line), and thin the count.
+- [ ] **Tachometer (v0.110.47)** — (a) make the dial **~1.5× smaller** than the speedometer; (b) the
+      needle **jumps like a clock** (the gear-staircase RPM in main.ts snaps up to ~6k then back with
+      lag) and **doesn't reflect each vehicle type** correctly — replace the gear-staircase with a
+      smooth rev model that eases and is scaled per `VEHICLES[type]`.
+
 ### ⏳ Still open / bigger — need design or a review pass
 - [ ] **Menu refactor + arcade "find a car"** — modes reachable via Esc; drive up to a car of another
       type on the map and swap into it. (User: "оба — в план".) Design first.

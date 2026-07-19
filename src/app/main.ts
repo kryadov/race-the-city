@@ -121,7 +121,7 @@ import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../wo
 import { buildBridges } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildManholes } from '../world/manholes'
-import { buildWater, waterLevel, waterBarriers } from '../world/water'
+import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
 import { buildParkedCars } from '../world/parkedCars'
 import { buildProps, propFootprints, propTops } from '../world/props'
@@ -564,11 +564,12 @@ async function loadCity(query: string): Promise<void> {
     // Fountains and statues are as solid as walls; the grid takes polygons. It
     // takes their heights too, so a car with a jump in it can clear a bungalow
     // instead of being stopped in mid-air by ground it is nowhere near.
-    // Waterfront railings are solid too: a thin wall along each embanked edge so
-    // the car can't cross the quayside into the water (open shores stay passable).
-    // Left out of `tops`, so they reach the sky — a rail you can't jump over.
+    // NOTE: waterfront-railing collision (waterBarriers) is intentionally NOT in
+    // the grid — it walled off whole riverbanks and bridge approaches (invisible
+    // walls). See TODO: it needs road-crossing gaps + to match the drawn rail
+    // before it goes back in. Driving into open water stays allowed for now.
     grid = new SpatialGrid(
-      footprints.concat(propFootprints(world.props), waterBarriers(world.water, provider)),
+      footprints.concat(propFootprints(world.props)),
       25,
       tops.concat(propTops(world.props, provider)),
     )
