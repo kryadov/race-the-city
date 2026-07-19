@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.37 — no more bouncing and launching on bridge arches
+- Driving up a bridge the camera juddered and the car eventually flung itself into the air near the
+  crown. The deck lookup, when the car asked what it was riding, returned the **highest** deck segment
+  in reach — and on an arch the segment just ahead is higher, so the ride staircased **upward** on
+  every climb and launched the car. It now rides the deck **directly beneath** it (the nearest
+  segment); "what's overhead?" queries still get the highest deck, so flyovers are unaffected.
+- 👀 Drive up and over an arched bridge — the climb is smooth, no juddering or take-off near the top.
+
 ## v0.110.36 — knockbacks swing out smoothly instead of snapping
 - The bot/pedestrian knockback (v0.110.31) jumped the whole distance in a single frame, which read as
   a hard snap. A shove now sets a **target** the bot eases toward, and the target relaxes home — so a

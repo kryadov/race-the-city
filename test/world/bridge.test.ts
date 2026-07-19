@@ -94,8 +94,20 @@ describe('deck index', () => {
 })
 
 describe('surfaceUnder', () => {
-  const idx = createDeckIndex(buildDecks([span('primary', 1)], flat))
+  const deck = buildDecks([span('primary', 1)], flat)[0]
+  const idx = createDeckIndex([deck])
   const deckY = idx.heightAt(50, 0)!
+  /** The deck's own height directly above an x on the centreline (z=0). */
+  const deckAt = (x: number): number => {
+    const p = deck.road.points
+    for (let i = 0; i < p.length - 1; i++) {
+      if (x >= p[i].x && x <= p[i + 1].x) {
+        const t = (x - p[i].x) / (p[i + 1].x - p[i].x)
+        return deck.y[i] + (deck.y[i + 1] - deck.y[i]) * t
+      }
+    }
+    return deck.y[deck.y.length - 1]
+  }
 
   it('keeps the car under the bridge it is driving beneath', () => {
     // the whole point: at ground level, a deck 5m overhead must not grab the car
@@ -107,13 +119,33 @@ describe('surfaceUnder', () => {
   })
 
   it('lets the car climb on at the end, where the deck meets the ground', () => {
-    // at x=5 the deck is barely off the ground, so a car at ground level is on it
-    const near = idx.heightAt(5, 0)!
-    expect(surfaceUnder(5, 0, 0, 0, idx)).toBeCloseTo(near)
+    // at x=5 the deck is barely off the ground, so a car at ground level is on it —
+    // and it rides the deck directly under it, not a higher span a few metres on.
+    expect(surfaceUnder(5, 0, 0, 0, idx)).toBeCloseTo(deckAt(5))
   })
 
   it('drops the car back to the ground once clear of the bridge', () => {
     expect(surfaceUnder(300, 0, deckY, 3, idx)).toBe(3)
+  })
+
+  it('rides the deck under the car up an arch, not a higher segment ahead', () => {
+    // Regression: heightAt used to return the HIGHEST deck segment in reach when a
+    // car asked what to ride. On an arched span the segment a few metres ahead is
+    // higher, so the ride staircased upward on the climb and launched the car near
+    // the crown. It must now follow the deck directly beneath it: the ridden height
+    // tracks the true deck the whole way up (never riding above it), and no single
+    // 2m step exceeds the arch's own gradient (~0.16m/m → ~0.32m/2m).
+    let prevY = deckAt(0)
+    let worstStep = 0
+    let worstOver = 0
+    for (let x = 0; x <= 60; x += 2) {
+      const y = surfaceUnder(x, 0, prevY, 0, idx)
+      worstStep = Math.max(worstStep, y - prevY)
+      worstOver = Math.max(worstOver, y - deckAt(x))
+      prevY = y
+    }
+    expect(worstOver, 'the ride rose above the deck under it').toBeLessThan(0.05)
+    expect(worstStep, 'the ride staircased up the arch').toBeLessThan(0.35)
   })
 })
 

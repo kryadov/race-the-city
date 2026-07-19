@@ -134,22 +134,33 @@ export function createDeckIndex(decks: Deck[], margin = 0): DeckIndex {
   }
   return {
     heightAt(x, z, near) {
-      // The highest deck within reach of `near`, and failing that the lowest
-      // deck above it — which the caller will reject as out of reach, and should.
-      // Not simply the nearest: one bridge's own segments overlap near its
-      // abutment and differ by half a metre, so nearest-wins has the car ride
-      // its own ramp permanently half a metre low.
+      // Two questions, two answers. With no `near`, the caller is asking "what is
+      // overhead here?" and wants the HIGHEST deck there is (e.g. is a flyover
+      // above this spot). With a `near`, the car is asking "what do I ride?" and
+      // wants the deck DIRECTLY underneath — the NEAREST segment in reach — not
+      // the highest: on an arched span the segment a few metres ahead is higher,
+      // so taking the max there staircased the car upward on every climb and
+      // launched it near the crown. Decks above near+DECK_SNAP are out of reach
+      // and collected as `lowestAbove`, which the caller rejects, and should.
       let best: number | null = null
+      let bestD2 = Infinity
       let lowestAbove: number | null = null
       for (const s of segs) {
         const { d2, t } = closest(x, z, s)
         if (d2 > s.r2) continue
         const y = s.ay + (s.by - s.ay) * t
-        if (near !== undefined && y > near + DECK_SNAP) {
+        if (near === undefined) {
+          if (best === null || y > best) best = y
+          continue
+        }
+        if (y > near + DECK_SNAP) {
           if (lowestAbove === null || y < lowestAbove) lowestAbove = y
           continue
         }
-        if (best === null || y > best) best = y
+        if (d2 < bestD2) {
+          best = y
+          bestD2 = d2
+        }
       }
       return best ?? lowestAbove
     },
