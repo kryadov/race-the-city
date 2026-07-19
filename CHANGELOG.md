@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.43 — a Cancel button on the loading screen
+- The "загружаю карту OSM" overlay now carries a localized **Cancel / Отмена** button. Press it and
+  the in-flight load aborts at once (not retried) and you're dropped back to the start menu — or, if a
+  city was already loaded, left on the map you were driving. No more waiting out a slow load.
+- 👀 Start loading a city and hit Cancel — it stops immediately and returns you to the menu.
+
 ## v0.110.42 — the OSM load can't hang forever any more
 - "Загружаю карту OSM" could stick for minutes: `fetch` has no timeout of its own, so a request a
   busy Overpass mirror **queues but never answers** hung until the browser's own ~5-minute wall — and

@@ -3,6 +3,11 @@ export interface Loading {
   show(msg: string, frac?: number): void
   error(msg: string): void
   hide(): void
+  /**
+   * Show a Cancel button on the overlay wired to `onCancel`, or hide it when
+   * called with `null`. Stays put across `show()` calls; `hide`/`error` clear it.
+   */
+  setCancel(label: string | null, onCancel?: () => void): void
 }
 
 /** Centered loading overlay with a spinning indicator and a status line. */
@@ -33,7 +38,14 @@ export function createLoading(root: HTMLElement): Loading {
   const pct = document.createElement('div')
   pct.style.cssText = 'font-size:12px;opacity:.7;margin-top:4px'
 
-  box.append(spinner, text, barTrack, pct)
+  // The box itself is click-through (pointer-events:none), so the button opts
+  // back in with pointer-events:auto to catch the click.
+  const cancelBtn = document.createElement('button')
+  cancelBtn.style.cssText =
+    'display:none;margin:14px auto 0;padding:6px 16px;border:0;border-radius:6px;cursor:pointer;' +
+    'pointer-events:auto;font-size:13px;color:#fff;background:rgba(255,255,255,.14)'
+
+  box.append(spinner, text, barTrack, pct, cancelBtn)
   root.appendChild(box)
 
   return {
@@ -56,11 +68,23 @@ export function createLoading(root: HTMLElement): Loading {
       spinner.style.display = 'none' // an error isn't loading — drop the spinner
       barTrack.style.display = 'none'
       pct.style.display = 'none'
+      cancelBtn.style.display = 'none' // nothing left to cancel
       text.style.color = '#ff8080'
       text.textContent = msg
     },
     hide() {
       box.style.display = 'none'
+      cancelBtn.style.display = 'none'
+    },
+    setCancel(label, onCancel) {
+      if (label === null || !onCancel) {
+        cancelBtn.style.display = 'none'
+        cancelBtn.onclick = null
+        return
+      }
+      cancelBtn.textContent = label
+      cancelBtn.onclick = onCancel
+      cancelBtn.style.display = 'block'
     },
   }
 }

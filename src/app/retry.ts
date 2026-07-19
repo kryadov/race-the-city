@@ -4,7 +4,11 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
 
 /** Errors that mean "the answer is no", not "the network hiccuped". */
 function isDefinitive(e: unknown): boolean {
-  return e instanceof Error && e.message === 'city not found'
+  if (e instanceof Error && e.message === 'city not found') return true
+  // A user pressing Cancel aborts the fetch — that's a decision, not a hiccup, so
+  // don't burn the remaining attempts retrying it.
+  if (e instanceof DOMException && e.name === 'AbortError') return true
+  return false
 }
 
 /**

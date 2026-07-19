@@ -385,6 +385,10 @@ async function loadCity(query: string): Promise<void> {
   }
   replay.clear() // the recorded poses belong to the outgoing city
   hud.setCity(query)
+  // Let the player bail out of a slow load. Cancel aborts the Overpass fetch,
+  // which throws AbortError — treated as definitive (not retried) below.
+  const loadAbort = new AbortController()
+  loading.setCancel(t('loading.cancel'), () => loadAbort.abort())
   try {
     loading.show(t('loading.geocoding'), 0.05)
     const center = await withRetry(
@@ -403,7 +407,7 @@ async function loadCity(query: string): Promise<void> {
     let osm = await cacheGet(key)
     if (!osm) {
       osm = await withRetry(
-        () => fetchOsm(bbox),
+        () => fetchOsm(bbox, loadAbort.signal),
         (n) => loading.show(`${t('loading.osm')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.2),
       )
       await cachePut(key, osm)
@@ -882,6 +886,21 @@ async function loadCity(query: string): Promise<void> {
       })
     }
   } catch (e) {
+    if (loadAbort.signal.aborted) {
+      // The player cancelled. Don't flash an error — just clear the overlay and
+      // leave them where they were: the start menu if nothing ever loaded, else
+      // the map they were already driving (a cancelled in-game switch is a no-op).
+      loading.hide()
+      if (!currentCity) startMenu.show()
+      else if (playAfterLoad !== null) {
+        const mode = playAfterLoad
+        playAfterLoad = null
+        startMenu.hide()
+        replayControls.setVisible(true)
+        enterPlay(mode)
+      }
+      return
+    }
     const key = e instanceof Error && e.message === 'city not found' ? 'error.cityNotFound' : 'error.loadFailed'
     loading.error(t(key))
     // Don't leave the failure notice — and, on a menu-driven load, the loading
@@ -907,6 +926,7 @@ async function loadCity(query: string): Promise<void> {
     }, 5000)
   } finally {
     loading_ = false
+    loading.setCancel(null) // the load is over one way or another — drop the Cancel button
     if (queued !== null) {
       const next = queued
       queued = null
