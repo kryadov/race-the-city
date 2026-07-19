@@ -7,6 +7,7 @@ const MESSAGES: Record<Lang, Dict> = {
   en: {
     'input.placeholder': 'City or "lat,lon"',
     'input.go': 'Go',
+    'start.title': 'RACE THE CITY',
     'start.subtitle': 'Drive a real city',
     'start.play': 'Play',
     'start.continue': 'Continue',
@@ -139,6 +140,7 @@ const MESSAGES: Record<Lang, Dict> = {
   ru: {
     'input.placeholder': 'Город или "lat,lon"',
     'input.go': 'Поехали',
+    'start.title': 'МЧИСЬ ПО ГОРОДУ',
     'start.subtitle': 'Катайся по настоящему городу',
     'start.play': 'Играть',
     'start.continue': 'Продолжить',

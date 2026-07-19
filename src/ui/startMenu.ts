@@ -85,7 +85,8 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
   overlay.appendChild(panel)
 
   const title = document.createElement('div')
-  title.textContent = 'RACE THE CITY'
+  // Text set in applyText() so the logo switches with the language (localised
+  // per LANGS); the gradient/letter-spacing look below stays put.
   title.style.cssText = 'font-size:30px;font-weight:800;letter-spacing:2px;text-align:center;' +
     'background:linear-gradient(90deg,#38f5ff,#ff5bd0);-webkit-background-clip:text;background-clip:text;color:transparent;'
   const subtitle = document.createElement('div')
@@ -195,6 +196,7 @@ export function createStartMenu(root: HTMLElement, cb: StartMenuCallbacks, initi
 
   // Fill all text (and re-fill on language change via re-render call sites).
   const applyText = (): void => {
+    title.textContent = t('start.title')
     subtitle.textContent = t('start.subtitle')
     goBtn.textContent = t('input.go')
     cityInput.placeholder = t('input.placeholder')

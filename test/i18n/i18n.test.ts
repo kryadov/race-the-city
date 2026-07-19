@@ -12,6 +12,13 @@ describe('i18n', () => {
     expect(t('loading.geocoding')).toBe('Ищу город…')
   })
 
+  it('localises the start-menu title in every language', () => {
+    setLang('en')
+    expect(t('start.title')).toBe('RACE THE CITY')
+    setLang('ru')
+    expect(t('start.title')).toBe('МЧИСЬ ПО ГОРОДУ')
+  })
+
   it('falls back to the key when a translation is missing', () => {
     setLang('en')
     expect(t('nonexistent.key')).toBe('nonexistent.key')

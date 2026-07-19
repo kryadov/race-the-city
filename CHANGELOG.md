@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.24 — the title is localized (Мчись по городу)
+- The start-screen title now **switches with the language**: EN "RACE THE CITY", RU "МЧИСЬ ПО
+  ГОРОДУ", updating live when you flip EN / RU. The gradient logo styling is unchanged; it was the
+  last hard-coded string on the start menu.
+- 👀 Flip to RU on the start menu: the title reads "Мчись по городу".
+
 ## v0.110.23 — zoom the minimap (works on touch)
 - The minimap gains **+ / − buttons** to zoom through a few steps; the chosen level **persists** across
   reloads. Wired with pointer events so it **works on touch** (mobile), and the tap doesn't fall
