@@ -17,6 +17,43 @@ colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfron
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
 ### 🔧 Bugs in shipped features (fix next)
+- [ ] **Start position must not face/abut a building or have the view blocked** — the player must not
+      spawn staring into a wall or with a house (or other obstacle) blocking the chase-camera view.
+      DIAGNOSED: `src/world/start.ts` `startPose()` picks the road vertex nearest the map centre and a
+      heading along the road, but never checks what's ahead/around. Fix: score candidate road vertices
+      (a) by openness — reject/penalize a spot whose forward direction (and the chase-camera, which
+      sits BEHIND+ABOVE the car) hits a building footprint within a few metres; pick the heading (either
+      way along the road) and the vertex that leaves the car facing clear road, not masonry. Needs
+      `startPose` to take building footprints (`world.buildings`) + a short ray/box test. Ship as a fix.
+- [ ] **Roads run straight into houses; bots drive into the wall → SOLVE WITH ARCHWAYS** (screenshot
+      2026-07-19: a road disappears into a building's side, bot cars follow it into the masonry, "ехали
+      наполовину в доме"). USER DECISION: don't just cull the edge — where a (non-tunnel) road/track
+      crosses a building footprint, **render the building bridged over the way with an open archway/
+      passage**, and let BOTH bots and the PLAYER drive through it. This is the canonical
+      **"Road/rail-through-building archways"** item lower in this file — do it there. Detect way ×
+      building-footprint crossings (or OSM `covered`/`tunnel`/arch tags), carve/raise a passage in the
+      merged building mesh, keep the road drivable through it, and make the passage span collidable
+      above head height only. Applies to roads and rail. Needs its own design.
+- [ ] **Moving bots drive through PARKED cars on a lot** (screenshot 2026-07-19, night) — bot traffic
+      (and buses) pass straight through the static parked cars filling a parking lot. Parked cars
+      (`parkedCars.ts`) are not in the collision/obstacle grid and `traffic.ts` doesn't treat them as
+      blockers. Add each parked car's footprint as a solid obstacle so bots (and the player) go round.
+- [ ] **No moving bot cars on bridges** — bridge decks carry no traffic; they should. Traffic walks the
+      ground road graph, and bridge-deck segments either aren't fed to the traffic graph or are dropped
+      by the on-ground height test. Route bots over bridge crossings the way the player drives them.
+- [ ] **Support more OSM ground-surface types (not just grass)** — user sees ground on the OSM map that
+      isn't grass and wants it rendered. MEASURE FIRST (measure-before-fixing): fetch a real city's OSM
+      and enumerate which area tags actually appear (`landuse=residential/commercial/industrial/meadow/
+      farmland/grass`, `natural=scrub/heath/sand/bare_rock`, `surface=*`, `leisure=*`), then map the
+      common ones to distinct ground tints/textures. Ties into "Sandy ground in southern cities" and
+      "Pedestrian squares". Ground build (`ground.ts`) + parse (`parse.ts`). Screenshot 2026-07-19 (OSM
+      carto) shows at least: pale-cream **farmland**, light-green **meadow/grass**, dotted-green
+      **orchard/scrub**, grey **residential** landuse, tan buildings — support farmland/meadow/orchard/
+      residential as distinct ground tints as the first cut.
+- [ ] **Menu — comprehensive rework** (brainstorm 2026-07-19, in progress) — user wants the whole menu
+      reworked coherently, not piecemeal. Folds in the existing scattered menu items (modes reachable via
+      Esc, single-select mutually-exclusive modes free/trial/race/taxi/arcade, taxi in the ⚙ menu). See
+      the brainstorm/design doc once written.
 - [x] **Some birds perch in mid-air on nothing** — ✅ v0.110.60: each tree hands the flock its real crown height. a few birds sit motionless in the air with nothing
       under them (regression of the earlier "sitting in the air" fix, or perch points chosen above a
       surface). Check `src/app/birds.ts` perch/idle placement — perches should sit on a roof/tree/ground.

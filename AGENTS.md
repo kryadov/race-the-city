@@ -88,6 +88,17 @@ startPose(roads) → createCar → startLoop(stepCar + syncCamera + render)`. Al
   a bright amber marker band so the limit reads as deliberate, not a bug. Do NOT lean on the
   scene fog for this — it is CAMERA-relative and never veils the edge you drive TOWARD (the boats
   gotcha). Bounds are shape-swappable, so real OSM admin boundaries can drop in later.
+- **Nothing solid interpenetrates.** Every moving agent — the **player** and every **bot** (traffic
+  cars, buses, motorcycles, cyclists, pedestrians) — must not pass THROUGH a solid world element
+  (buildings, parked cars, bridge piers, statues/monuments, fences) or through **each other**. Solidity
+  lives in `physics/` — a `SpatialGrid` of footprints (with their roof heights) + circle-vs-polygon
+  resolution — and is **height-gated**: you may legitimately pass *above* something you have jumped or
+  bridged over (skip the collision when `|agent.y − obstacle.y|` exceeds a clearance), but never
+  straight through it at the same level. When you add a new solid prop OR a new kind of mover, register
+  its footprint in the grid (and add it to the movers' obstacle lists) in the SAME change — a mesh with
+  no collider is a thing everything drives through, and that reads instantly as a bug on a play-test.
+  Bot-vs-bot and bot-vs-parked-car separation are the current weak spots (tracked in TODO.md) — treat
+  them as gaps to close, not as license to ship new movers without a collider.
 
 ## Testing approach
 
