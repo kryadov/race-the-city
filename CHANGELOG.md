@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.40 — doors get natural colours and handles
+- The door brown looked unnatural. Doors are recoloured to a **natural palette** — honey-oak houses,
+  painted slate apartments, heritage-green civic, glazed shopfronts — and every door now carries a
+  **handle**: a round **knob** or a horizontal **lever bar** (by building kind), in one cheap instanced
+  draw. No door reads as a flat black hole any more.
+- 👀 Walk up to a few buildings — natural door colours, each with a knob or a bar handle.
+
 ## v0.110.39 — signpost poles no longer spike through the panel
 - On POI/landmark signposts the post ran up its full height **through the sign panel**, poking out
   above it — ugly. The panel is now bolted to the **front** of the post and the post stops **flush

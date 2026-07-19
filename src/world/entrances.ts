@@ -12,18 +12,25 @@ export interface Entrance {
 }
 
 /**
- * Door colour per class. A black slab read as a hole punched in the wall — these
- * are a painted timber door for homes, and glazing where the ground floor is a
- * shopfront.
+ * Door colour per class. A black slab read as a hole punched in the wall, and a
+ * flat mud brown read as fake — these are warm honey timber for homes, tasteful
+ * painted tones for the rest, and glazing where the ground floor is a shopfront.
  */
 const DOOR_COLOR: Record<BuildingKind, number> = {
-  house: 0x9a6a42, // varnished timber
-  apartments: 0x7d8b9c, // painted communal door
-  retail: 0x7ea6bd, // glass
-  office: 0x86aabf, // glass
-  civic: 0xa8814f, // heavy timber
-  industrial: 0x9aa0a8, // steel shutter
+  house: 0xa9754a, // warm honey oak, varnished
+  apartments: 0x556270, // painted slate blue-grey
+  retail: 0x8fb7cc, // glass
+  office: 0x9cc0d4, // glass
+  civic: 0x4d6350, // painted heritage green
+  industrial: 0x92969d, // steel shutter
 }
+
+/**
+ * A lever bar suits the modern glass and steel fronts; timber and painted doors
+ * keep a round knob. Splitting by kind gives both types across any street,
+ * deterministically, without a random draw.
+ */
+const LEVER_KINDS = new Set<BuildingKind>(['retail', 'office', 'industrial'])
 
 /** Signage colour per class. Houses don't get a sign; industry gets a plain plate. */
 const SIGN_COLOR: Partial<Record<BuildingKind, number>> = {
@@ -125,6 +132,28 @@ export function buildEntrances(buildings: Building[], provider: ElevationProvide
   doorMesh.instanceMatrix.needsUpdate = true
   if (doorMesh.instanceColor) doorMesh.instanceColor.needsUpdate = true
   group.add(doorMesh)
+
+  // Handles: a round knob or a horizontal lever, at the latch side about a metre
+  // up. One unit box scaled two ways spares a second geometry — a knob is near
+  // cubic, a lever a wide flat bar — and a small instanced draw of its own keeps
+  // handles off the per-building path, in a single metal colour.
+  const handleGeo = new THREE.BoxGeometry(1, 1, 1)
+  const handleMesh = new THREE.InstancedMesh(
+    handleGeo,
+    new THREE.MeshStandardMaterial({ color: 0xc7cace, metalness: 0.6, roughness: 0.35, flatShading: true }),
+    doors.length,
+  )
+  const knob = new THREE.Vector3(0.16, 0.16, 0.16)
+  const lever = new THREE.Vector3(0.5, 0.1, 0.12)
+  const off = new THREE.Vector3()
+  doors.forEach((e, i) => {
+    q.setFromAxisAngle(up, e.angle)
+    off.set(0.4, 1.0, 0.13).applyQuaternion(q) // latch side, a metre up, proud of the face
+    pos.set(e.x + off.x, provider.heightAt(e.x, e.z) + off.y, e.z + off.z)
+    handleMesh.setMatrixAt(i, m.compose(pos, q, LEVER_KINDS.has(e.kind) ? lever : knob))
+  })
+  handleMesh.instanceMatrix.needsUpdate = true
+  group.add(handleMesh)
 
   if (signs.length) {
     const signGeo = new THREE.BoxGeometry(2.0, 0.55, 0.12)

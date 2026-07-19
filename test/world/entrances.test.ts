@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { frontEdge, entranceFor } from '../../src/world/entrances'
+import * as THREE from 'three'
+import { frontEdge, entranceFor, buildEntrances } from '../../src/world/entrances'
 import { pointInPolygon } from '../../src/physics/collide'
 import type { Building, Vec2 } from '../../src/geo/types'
 
@@ -55,5 +56,50 @@ describe('entranceFor', () => {
 
   it('gives up on a degenerate footprint rather than throwing', () => {
     expect(entranceFor(building([v(0, 0), v(0, 0), v(0, 0)]))).toBeNull()
+  })
+})
+
+describe('buildEntrances handles', () => {
+  const flat = { heightAt: () => 0 }
+  const block = (ox: number, kind: Building['kind']): Building => ({
+    footprint: [v(ox, 0), v(ox, 8), v(ox + 20, 8), v(ox + 20, 0)],
+    height: 12,
+    kind,
+  })
+
+  /** Doors and signs are drawn at unit scale; handles are the small scaled boxes. */
+  const handleMeshOf = (root: THREE.Object3D): THREE.InstancedMesh => {
+    const m = new THREE.Matrix4()
+    const s = new THREE.Vector3()
+    let found: THREE.InstancedMesh | undefined
+    root.traverse((o) => {
+      const im = o as THREE.InstancedMesh
+      if (!im.isInstancedMesh || !im.count) return
+      im.getMatrixAt(0, m)
+      m.decompose(new THREE.Vector3(), new THREE.Quaternion(), s)
+      if (s.x < 0.9) found = im // scaled down from the unit box: a handle
+    })
+    expect(found, 'no handle mesh in the entrances group').toBeDefined()
+    return found!
+  }
+
+  it('mounts a handle on every door', () => {
+    const g = buildEntrances([block(0, 'house'), block(40, 'retail')], flat)
+    expect(handleMeshOf(g).count).toBe(2)
+  })
+
+  it('gives timber a knob and glass a lever — two types on one street', () => {
+    // house is a knob kind, retail a lever kind; door order follows building order
+    const handles = handleMeshOf(buildEntrances([block(0, 'house'), block(40, 'retail')], flat))
+    const m = new THREE.Matrix4()
+    const s = new THREE.Vector3()
+    const widths: number[] = []
+    for (let i = 0; i < handles.count; i++) {
+      handles.getMatrixAt(i, m)
+      m.decompose(new THREE.Vector3(), new THREE.Quaternion(), s)
+      widths.push(s.x)
+    }
+    expect(Math.min(...widths)).toBeCloseTo(0.16, 2) // the knob
+    expect(Math.max(...widths)).toBeCloseTo(0.5, 2) // the lever bar
   })
 })
