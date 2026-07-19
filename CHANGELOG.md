@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.51 — shopfronts glaze the ground floor of shops
+- Shops and civic buildings now get a proper **glazed shopfront** on the ground floor — a run of bright
+  glass bays with a mullion, a stall-riser at pavement level and a fascia board — instead of the same
+  repeating windows as the flats above. One instanced draw for the whole city; houses are unchanged.
+- 👀 Drive a high street — the shops read as shops, glassy at street level.
+
 ## v0.110.50 — parked cars fill the car parks
 - Car parks were bare tarmac. They now hold **parked cars** — laid out square in the marked bays
   (reusing the same bay layout the paint uses), about 60% of bays filled so it looks lived-in, each a

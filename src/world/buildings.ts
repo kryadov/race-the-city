@@ -1,9 +1,10 @@
 import * as THREE from 'three'
 import type { Building, BuildingKind, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
-import { createFacadeMaterials, type FacadeMaterials } from './facade'
-import { facadeUVs } from './facadeUv'
+import { BAY_W, createFacadeMaterials, type FacadeMaterials } from './facade'
+import { facadeUVs, storeysIn } from './facadeUv'
 import { buildEntrances } from './entrances'
+import { pointInPolygon } from '../physics/collide'
 
 // A tight range of warm stones. Neighbours should read apart without the street
 // turning into a patchwork — the eye notices the outlines, not the palette.
@@ -162,6 +163,133 @@ function batchMesh(batch: Batch, mat: THREE.Material): THREE.Mesh {
   return new THREE.Mesh(geo, mat)
 }
 
+// Which classes trade at street level: shops and services glaze the ground
+// floor, homes/offices/sheds keep the plain facade the texture already gives them.
+const SHOPFRONT_KINDS = new Set<BuildingKind>(['retail', 'civic'])
+const SHOPFRONT_OFFSET = 0.06 // how proud of the wall the glazing stands, no z-fight
+const SHOPFRONT_MAX_H = 4.5 // tallest a band gets, however generous the ceiling
+
+/**
+ * One glazed shopfront bay, drawn once and shared by every pane in the city.
+ *
+ * The dark ground shows through as the frame and the mullion between the two
+ * lights; a bright, cool fill is the glass — brighter than a home's window
+ * texture, so a shop reads as a shop; a solid band along the bottom is the stall
+ * riser at the pavement, and a darker board along the top is the fascia a sign
+ * hangs off. Kept to the stubbable canvas ops (fillRect only) so the node tests
+ * that stand in a fake 2D context don't have to grow gradients to build a city.
+ */
+let shopfrontTex: THREE.Texture | null = null
+function shopfrontTexture(): THREE.Texture {
+  if (shopfrontTex) return shopfrontTex
+  const W = 128
+  const H = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#39454f' // frame + mullion stock: the dark the glass sits in
+  ctx.fillRect(0, 0, W, H)
+  const riser = H * 0.17 // stall riser at the pavement
+  const fascia = H * 0.12 // fascia board the sign hangs off
+  const frame = W * 0.06 // frame down each side
+  const mull = W * 0.05 // the mullion splitting the two lights
+  const gTop = fascia
+  const gBot = H - riser
+  const lightW = (W - 2 * frame - mull) / 2
+  ctx.fillStyle = '#bcd4e0' // glass: brighter and cooler than a home's windows
+  ctx.fillRect(frame, gTop, lightW, gBot - gTop)
+  ctx.fillRect(W / 2 + mull / 2, gTop, lightW, gBot - gTop)
+  ctx.fillStyle = '#6f6252' // stall riser: a solid stone base
+  ctx.fillRect(0, gBot, W, riser)
+  ctx.fillStyle = '#463c36' // fascia: a painted board for the shop's name
+  ctx.fillRect(0, 0, W, fascia)
+  ctx.fillStyle = '#33414b' // a transom bar across the lights
+  ctx.fillRect(frame, gTop + (gBot - gTop) * 0.24, W - 2 * frame, H * 0.02)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.magFilter = THREE.LinearFilter
+  tex.anisotropy = 4
+  shopfrontTex = tex
+  return tex
+}
+
+/**
+ * Glaze the ground floor of shops and civic buildings with a band of shopfront
+ * windows, so a shop reads as a shop from the street rather than as another
+ * block of flats. Every pane in the city is one instance of a single glazed bay
+ * — one draw call and one material for the lot, like the doors and signs — laid
+ * a bay at a time along each wall and stood just proud of the facade.
+ *
+ * Outward is found by stepping off one perpendicular and asking whether it lands
+ * inside the footprint, not by trusting the ring's winding: OSM ways come both
+ * ways round, and glazing that faced the stockroom would be worse than none.
+ *
+ * Returns null for a city with no shops, so no empty mesh joins the group.
+ */
+function buildShopfronts(buildings: Building[], provider: ElevationProvider): THREE.InstancedMesh | null {
+  const up = new THREE.Vector3(0, 1, 0)
+  const q = new THREE.Quaternion()
+  const pos = new THREE.Vector3()
+  const scale = new THREE.Vector3()
+  const m = new THREE.Matrix4()
+  const panes: THREE.Matrix4[] = []
+
+  for (const b of buildings) {
+    if (!SHOPFRONT_KINDS.has(b.kind) || b.footprint.length < 3) continue
+    const ring = b.footprint
+    const { max } = groundStats(ring, provider)
+    // One ground-floor storey tall, fitted to the building like the facade rows,
+    // but never so tall a generous ceiling turns the whole front into glass.
+    const bandH = Math.min(b.height / storeysIn(b.height), SHOPFRONT_MAX_H, b.height)
+    if (bandH <= 0) continue
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i]
+      const c = ring[(i + 1) % ring.length]
+      const dx = c.x - a.x
+      const dz = c.z - a.z
+      const len = Math.hypot(dx, dz)
+      if (len < 1.5) continue // a metre of wall has no window
+      let nx = dz / len
+      let nz = -dx / len
+      const mx = (a.x + c.x) / 2
+      const mz = (a.z + c.z) / 2
+      if (pointInPolygon(mx + nx * 0.4, mz + nz * 0.4, ring)) {
+        nx = -nx
+        nz = -nz
+      }
+      q.setFromAxisAngle(up, Math.atan2(nx, nz)) // the pane fronts the street
+      const bays = Math.max(1, Math.round(len / BAY_W))
+      const bayW = len / bays
+      scale.set(bayW, bandH, 1)
+      for (let bay = 0; bay < bays; bay++) {
+        const t = (bay + 0.5) / bays
+        pos.set(a.x + dx * t + nx * SHOPFRONT_OFFSET, max, a.z + dz * t + nz * SHOPFRONT_OFFSET)
+        panes.push(m.compose(pos, q, scale).clone())
+      }
+    }
+  }
+  if (!panes.length) return null
+
+  const geo = new THREE.PlaneGeometry(1, 1)
+  geo.translate(0, 0.5, 0) // seat the pane on the ground floor, not centred on it
+  const mesh = new THREE.InstancedMesh(
+    geo,
+    // Glass reads from the bright map and a low roughness sheen; no vertex
+    // colours, so the pane keeps the texture's own tone rather than the wall's.
+    new THREE.MeshStandardMaterial({
+      map: shopfrontTexture(),
+      metalness: 0.1,
+      roughness: 0.25,
+      side: THREE.DoubleSide,
+    }),
+    panes.length,
+  )
+  mesh.name = 'shopfronts'
+  panes.forEach((mat, i) => mesh.setMatrixAt(i, mat))
+  mesh.instanceMatrix.needsUpdate = true
+  return mesh
+}
+
 /**
  * Extrudes each footprint from its ground level up by its height, and merges the
  * lot into one mesh per building class.
@@ -244,6 +372,9 @@ export function buildBuildings(
 
   // Doors and signs for every building in two instanced draws.
   group.add(buildEntrances(buildings, provider))
+  // Shopfront glazing for shops and services, the whole city in one more.
+  const shopfronts = buildShopfronts(buildings, provider)
+  if (shopfronts) group.add(shopfronts)
 
   return { mesh: group, footprints, tops, facades }
 }
