@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.27 — pedestrians dress for the season
+- The crowd's clothing is now **recoloured for today's season**: muted, darker garments in winter,
+  bright and light ones in summer, with spring and autumn in between. The city's **latitude** picks
+  the season, so a January stroll dresses for **summer in Sydney** and winter in Stockholm. It's a
+  one-time instance-colour swap at spawn — no per-frame cost — and hair keeps its natural colours.
+- 👀 Load a northern city in summer vs. a southern one and watch the wardrobe flip.
+
 ## v0.110.26 — level-crossing barriers stand where a road meets the rails
 - Crossing booms were hunting for **rail-meets-rail junctions** (vanishingly rare) — they now find
   the real thing: where a **road crosses a railway** at grade. Each such crossing gets a pair of

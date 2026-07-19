@@ -3,6 +3,7 @@ import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildRoadGraph, nextNode, type RoadGraph } from '../world/roadGraph'
 import { pointInPolygon, type Circle } from '../physics/collide'
+import { season, type SeasonName } from '../world/season'
 
 /** People at 'normal': ambience, not a crowd to thread. */
 const COUNT = 22
@@ -27,6 +28,56 @@ const SKIRTS = [0xa8324f, 0x2e4d7a, 0x3a6b4a, 0xc27a2e, 0x5c3a75, 0x36404a]
 const HAIR = [0x1c1712, 0x3b2a1e, 0x6b4423, 0xd9c27a, 0x8a4b32]
 // Roughly a third to a half of the crowd, per the brief.
 const GIRL_CHANCE = 0.42
+
+// Where winter's layers pull the palette: a warm orange (THREE hue units, 0=red,
+// 1/3=green, 2/3=blue). Coats and scarves read warm, so cool shirts get dragged
+// part of the way here rather than staying summer-crisp.
+const WARM_HUE = 0.08
+
+/**
+ * The crowd dresses for the date — the same season the trees and ground already
+ * read from world/season.ts, only shifting *clothes* rather than leaves. Each
+ * season re-tones a garment by three amounts, applied to its HSL:
+ *  - `dl` lightness — how much lighter (summer tees) or darker (winter coats);
+ *  - `ds` saturation — summer lifts it, winter mutes it toward grey wool;
+ *  - `warm` — how far, 0..1, the hue is dragged toward WARM_HUE, so a navy shirt
+ *    becomes a warmer winter slate instead of a crisp summer blue.
+ * Summer is the bright, light extreme; winter the dark, muted, faintly-warm one;
+ * spring and autumn sit between (spring light and clean, autumn dim and warming).
+ */
+interface Wear {
+  dl: number
+  ds: number
+  warm: number
+}
+const WEAR: Record<SeasonName, Wear> = {
+  summer: { dl: 0.1, ds: 0.06, warm: 0 }, // t-shirts in the sun: bright and light
+  spring: { dl: 0.05, ds: 0.03, warm: 0 }, // light layers, nothing heavy yet
+  autumn: { dl: -0.07, ds: -0.03, warm: 0.15 }, // drawing in: a touch dark, warming
+  winter: { dl: -0.17, ds: -0.14, warm: 0.3 }, // coats: markedly darker, muted, warm
+}
+
+const clampUnit = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x)
+
+/**
+ * Re-tone one packed 0xRRGGBB garment colour for a season. Pure and
+ * deterministic — the same colour and season in give the same colour out — so
+ * the whole seasonal mapping unit-tests without a scene, and it runs once per
+ * seeded palette pick at build time, never per frame.
+ */
+export function dressForSeason(hex: number, name: SeasonName): number {
+  const w = WEAR[name]
+  const c = new THREE.Color(hex)
+  const hsl = { h: 0, s: 0, l: 0 }
+  c.getHSL(hsl)
+  // Drag the hue toward warm along the shorter arc round the wheel, so a cool
+  // colour warms rather than spinning off the long way toward cyan.
+  let dh = WARM_HUE - hsl.h
+  if (dh > 0.5) dh -= 1
+  else if (dh < -0.5) dh += 1
+  c.setHSL((hsl.h + dh * w.warm + 1) % 1, clampUnit(hsl.s + w.ds), clampUnit(hsl.l + w.dl))
+  return c.getHex()
+}
 
 export interface Pedestrians {
   update(dt: number, camX: number, camZ: number): void
@@ -71,9 +122,25 @@ export function createPedestrians(
   rand: () => number = Math.random,
   count = COUNT,
   water: Vec2[][] = [],
+  // The city's latitude, only used to pick the season (via season.ts, which
+  // flips the calendar south of the equator). Defaults to 0 — treated as
+  // northern — so the seasonal wardrobe works with no wiring; main.ts has
+  // `center.lat` to hand (it already passes it to buildGreenery) and should
+  // forward it here as a follow-up so Sydney dresses for summer in January.
+  lat = 0,
 ): Pedestrians {
   const group = new THREE.Group()
   scene.add(group)
+  // Dress the whole crowd for today's season: recolour each garment palette once,
+  // here, so it's a pure instanceColor swap with no per-frame cost. Hair keeps its
+  // natural colours (a season doesn't change what grows on your head); hats are a
+  // geometry job left for later.
+  const szn = season(new Date(), lat).name
+  const seasonShirts = SHIRTS.map((c) => dressForSeason(c, szn))
+  const seasonSkirts = SKIRTS.map((c) => dressForSeason(c, szn))
+  // Trousers are one shared material, not per-instance, so the season shifts them
+  // as a batch — darker and warmer in winter, a lighter summer tone — for free.
+  const legTone = dressForSeason(0x33363d, szn)
   // Footways included: this is where people belong and cars don't.
   const graph: RoadGraph = buildRoadGraph(roads.map((r) => (r.kind === 'path' ? { ...r, kind: 'service' as const } : r)))
   const rng = makeRng(0xbeef11)
@@ -151,7 +218,7 @@ export function createPedestrians(
     new THREE.MeshStandardMaterial({ color: 0xe0ac69, flatShading: true }),
     n,
   )
-  const legs = new THREE.InstancedMesh(legGeo, new THREE.MeshStandardMaterial({ color: 0x33363d, flatShading: true }), n * 2)
+  const legs = new THREE.InstancedMesh(legGeo, new THREE.MeshStandardMaterial({ color: legTone, flatShading: true }), n * 2)
   const arms = new THREE.InstancedMesh(armGeo, new THREE.MeshStandardMaterial({ flatShading: true }), n * 2)
   // Only girls get a skirt or hair, but everyone gets an instance slot in both
   // meshes regardless — one InstancedMesh per part for the whole crowd, always,
@@ -172,16 +239,19 @@ export function createPedestrians(
   // near the player anyway, so simply never cull them.
   group.children.forEach((c) => (c.frustumCulled = false))
 
+  // Draw the garment colours from `lookRng`, the same seeded stream as the girl
+  // split — not from `rand` (Math.random in production) — so a given crowd slot
+  // wears the same seasonal outfit across reloads, browsers and respawns.
   const col = new THREE.Color()
   walkers.forEach((_, i) => {
-    col.setHex(SHIRTS[Math.floor(rand() * SHIRTS.length)])
+    col.setHex(seasonShirts[Math.floor(lookRng() * seasonShirts.length)])
     bodies.setColorAt(i, col)
     arms.setColorAt(i * 2, col) // sleeves match the shirt
     arms.setColorAt(i * 2 + 1, col)
     if (isGirl[i]) {
-      col.setHex(SKIRTS[Math.floor(rand() * SKIRTS.length)])
+      col.setHex(seasonSkirts[Math.floor(lookRng() * seasonSkirts.length)])
       skirts.setColorAt(i, col)
-      col.setHex(HAIR[Math.floor(rand() * HAIR.length)])
+      col.setHex(HAIR[Math.floor(lookRng() * HAIR.length)])
       hair.setColorAt(i, col)
     }
   })

@@ -356,6 +356,7 @@ let currentCity = '' // the loaded city query, for session save/restore
 let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
 let lastRailways: import('../geo/types').Railway[] = []
 let lastWater: import('../geo/types').Vec2[][] = []
+let lastLat = 0 // the loaded city's latitude, so a density rebuild dresses the crowd for its season
 
 async function loadCity(query: string): Promise<void> {
   if (loading_) {
@@ -549,7 +550,7 @@ async function loadCity(query: string): Promise<void> {
     traffic?.dispose()
     traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16))
     people?.dispose()
-    people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water)
+    people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat)
     boats?.dispose()
     boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4))
     herds?.dispose()
@@ -560,6 +561,7 @@ async function loadCity(query: string): Promise<void> {
     birds.dispose() // the outgoing city's trees and roofs were its perches
     birds = makeBirds()
     lastWater = world.water
+    lastLat = center.lat
     autopilot.reset(world.roads, car)
     trial.reset(world.roads, provider, car)
     rivals.reset(world.roads, grid, provider, car, trial.course())
@@ -980,7 +982,7 @@ const menu = createSettingsMenu(
       traffic?.dispose()
       traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16))
       people?.dispose()
-      people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater)
+      people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat)
       boats?.dispose()
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
       birds.dispose()
