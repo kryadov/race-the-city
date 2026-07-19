@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.60 — birds perch in the crown, not the air above it
+- A perched bird sat at a fixed 4.5m over its tree, but trees are built at a random scale (0.7–1.4×),
+  so on a short tree the bird floated in clear air above the canopy (the horizontal clamp never fixed
+  the vertical mismatch). Each tree now hands the flock its REAL crown height, so a landing bird
+  settles among that tree's own leaves whatever its size. Deterministic — same crowns and perches
+  every reload.
+- 👀 Watch the flock come down in trees — no bird hangs motionless in mid-air over a small one.
+
 ## v0.110.59 — pause coordinates sit under the speedometer
 - The pause-only x/z/heading readout was up over the city skyline (above the tacho); it now sits
   **under the speedometer** where the other instruments are, so it doesn't cover the view.

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Vec2 } from '../geo/types'
+import type { TreePerch } from '../world/greenery'
 import type { ElevationProvider } from '../terrain/provider'
 
 export interface Birds {
@@ -117,8 +117,6 @@ const FLUSH_R2 = FLUSH_RADIUS * FLUSH_RADIUS
 
 /** How far a perch search looks from the anchor for a tree to land in. */
 const PERCH_SEARCH_RADIUS = 220
-/** Rough canopy height a landed bird sits at, metres above the ground below it. */
-const TREE_PERCH_H = 4.5
 /**
  * How far from a tree's trunk a perched bird may sit — a canopy radius, metres.
  *
@@ -126,11 +124,13 @@ const TREE_PERCH_H = 4.5
  * tree's own point), but the bird's fixed formation offset (ox/oz, up to
  * ±FORMATION_SPREAD each — nearly 5m out) is added at render time. On open ground
  * that offset is exactly what spreads the flock out to land; over a trunk it flung
- * the bird clear of the canopy, so it sat at TREE_PERCH_H (4.5m) with nothing under
- * it — "птицы иногда сидят в воздухе", floaters measured up to ~4m past a canopy
- * that is only ~1-3m across (see the foliage radii in greenery.ts). Clamping the
- * offset to this radius keeps a tree-perched bird among the leaves, where a tight
- * cluster reads fine, while ground and roof perches keep their full spread.
+ * the bird clear of the canopy, so it sat up at crown height with nothing under it
+ * — "птицы иногда сидят в воздухе", floaters measured up to ~4m past a canopy that
+ * is only ~1-3m across (see the foliage radii in greenery.ts). Clamping the offset
+ * to this radius keeps a tree-perched bird among the leaves, where a tight cluster
+ * reads fine, while ground and roof perches keep their full spread. (This is the
+ * HORIZONTAL fix; the tree's own crown height — carried on each perch now — is what
+ * fixed the VERTICAL float of a bird seated above a short tree's canopy.)
  */
 const CANOPY_R = 2.2
 /** Clearance above bare ground, so a grounded bird doesn't clip into it. */
@@ -239,8 +239,8 @@ function smoothstep(t: number): number {
  * empty or nothing is close enough. Linear scan: called a couple of times a
  * minute per bird, not per frame, so a list of a few hundred trees is nothing.
  */
-function findPerch(x: number, z: number, perches: Vec2[]): Vec2 | null {
-  let best: Vec2 | null = null
+function findPerch(x: number, z: number, perches: TreePerch[]): TreePerch | null {
+  let best: TreePerch | null = null
   let bestD2 = PERCH_SEARCH_RADIUS * PERCH_SEARCH_RADIUS
   for (const s of perches) {
     const d2 = (s.x - x) ** 2 + (s.z - z) ** 2
@@ -383,8 +383,10 @@ interface Bird {
  *
  * @param provider ground height for landings. Defaults to flat ground at
  *   y=0, for the flock that exists before any city has loaded.
- * @param perches candidate tree spots a bird may land in (world.trees is
- *   the natural source). Empty by default: birds land on the ground alone.
+ * @param perches candidate tree perches a bird may land in — each carries the
+ *   crown height of that specific tree (buildGreenery's `perches`, threaded out
+ *   of the very scales the trees were rendered at). Empty by default: birds land
+ *   on the ground alone.
  * @param roofAt height of the roof under (x, z), or null over open ground —
  *   e.g. `(x, z) => roofUnder(x, z, grid)` from physics/collide.ts. Optional:
  *   without it, a bird just never finds a roof to land on.
@@ -394,7 +396,7 @@ export function createBirds(
   rand: () => number = Math.random,
   count = COUNT,
   provider: ElevationProvider = FLAT_GROUND,
-  perches: Vec2[] = [],
+  perches: TreePerch[] = [],
   roofAt?: (x: number, z: number) => number | null,
 ): Birds {
   const group = new THREE.Group()
@@ -526,7 +528,12 @@ export function createBirds(
    */
   function pickLanding(x: number, z: number): { x: number; y: number; z: number; r: number } {
     const spot = findPerch(x, z, perches)
-    if (spot) return { x: spot.x, y: provider.heightAt(spot.x, spot.z) + TREE_PERCH_H, z: spot.z, r: CANOPY_R }
+    // A tree perch carries the crown height of that exact tree (greenery.ts
+    // derives it from the very scale the tree was rendered at), so sit the bird
+    // at that y — not a fixed guess, which floated a bird above a short tree's
+    // canopy. The CANOPY_R clamp still reins the horizontal offset in so it stays
+    // over the foliage.
+    if (spot) return { x: spot.x, y: spot.y, z: spot.z, r: CANOPY_R }
     const roofY = roofAt?.(x, z) ?? null
     if (roofY !== null) return { x, y: roofY + ROOF_PERCH_H, z, r: Infinity }
     return { x, y: provider.heightAt(x, z) + GROUND_PERCH_H, z, r: Infinity }

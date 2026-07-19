@@ -125,7 +125,7 @@ import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
 import { buildParkedCars } from '../world/parkedCars'
 import { buildProps, propFootprints, propTops } from '../world/props'
-import { buildGreenery } from '../world/greenery'
+import { buildGreenery, type TreePerch } from '../world/greenery'
 import { buildStreetFurniture } from '../world/streetFurniture'
 import { buildInfill } from '../world/infill'
 import { buildPoiMarkers } from '../world/poiMarkers'
@@ -237,10 +237,10 @@ let fuelUse = getFuelUse() // when off, the tank never drains — no running dry
 const flame = createNitroFlame()
 let density: Density = getDensity()
 const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
-let lastTrees: Vec2[] = []
+let lastPerches: TreePerch[] = []
 /** Where a bird may land: the ground, a tree, or a roof — all of which move city to city. */
 const makeBirds = (): ReturnType<typeof createBirds> =>
-  createBirds(stage.scene, Math.random, countFor(density, 8), provider, lastTrees, (x, z) =>
+  createBirds(stage.scene, Math.random, countFor(density, 8), provider, lastPerches, (x, z) =>
     roofUnder(x, z, grid),
   )
 let trains: Trains | null = null
@@ -521,7 +521,7 @@ async function loadCity(query: string): Promise<void> {
     const propsMesh = buildProps(world.props, provider)
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
     const poiMesh = buildPoiMarkers(world.pois, provider)
-    const greenMesh = buildGreenery(world.green, world.trees, provider, center.lat, world.forests)
+    const { object: greenMesh, perches: greenPerches } = buildGreenery(world.green, world.trees, provider, center.lat, world.forests)
     // Fill the bare ground between buildings with the odd bench and clump of trees.
     const infillMesh = buildInfill(world.buildings, world.roads, world.trees, world.water, provider, Math.random)
     const seaMesh = buildSea(world.coast, RADIUS, provider)
@@ -630,7 +630,7 @@ async function loadCity(query: string): Promise<void> {
     lastRoads = world.roads
     lastBusStops = world.busStops
     lastRailways = world.railways
-    lastTrees = world.trees
+    lastPerches = greenPerches
     birds.dispose() // the outgoing city's trees and roofs were its perches
     birds = makeBirds()
     lastWater = world.water

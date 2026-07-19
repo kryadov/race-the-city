@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { variantsFor, frondGeo, collectForestSpots, FOREST_TREE_CAP } from '../../src/world/greenery'
+import { variantsFor, frondGeo, collectForestSpots, FOREST_TREE_CAP, buildGreenery } from '../../src/world/greenery'
 import { pointInPolygon } from '../../src/physics/collide'
 import type { Vec2 } from '../../src/geo/types'
 
@@ -92,6 +92,65 @@ describe('collectForestSpots', () => {
 
   it('does nothing without woods', () => {
     expect(collectForestSpots([], testRng(5))).toEqual([])
+  })
+})
+
+describe('buildGreenery perches', () => {
+  /** Every instanced-mesh world position under `object`, crowns and trunks alike. */
+  function renderedPositions(object: THREE.Object3D): THREE.Vector3[] {
+    const out: THREE.Vector3[] = []
+    const m = new THREE.Matrix4()
+    object.traverse((o) => {
+      const im = o as THREE.InstancedMesh
+      if (!im.isInstancedMesh) return
+      for (let i = 0; i < im.count; i++) {
+        im.getMatrixAt(i, m)
+        out.push(new THREE.Vector3().setFromMatrixPosition(m))
+      }
+    })
+    return out
+  }
+
+  it('hands back one perch per tree, seated on that tree\'s own rendered crown', () => {
+    // A flat ground and a handful of explicit trees, no scatter: a small, known
+    // world where every perch must line up with a crown that was actually drawn.
+    const provider = { heightAt: () => 0 }
+    const trees: Vec2[] = [
+      { x: 10, z: 0 },
+      { x: 0, z: 10 },
+      { x: -10, z: 0 },
+      { x: 0, z: -10 },
+      { x: 15, z: 15 },
+    ]
+    // Northern latitude → conifer/broadleaf/spruce, all with a folY well above the
+    // stubby trunk, so a crown height is unmistakably not a trunk height.
+    const { object, perches } = buildGreenery([], trees, provider, 60)
+    expect(perches.length, 'no perches came back for a green full of trees').toBe(trees.length)
+
+    const rendered = renderedPositions(object)
+    for (const perch of perches) {
+      // Each perch sits exactly on a rendered instance sharing its (x, z) AND its
+      // y — which can only be the foliage crown, since a trunk at the same (x, z)
+      // rides at y+s (< 1.5m), never at the crown's folY*s (>= 2.5m). Proof the
+      // perch height is the very one the tree was drawn at, not a fixed guess.
+      const onCrown = rendered.some(
+        (r) =>
+          Math.abs(r.x - perch.x) < 1e-4 && Math.abs(r.z - perch.z) < 1e-4 && Math.abs(r.y - perch.y) < 1e-4,
+      )
+      expect(onCrown, `perch (${perch.x},${perch.z},${perch.y}) is on no rendered crown`).toBe(true)
+      // ...and it is genuinely up in a crown, clear of the ground and the trunk top.
+      expect(perch.y, 'a perch that low is sitting on the trunk, not in the crown').toBeGreaterThan(2)
+    }
+  })
+
+  it('reproduces the same perches on a reload — deterministic by construction', () => {
+    const provider = { heightAt: () => 0 }
+    const green = [square(120)]
+    const trees: Vec2[] = [{ x: 30, z: 30 }, { x: 70, z: 40 }]
+    const a = buildGreenery(green, trees, provider, 45)
+    const b = buildGreenery(green, trees, provider, 45)
+    expect(a.perches).toEqual(b.perches)
+    expect(a.perches.length).toBeGreaterThan(0)
   })
 })
 

@@ -147,36 +147,42 @@ describe('birds', () => {
     expect(bodyAfter.angleTo(flyingAfter), 'the body flapped with the wing').toBeGreaterThan(0.01)
   })
 
-  it('comes down on a nearby tree when one is offered', () => {
+  it('comes down at the crown height its tree gives, not a fixed guess', () => {
     const scene = new THREE.Scene()
     const provider = { heightAt: () => 0 }
-    // A single tree, close enough to the camera's anchor to be found.
-    const perches = [{ x: 20, z: 0 }]
+    // A single SHORT tree, close enough to the anchor to be found, whose crown
+    // sits at 2.5m — carried on the perch itself, the way buildGreenery derives
+    // it from that tree's own scale. The old code seated every bird at a fixed
+    // 4.5m, so on a tree this short the bird floated ~2m above the leaves.
+    const CROWN_Y = 2.5
+    const perches = [{ x: 20, z: 0, y: CROWN_Y }]
     const b = createBirds(scene, () => 0.5, 1, provider, perches)
     const wing = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
 
-    let sawCanopyHeight = false
+    let sawCrownHeight = false
     for (let i = 0; i < 450; i++) {
       b.update(0.1, 0, 0, 1e6, 1e6)
       const p = positions(wing)[0]
-      // Landed height matches TREE_PERCH_H (4.5) above the ground the tree
-      // stands on, not GROUND_PERCH_H (0.3) — proof it used the tree, not
-      // bare ground, at least once during the run.
-      if (p.y > 3 && p.y < 6 && Math.hypot(p.x - 20, p.z) < 6) sawCanopyHeight = true
+      // Settled at the crown height THIS tree gave (2.5m plus the potter hop),
+      // near the tree — a window the old fixed 4.5m never reaches (it only ever
+      // descends TO 4.5, never below), so this fails on the old code and passes
+      // on the fix. And it is not bare ground (0.3) either.
+      if (p.y > CROWN_Y - 0.1 && p.y < CROWN_Y + 0.6 && Math.hypot(p.x - 20, p.z) < 6) sawCrownHeight = true
     }
-    expect(sawCanopyHeight, 'never settled at tree-canopy height near the only tree offered').toBe(true)
+    expect(sawCrownHeight, 'never settled at the crown height the tree provided').toBe(true)
   })
 
   it('perches within a tree\'s canopy, not floating out past it', () => {
-    // The float bug: a landing snaps a bird to the trunk of the nearest tree,
-    // but its fixed formation offset (ox/oz, up to ~5m out) is added at render
-    // time — so it hung at tree-canopy height (4.5m) several metres clear of a
-    // canopy only ~1-3m across, sitting on nothing. A constant rand of 0.95
+    // The horizontal float bug: a landing snaps a bird to the trunk of the
+    // nearest tree, but its fixed formation offset (ox/oz, up to ~5m out) is
+    // added at render time — so it hung at the crown height several metres clear
+    // of a canopy only ~1-3m across, sitting on nothing. A constant rand of 0.95
     // gives a large offset (|ox,oz| ~= 4.5m) that would float well past the
-    // canopy unclamped; the fix reins the offset in to a canopy radius.
+    // canopy unclamped; the fix reins the offset in to a canopy radius. The
+    // crown height (4.5m here) rides on the perch, the way buildGreenery hands it.
     const scene = new THREE.Scene()
     const provider = { heightAt: () => 0 }
-    const TREE = { x: 20, z: 0 }
+    const TREE = { x: 20, z: 0, y: 4.5 }
     const b = createBirds(scene, () => 0.95, 1, provider, [TREE])
     const body = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
 

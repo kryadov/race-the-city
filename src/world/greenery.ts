@@ -44,12 +44,24 @@ function makeRng(seed: number): () => number {
 /** @param forests wooded polygons (`world.forests`) to pack with trees. Optional
  * and empty by default so the park scatter, mapped trees and seasonal crowns stay
  * exactly as before when a caller passes only green + trees. */
-export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number, forests: Vec2[][] = []): THREE.Object3D {
+/**
+ * @returns the greenery `object` to add to the scene, plus a `perches` list — one
+ * world-space spot per rendered tree where a bird can sit IN that tree's crown.
+ * The flock (birds.ts) takes these instead of the bare tree positions, so a bird
+ * lands at each tree's real crown height rather than a fixed guess that floated it
+ * above the short trees.
+ */
+export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number, forests: Vec2[][] = []): { object: THREE.Object3D; perches: TreePerch[] } {
   const group = new THREE.Group()
   const szn = season(new Date(), lat)
   const rng = makeRng(RNG_SEED)
+  const perches: TreePerch[] = []
   const spots = collectTreeSpots(green, trees, rng)
-  if (spots.length) group.add(buildTrees(spots, provider, rng, lat, szn))
+  if (spots.length) {
+    const t = buildTrees(spots, provider, rng, lat, szn)
+    group.add(t.object)
+    perches.push(...t.perches)
+  }
   // A second, far denser pass fills the wooded polygons. It runs on its own seed,
   // so the scatter above is untouched — the same instanced meshes and seasonal
   // palette, just packed inside each wood. Capped + subsampled (see below) so a
@@ -57,10 +69,23 @@ export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: Elevatio
   if (forests.length) {
     const frng = makeRng(FOREST_SEED)
     const fspots = collectForestSpots(forests, frng)
-    if (fspots.length) group.add(buildTrees(fspots, provider, frng, lat, szn))
+    if (fspots.length) {
+      const t = buildTrees(fspots, provider, frng, lat, szn)
+      group.add(t.object)
+      perches.push(...t.perches)
+    }
   }
-  return group
+  return { object: group, perches }
 }
+
+/**
+ * A world-space spot a bird can perch in a tree's crown: the tree's (x, z) and a
+ * y at its foliage centre AT THE SCALE this tree was rendered with. Because it is
+ * captured from the very `s` used to draw the tree — not a separate rng replay —
+ * a short tree seats a bird low and a tall one high, and a reload reproduces both
+ * the tree and its perch identically. Threaded out of buildGreenery to the flock.
+ */
+export interface TreePerch { x: number; z: number; y: number }
 
 /** Explicit tree points plus a capped scatter inside green polygons. */
 function collectTreeSpots(green: Vec2[][], trees: Vec2[], rng: () => number): Vec2[] {
@@ -193,8 +218,9 @@ const UP = new THREE.Vector3(0, 1, 0)
 
 const WHITE = new THREE.Color(0xffffff)
 
-function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => number, lat: number, szn: Season): THREE.Object3D {
+function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => number, lat: number, szn: Season): { object: THREE.Object3D; perches: TreePerch[] } {
   const g = new THREE.Group()
+  const perches: TreePerch[] = []
   const variants = variantsFor(lat)
   const buckets: Vec2[][] = variants.map(() => [])
   for (const s of spots) buckets[Math.floor(rng() * variants.length)].push(s)
@@ -228,6 +254,12 @@ function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => numbe
       trunk.setMatrixAt(i, m.compose(pos, q, scl))
       pos.set(pts[i].x, y + v.folY * s, pts[i].z)
       foliage.setMatrixAt(i, m.compose(pos, q, scl))
+      // A bird's perch in THIS tree: its crown centre at the very scale it is
+      // drawn with (ground + folY*s — the same expression as the foliage above),
+      // so the bird sits among these leaves. Captured from this `s`, not a
+      // replayed rng, so it is deterministic by construction — a short tree seats
+      // the bird low and a tall one high, and no bird floats above a small canopy.
+      perches.push({ x: pts[i].x, z: pts[i].z, y: y + v.folY * s })
       // Seasonal crown colour. Deciduous trees turn (and a seeded few blossom in
       // spring); evergreens hold their green but catch a dusting of winter snow.
       // The rng() draws feed off the same fixed seed, so a reload repaints the
@@ -248,5 +280,5 @@ function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => numbe
     if (foliage.instanceColor) foliage.instanceColor.needsUpdate = true
     g.add(trunk, foliage)
   })
-  return g
+  return { object: g, perches }
 }
