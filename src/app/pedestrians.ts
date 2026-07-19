@@ -20,6 +20,18 @@ const MAX_HOPS = 8
 const SPEED_MIN = 1.1 // m/s: a walk
 const SPEED_MAX = 1.8
 
+/**
+ * Ramming knockback. When the player's car clips someone (see `shove`), they
+ * take a displacement off the pavement that eases back to zero over the next
+ * second or so — knocked aside, then they carry on from where they staggered
+ * to. KNOCK_DECAY is the framerate-independent relax rate (e^-k*t: k=5 is mostly
+ * gone in ~0.6s), MAX_KNOCK caps the offset so a hit only shoves them clear, and
+ * SHOVE_REACH is how close to the impact a walker has to be to feel it.
+ */
+const KNOCK_DECAY = 5
+const MAX_KNOCK = 2.5
+const SHOVE_REACH = 4
+
 const SHIRTS = [0xd0453f, 0x3a6ea5, 0x3f8f5e, 0xd8b23a, 0x8a4f9e, 0xdedad2, 0x39424d]
 // Its own palette, not SHIRTS: skirts read as separate garments, but pulled
 // from the same muted, low-saturation family so a mixed crowd doesn't look
@@ -83,6 +95,14 @@ export interface Pedestrians {
   update(dt: number, camX: number, camZ: number): void
   /** Where they are, for the player to collide with. */
   obstacles(): Circle[]
+  /**
+   * Knock anyone near (x, z) back along (dirX, dirZ) — the player ramming them.
+   * The shove is a displacement that decays to zero over the next second or so
+   * (see KNOCK_DECAY), so they stagger aside then walk on from there. Everyone
+   * within SHOVE_REACH feels it; the direction is normalised, `strength` is the
+   * metres of offset applied (clamped to MAX_KNOCK).
+   */
+  shove(x: number, z: number, dirX: number, dirZ: number, strength: number): void
   setEnabled(on: boolean): void
   dispose(): void
 }
@@ -94,6 +114,10 @@ interface Walker {
   speed: number
   side: number // which side of the way they walk
   phase: number // so they don't all bob in step
+  /** Ramming knockback: a displacement (metres) off the pavement, added to the
+   *  drawn position and eased back to zero each frame. Zero when undisturbed. */
+  kx: number
+  kz: number
 }
 
 function makeRng(seed: number): () => number {
@@ -178,6 +202,8 @@ export function createPedestrians(
       speed: SPEED_MIN + rand() * (SPEED_MAX - SPEED_MIN),
       side: rand() < 0.5 ? 1 : -1,
       phase: rand() * Math.PI * 2,
+      kx: 0,
+      kz: 0,
     }
   }
 
@@ -294,6 +320,34 @@ export function createPedestrians(
 
   return {
     obstacles: () => solidAt,
+    shove(x, z, dirX, dirZ, strength) {
+      const len = Math.hypot(dirX, dirZ)
+      if (len < 1e-6 || !Number.isFinite(strength)) return // no direction, nothing to do
+      const ux = dirX / len
+      const uz = dirZ / len
+      for (const w of walkers) {
+        // Their current pavement position — the same base the walk loop draws,
+        // plus any knockback still in hand so a second shove stacks onto the first.
+        const A = graph.nodes[w.at]
+        const B = graph.nodes[w.to]
+        const l = Math.hypot(B.x - A.x, B.z - A.z) || 1
+        const f = Math.min(1, w.s / l)
+        const angle = Math.atan2(B.z - A.z, B.x - A.x)
+        const wx = A.x + (B.x - A.x) * f + Math.sin(angle) * KERB * w.side + w.kx
+        const wz = A.z + (B.z - A.z) * f - Math.cos(angle) * KERB * w.side + w.kz
+        const dx = wx - x
+        const dz = wz - z
+        if (dx * dx + dz * dz > SHOVE_REACH * SHOVE_REACH) continue
+        w.kx += ux * strength
+        w.kz += uz * strength
+        // Cap the offset so a hard clip still only shoves them clear of the car.
+        const k = Math.hypot(w.kx, w.kz)
+        if (k > MAX_KNOCK) {
+          w.kx *= MAX_KNOCK / k
+          w.kz *= MAX_KNOCK / k
+        }
+      }
+    },
     setEnabled(on) {
       group.visible = on
       if (!on) solidAt.length = 0
@@ -362,6 +416,14 @@ export function createPedestrians(
           const fresh = spawn({ x: camX, z: camZ })
           if (fresh) walkers[i] = fresh
         }
+
+        // Ease any ramming knockback back toward zero — framerate-independent —
+        // and draw them offset by what's left, so someone clipped staggers aside
+        // and then walks on from there rather than snapping back onto the pavement.
+        w.kx *= Math.exp(-KNOCK_DECAY * dt)
+        w.kz *= Math.exp(-KNOCK_DECAY * dt)
+        x += w.kx
+        z += w.kz
 
         solidAt.push({ x, z, r: 0.4 })
         // A gentle bob, out of step with the next person, so a crowd doesn't march.

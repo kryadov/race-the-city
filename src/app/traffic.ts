@@ -45,6 +45,19 @@ const FOLLOW_GAP = 7
 const BRAKE_ZONE = 6
 
 /**
+ * Ramming knockback. When the player's car shoves a bot (see `shove`), the bot
+ * takes a displacement off its route that eases back to zero — knocked aside,
+ * then it drives on from wherever it ended up rather than teleporting home.
+ * KNOCK_DECAY is the framerate-independent relax rate (e^-k*t: k=5 is mostly
+ * gone in ~0.6s), MAX_KNOCK caps the offset so even a full-speed hit can't fling
+ * a car across the street, and SHOVE_REACH is how close to the impact point a
+ * car has to be to feel it — a car's length or so, enough to catch the one hit.
+ */
+const KNOCK_DECAY = 5
+const MAX_KNOCK = 3
+const SHOVE_REACH = 6
+
+/**
  * What a street actually looks like: mostly white, silver, grey and black, with
  * the odd colour. A rank of primary-coloured cars reads as a toy box.
  */
@@ -84,6 +97,14 @@ export interface Traffic {
   update(dt: number, camX: number, camZ: number, night: number, blockers?: Circle[]): void
   /** Where the cars are, for the player to collide with. */
   obstacles(): Circle[]
+  /**
+   * Knock any car near (x, z) back along (dirX, dirZ) — the player ramming one.
+   * The shove is a displacement that decays to zero over the next second or so
+   * (see KNOCK_DECAY), so the bot lurches aside then drives on from there. Cars
+   * within SHOVE_REACH all feel it; the direction is normalised, `strength` is
+   * the metres of offset applied (clamped to MAX_KNOCK).
+   */
+  shove(x: number, z: number, dirX: number, dirZ: number, strength: number): void
   setEnabled(on: boolean): void
   dispose(): void
 }
@@ -99,6 +120,10 @@ interface Agent {
   /** The heading actually drawn, eased toward the edge direction, so the car
    *  arcs through a junction instead of snapping 90 degrees on the spot. */
   yaw: number
+  /** Ramming knockback: a displacement (metres) off the route, added to the
+   *  drawn position and eased back to zero each frame. Zero when undisturbed. */
+  kx: number
+  kz: number
 }
 
 interface Placed {
@@ -165,7 +190,7 @@ export function createTraffic(
     const A = graph.nodes[at]
     const B = graph.nodes[to]
     const yaw = Math.atan2(B.z - A.z, B.x - A.x)
-    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw }
+    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw, kx: 0, kz: 0 }
   }
 
   for (let i = 0; i < count; i++) {
@@ -316,6 +341,29 @@ export function createTraffic(
 
   return {
     obstacles: () => solidAt,
+    shove(x, z, dirX, dirZ, strength) {
+      const len = Math.hypot(dirX, dirZ)
+      if (len < 1e-6 || !Number.isFinite(strength)) return // no direction, nothing to do
+      const ux = dirX / len
+      const uz = dirZ / len
+      for (const a of agents) {
+        const p = place(a)
+        // Measure to where the car actually is — its route position plus any
+        // knockback it's still carrying — so a second shove stacks onto the first.
+        const dx = p.x + a.kx - x
+        const dz = p.z + a.kz - z
+        if (dx * dx + dz * dz > SHOVE_REACH * SHOVE_REACH) continue
+        a.kx += ux * strength
+        a.kz += uz * strength
+        // Cap the offset so even a full-speed shunt only shoves a car aside, not
+        // clean across the road.
+        const k = Math.hypot(a.kx, a.kz)
+        if (k > MAX_KNOCK) {
+          a.kx *= MAX_KNOCK / k
+          a.kz *= MAX_KNOCK / k
+        }
+      }
+    },
     setEnabled(on) {
       group.visible = on
       if (!on) solidAt.length = 0 // switched off means not there to hit
@@ -418,8 +466,16 @@ export function createTraffic(
           }
         }
 
-        solidAt.push({ x: p.x, z: p.z, r: 2.0 })
-        pos.set(p.x, provider.heightAt(p.x, p.z), p.z)
+        // Ease any ramming knockback back toward zero — framerate-independent —
+        // and draw the car offset by what's left, so a shoved bot lurches aside
+        // and then drives on from there rather than snapping back to its route.
+        a.kx *= Math.exp(-KNOCK_DECAY * dt)
+        a.kz *= Math.exp(-KNOCK_DECAY * dt)
+        const px = p.x + a.kx
+        const pz = p.z + a.kz
+
+        solidAt.push({ x: px, z: pz, r: 2.0 })
+        pos.set(px, provider.heightAt(px, pz), pz)
         // Ease the drawn heading toward the edge's direction rather than taking
         // it whole. `place` snaps `angle` the instant a car crosses a junction
         // node — the yaw jumped a right-angle in one frame and the car pivoted on

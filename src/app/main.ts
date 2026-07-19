@@ -721,6 +721,13 @@ async function loadCity(query: string): Promise<void> {
             if (freed.hit) {
               car.x = freed.x
               car.z = freed.z
+              // Knock whatever we rammed back too, not just the player. The normal
+              // points from the thing hit toward the car, so the bot is shoved the
+              // other way, harder the faster we drove into it (pre-bounce speed).
+              const closing = Math.max(0, -(car.vx * freed.nx + car.vz * freed.nz))
+              const shove = Math.min(3, 0.5 + closing * 0.12)
+              traffic?.shove(car.x, car.z, -freed.nx, -freed.nz, shove)
+              people?.shove(car.x, car.z, -freed.nx, -freed.nz, shove)
               const b = bounce(car.vx, car.vz, freed.nx, freed.nz, HIT_BOUNCE)
               car.vx = b.vx * HIT_BLEED
               car.vz = b.vz * HIT_BLEED

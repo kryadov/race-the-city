@@ -470,6 +470,134 @@ describe('cars trapped on a stub', () => {
 
 })
 
+describe('ramming knockback', () => {
+  // Every test runs a shoved instance against an untouched twin driven with the
+  // exact same (deterministic) inputs: the road graph, RNG and update calls all
+  // match, so the only thing that can separate the two is the knockback itself.
+  const twins = (): {
+    a: ReturnType<typeof createTraffic>
+    b: ReturnType<typeof createTraffic>
+    ba: THREE.InstancedMesh
+    bb: THREE.InstancedMesh
+  } => {
+    const sa = new THREE.Scene()
+    const sb = new THREE.Scene()
+    const a = createTraffic(sa, grid, flat, () => 0.5)
+    const b = createTraffic(sb, grid, flat, () => 0.5)
+    const ba = (sa.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    const bb = (sb.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    return { a, b, ba, bb }
+  }
+  /** Largest gap between a shoved car and its untouched twin. */
+  const spread = (ba: THREE.InstancedMesh, bb: THREE.InstancedMesh): number => {
+    const pa = positions(ba)
+    const pb = positions(bb)
+    return Math.max(0, ...pa.map((p, i) => p.distanceTo(pb[i])))
+  }
+
+  it('knocks a bot car back when the player rams it', () => {
+    const { a, b, ba, bb } = twins()
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    // ram the first car square along +x
+    const [car] = a.obstacles()
+    a.shove(car.x, car.z, 1, 0, 3)
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    expect(spread(ba, bb), 'no car budged when rammed').toBeGreaterThan(1)
+  })
+
+  it('leaves cars out of reach untouched', () => {
+    const { a, b, ba, bb } = twins()
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    a.shove(5000, 5000, 1, 0, 3) // miles from any car
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    expect(spread(ba, bb), 'a car far from the shove still moved').toBeLessThan(1e-6)
+  })
+
+  it('eases a shoved car back onto its route', () => {
+    const { a, b, ba, bb } = twins()
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    const [car] = a.obstacles()
+    a.shove(car.x, car.z, 1, 0, 3)
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    const shoved = spread(ba, bb)
+    // let the knockback decay: after a couple of seconds the twins line back up
+    for (let f = 0; f < 150; f++) {
+      a.update(1 / 60, 0, 0, 0)
+      b.update(1 / 60, 0, 0, 0)
+    }
+    const settled = spread(ba, bb)
+    expect(shoved, 'nothing was knocked back to begin with').toBeGreaterThan(1)
+    expect(settled, 'the knockback never eased off').toBeLessThan(0.05)
+  })
+})
+
+describe('pedestrians shoved aside', () => {
+  const twins = (): {
+    a: ReturnType<typeof createPedestrians>
+    b: ReturnType<typeof createPedestrians>
+    ba: THREE.InstancedMesh
+    bb: THREE.InstancedMesh
+  } => {
+    const sa = new THREE.Scene()
+    const sb = new THREE.Scene()
+    const a = createPedestrians(sa, grid, flat, () => 0.5)
+    const b = createPedestrians(sb, grid, flat, () => 0.5)
+    const ba = (sa.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    const bb = (sb.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    return { a, b, ba, bb }
+  }
+  const spread = (ba: THREE.InstancedMesh, bb: THREE.InstancedMesh): number => {
+    const pa = positions(ba)
+    const pb = positions(bb)
+    return Math.max(0, ...pa.map((p, i) => p.distanceTo(pb[i])))
+  }
+
+  it('knocks a walker aside when the player clips them', () => {
+    const { a, b, ba, bb } = twins()
+    a.update(1 / 60, 0, 0)
+    b.update(1 / 60, 0, 0)
+    const [person] = a.obstacles()
+    a.shove(person.x, person.z, 1, 0, 2.5)
+    a.update(1 / 60, 0, 0)
+    b.update(1 / 60, 0, 0)
+    expect(spread(ba, bb), 'nobody moved when clipped').toBeGreaterThan(1)
+  })
+
+  it('leaves people out of reach untouched', () => {
+    const { a, b, ba, bb } = twins()
+    a.update(1 / 60, 0, 0)
+    b.update(1 / 60, 0, 0)
+    a.shove(5000, 5000, 1, 0, 2.5)
+    a.update(1 / 60, 0, 0)
+    b.update(1 / 60, 0, 0)
+    expect(spread(ba, bb), 'a bystander far off still moved').toBeLessThan(1e-6)
+  })
+
+  it('eases a shoved walker back onto the pavement', () => {
+    const { a, b, ba, bb } = twins()
+    a.update(1 / 60, 0, 0)
+    b.update(1 / 60, 0, 0)
+    const [person] = a.obstacles()
+    a.shove(person.x, person.z, 1, 0, 2.5)
+    a.update(1 / 60, 0, 0)
+    b.update(1 / 60, 0, 0)
+    const shoved = spread(ba, bb)
+    for (let f = 0; f < 150; f++) {
+      a.update(1 / 60, 0, 0)
+      b.update(1 / 60, 0, 0)
+    }
+    const settled = spread(ba, bb)
+    expect(shoved, 'nobody was knocked aside to begin with').toBeGreaterThan(1)
+    expect(settled, 'the stagger never eased off').toBeLessThan(0.05)
+  })
+})
+
 describe('car-to-car separation', () => {
   it('queues a faster car behind a slower one instead of driving through it', () => {
     // Two cars on one long straight road, both set off the same way: the RNG is

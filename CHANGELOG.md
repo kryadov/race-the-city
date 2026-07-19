@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.31 — ram a bot and it gets knocked back too
+- Until now, ramming a bot car or a pedestrian bounced **only you** — they stood their ground. Now
+  whatever you hit is **shoved back** along the impact line, harder the faster you drove into it, then
+  eases back onto its route over about half a second. The knock feeds the collision circle too, so you
+  can't instantly re-hit it on the spot.
+- 👀 Drive hard into a bot car or a pedestrian — it lurches away from you instead of stopping you dead.
+
 ## v0.110.30 — bubbles rise when you sink under water
 - Drive off a quay and sink until the car is **fully under water** (surface above the roof) and a
   stream of **bubbles rises from the car to the surface** — swaying, swelling and popping at the top.
