@@ -51,6 +51,7 @@ import { createTraffic, type Traffic } from './traffic'
 import { createPedestrians, type Pedestrians } from './pedestrians'
 import { createBoats, type Boats } from './boats'
 import { createBuses, type Buses } from './buses'
+import { createMotorcycles, type Motorcycles } from './motorcycles'
 import { createLivestock, type Livestock } from './livestock'
 import {
   getDefaultCity,
@@ -238,6 +239,7 @@ let traffic: Traffic | null = null
 let people: Pedestrians | null = null
 let boats: Boats | null = null
 let buses: Buses | null = null
+let motorcycles: Motorcycles | null = null
 let herds: Livestock | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
@@ -599,6 +601,8 @@ async function loadCity(query: string): Promise<void> {
     boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4))
     buses?.dispose()
     buses = createBuses(stage.scene, world.roads, world.busStops, provider, Math.random, countFor(density, 4))
+    motorcycles?.dispose()
+    motorcycles = createMotorcycles(stage.scene, world.roads, provider, Math.random, countFor(density, 4))
     herds?.dispose()
     herds = createLivestock(stage.scene, world.fields, provider)
     lastRoads = world.roads
@@ -853,6 +857,7 @@ async function loadCity(query: string): Promise<void> {
         people?.update(dt, car.x, car.z)
         boats?.update(dt)
         buses?.update(dt, night > 0)
+        motorcycles?.update(dt, night > 0)
         herds?.update(dt)
         // Bubbles stream off the car when it's sunk under water above its roof.
         const CAR_ROOF = 1.5 // metres from the car's floor to its roof
@@ -1079,6 +1084,8 @@ const menu = createSettingsMenu(
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
       buses?.dispose()
       buses = createBuses(stage.scene, lastRoads, lastBusStops, provider, Math.random, countFor(density, 4))
+      motorcycles?.dispose()
+      motorcycles = createMotorcycles(stage.scene, lastRoads, provider, Math.random, countFor(density, 4))
       birds.dispose()
       birds = makeBirds()
     },

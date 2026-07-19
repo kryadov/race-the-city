@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.48 — bot motorcycles thread through the traffic
+- Bot **motorcycles** now ride the streets alongside the cars — narrower and nippier, a rider on a
+  low-poly bike with a **headlight that glows at night**, following the road graph like the other
+  traffic and sitting tilted to the terrain.
+- 👀 Watch the traffic — the odd motorbike weaves along the roads, headlight lit after dusk.
+
 ## v0.110.47 — an RPM tachometer above the speedometer
 - A second round dial — an **engine-rev counter** in the same style as the speedometer — sits **above
   it**, so the two read as one instrument cluster. The needle sweeps up through a gear and drops on
