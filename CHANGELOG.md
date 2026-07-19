@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.23 — zoom the minimap (works on touch)
+- The minimap gains **+ / − buttons** to zoom through a few steps; the chosen level **persists** across
+  reloads. Wired with pointer events so it **works on touch** (mobile), and the tap doesn't fall
+  through to driving. Everything the minimap draws scales at every level.
+- 👀 Tap + / − on the minimap to zoom it in and out.
+
 ## v0.110.22 — bot cars queue instead of driving through each other
 - AI traffic had no awareness of itself — a faster car slid **clean through** a slower one in the
   same lane. Cars now keep a **following gap**: each looks at the car ahead in its lane (and just

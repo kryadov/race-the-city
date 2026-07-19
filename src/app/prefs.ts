@@ -318,6 +318,31 @@ export function setZoom(v: number): void {
   }
 }
 
+const MINIMAP_ZOOM_KEY = 'rtc.minimapZoom'
+const DEFAULT_MINIMAP_ZOOM = 2 // middle step — the 260 m view the minimap shipped with
+
+/** Persisted minimap zoom level (index into the minimap's discrete steps). */
+export function getMinimapZoom(): number {
+  try {
+    const raw = localStorage.getItem(MINIMAP_ZOOM_KEY)
+    if (raw !== null) {
+      const v = Number(raw)
+      if (Number.isInteger(v) && v >= 0) return v
+    }
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_MINIMAP_ZOOM
+}
+
+export function setMinimapZoom(i: number): void {
+  try {
+    localStorage.setItem(MINIMAP_ZOOM_KEY, String(i))
+  } catch {
+    /* ignore */
+  }
+}
+
 const ROAD_DETAIL_KEY = 'rtc.roadDetail'
 
 /** Whether road dressing (lamps, signs, lane lines) is shown (on by default). */

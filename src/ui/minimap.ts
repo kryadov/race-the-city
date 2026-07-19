@@ -1,7 +1,9 @@
 import type { Road, Vec2 } from '../geo/types'
+import { getMinimapZoom, setMinimapZoom } from '../app/prefs'
 
 const SIZE = 172 // minimap diameter in px
-const VIEW_RADIUS = 260 // world metres from centre to edge
+/** Zoom steps: world metres from centre to edge. Smaller = more zoomed in. */
+const ZOOM_LEVELS = [420, 320, 260, 190, 130]
 const OS_SCALE = 0.5 // offscreen px per metre
 
 export interface Minimap {
@@ -36,6 +38,65 @@ export function createMinimap(root: HTMLElement): Minimap {
   let offscreen: HTMLCanvasElement | null = null
   let radiusM = 1000
 
+  const clampZoom = (i: number): number => Math.max(0, Math.min(ZOOM_LEVELS.length - 1, Math.round(i)))
+  let zoom = clampZoom(getMinimapZoom())
+  // The last frame's inputs, so the +/- buttons can redraw at once instead of
+  // waiting for the loop's next update() (e.g. while paused).
+  let lastCar: { x: number; z: number; heading: number } = { x: 0, z: 0, heading: 0 }
+  let lastGoal: Vec2 | null = null
+  let lastGoalColor: string | undefined
+
+  // +/- buttons tucked into the minimap's bottom-right. The #ui root is
+  // pointer-events:none, so the buttons opt back in; the box stays off so its
+  // gaps don't swallow taps meant for the map.
+  const BTN = 30
+  const zoomBox = document.createElement('div')
+  zoomBox.style.cssText =
+    `position:absolute;top:${16 + SIZE - BTN * 2 - 6}px;left:${16 + SIZE - BTN - 2}px;` +
+    'display:flex;flex-direction:column;gap:4px;pointer-events:none'
+  root.appendChild(zoomBox)
+
+  function nudgeZoom(delta: number): void {
+    const next = clampZoom(zoom + delta)
+    if (next === zoom) return
+    zoom = next
+    setMinimapZoom(zoom)
+    api.update(lastCar, lastGoal, lastGoalColor) // redraw at the new scale right away
+  }
+
+  function makeZoomBtn(label: string, delta: number): void {
+    const b = document.createElement('button')
+    b.textContent = label
+    b.style.cssText =
+      `pointer-events:auto;width:${BTN}px;height:${BTN}px;border:0;border-radius:8px;padding:0;` +
+      'background:rgba(11,14,19,.8);color:#fff;font:700 18px system-ui,sans-serif;line-height:1;' +
+      'cursor:pointer;touch-action:manipulation'
+    // pointerup covers mouse, touch and pen in one path; stopping it (and the
+    // ghost click it spawns) keeps the tap from reaching the driving canvas.
+    let byPointer = false
+    const tap = (e: Event): void => {
+      e.preventDefault()
+      e.stopPropagation()
+      nudgeZoom(delta)
+    }
+    b.addEventListener('pointerup', (e) => {
+      byPointer = true
+      tap(e)
+    })
+    b.addEventListener('click', (e) => {
+      if (byPointer) {
+        byPointer = false
+        e.preventDefault()
+        e.stopPropagation()
+        return // pointerup already handled this tap
+      }
+      tap(e) // no Pointer Events (old browser): the click is the tap
+    })
+    zoomBox.appendChild(b)
+  }
+  makeZoomBtn('+', 1) // zoom in — show less ground
+  makeZoomBtn('−', -1) // zoom out — show more ground
+
   function trace(g: CanvasRenderingContext2D, pts: Vec2[]): void {
     const p0 = regionToOffscreen(pts[0], radiusM)
     g.moveTo(p0.x, p0.y)
@@ -45,7 +106,7 @@ export function createMinimap(root: HTMLElement): Minimap {
     }
   }
 
-  return {
+  const api: Minimap = {
     setWorld(roads, buildings, water, green, radius) {
       radiusM = radius
       const dim = Math.max(1, Math.round(2 * radius * OS_SCALE))
@@ -94,10 +155,15 @@ export function createMinimap(root: HTMLElement): Minimap {
     },
 
     update(car, goal, goalColor) {
+      // Remember this frame so the +/- buttons can redraw without a new update().
+      lastCar = car
+      lastGoal = goal ?? null
+      lastGoalColor = goalColor
+      const viewRadius = ZOOM_LEVELS[zoom]
       ctx.clearRect(0, 0, SIZE, SIZE)
       const half = SIZE / 2
       if (offscreen) {
-        const disp = half / (VIEW_RADIUS * OS_SCALE)
+        const disp = half / (viewRadius * OS_SCALE)
         const carOff = regionToOffscreen({ x: car.x, z: car.z }, radiusM)
         ctx.save()
         ctx.beginPath()
@@ -121,7 +187,7 @@ export function createMinimap(root: HTMLElement): Minimap {
         // Screen coords: the map is rotated so the car's heading is up.
         const px = Math.sin(rel) * dist
         const py = -Math.cos(rel) * dist
-        const disp = half / VIEW_RADIUS
+        const disp = half / viewRadius
         let sx = px * disp
         let sy = py * disp
         const r = Math.hypot(sx, sy)
@@ -196,4 +262,5 @@ export function createMinimap(root: HTMLElement): Minimap {
       }
     },
   }
+  return api
 }
