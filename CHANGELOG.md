@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.32 — bot buses stop at stops and pick up passengers
+- Buses now drive the roads and **route to bus stops**, halting a few seconds at each while a little
+  crowd of figures at the kerb **boards** (shrinks away) and **alights** (grows in), then pull off to
+  the next stop. Long liveried bodies with a window band and lamps that **glow at night**, six wheels,
+  sat on the terrain like the other traffic.
+- 👀 Follow a bus route — a bus pulls in at a stop, figures gather and board, then it drives on.
+
 ## v0.110.31 — ram a bot and it gets knocked back too
 - Until now, ramming a bot car or a pedestrian bounced **only you** — they stood their ground. Now
   whatever you hit is **shoved back** along the impact line, harder the faster you drove into it, then

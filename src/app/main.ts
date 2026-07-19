@@ -50,6 +50,7 @@ import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
 import { createPedestrians, type Pedestrians } from './pedestrians'
 import { createBoats, type Boats } from './boats'
+import { createBuses, type Buses } from './buses'
 import { createLivestock, type Livestock } from './livestock'
 import {
   getDefaultCity,
@@ -232,6 +233,7 @@ let trains: Trains | null = null
 let traffic: Traffic | null = null
 let people: Pedestrians | null = null
 let boats: Boats | null = null
+let buses: Buses | null = null
 let herds: Livestock | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
@@ -365,6 +367,7 @@ let lastWater: import('../geo/types').Vec2[][] = []
 let lastLat = 0 // the loaded city's latitude, so a density rebuild dresses the crowd for its season
 // Each water body's surface height, cached per city (waterLevel samples the whole map — too dear per frame).
 let waterLevels: { ring: import('../geo/types').Vec2[]; level: number }[] = []
+let lastBusStops: Vec2[] = [] // kept so a density rebuild can re-place the buses' stops
 
 async function loadCity(query: string): Promise<void> {
   if (loading_) {
@@ -565,9 +568,12 @@ async function loadCity(query: string): Promise<void> {
     people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat)
     boats?.dispose()
     boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4))
+    buses?.dispose()
+    buses = createBuses(stage.scene, world.roads, world.busStops, provider, Math.random, countFor(density, 4))
     herds?.dispose()
     herds = createLivestock(stage.scene, world.fields, provider)
     lastRoads = world.roads
+    lastBusStops = world.busStops
     lastRailways = world.railways
     lastTrees = world.trees
     birds.dispose() // the outgoing city's trees and roofs were its perches
@@ -805,6 +811,7 @@ async function loadCity(query: string): Promise<void> {
         traffic?.update(dt, car.x, car.z, night, trains?.obstacles())
         people?.update(dt, car.x, car.z)
         boats?.update(dt)
+        buses?.update(dt, night > 0)
         herds?.update(dt)
         // Bubbles stream off the car when it's sunk under water above its roof.
         const CAR_ROOF = 1.5 // metres from the car's floor to its roof
@@ -1012,6 +1019,8 @@ const menu = createSettingsMenu(
       people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat)
       boats?.dispose()
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
+      buses?.dispose()
+      buses = createBuses(stage.scene, lastRoads, lastBusStops, provider, Math.random, countFor(density, 4))
       birds.dispose()
       birds = makeBirds()
     },
