@@ -11,22 +11,29 @@ export interface PoiMarker {
   kind: PoiKind
 }
 
-// A signpost is a thin post with a small panel mounted near the top; a tiny
-// emissive disc on the panel's face is the "glyph" that reads from a distance.
-const POST_H = 2.2 // how tall the post stands, in metres
+// A signpost is a thin post with a small panel bolted to the FRONT of it near
+// the top; a tiny emissive disc on the panel's face is the "glyph" that reads
+// from a distance.
 const POST_R_TOP = 0.05
 const POST_R_BOT = 0.07
 const PANEL_W = 0.95
 const PANEL_H = 0.68
 const PANEL_T = 0.09
-// Mount the panel near the top of the post — its bottom a little below the post
-// top so it reads as bolted on, not floating above it.
-const PANEL_CY = POST_H - 0.15 + PANEL_H / 2
+// The panel's centre height, near a passing driver's eyeline so it reads.
+const PANEL_CY = 2.39
+// The post rises behind the panel and stops flush with its top edge, so no bare
+// pole pokes up above the sign (co-centred, it used to spike straight through
+// the plate — палка пронизывала табличку).
+const POST_H = PANEL_CY + PANEL_H / 2
+// Bolt the panel to the post's FRONT (+z) face rather than centring it on the
+// post: the round pole then sits wholly *behind* the plate instead of piercing
+// through its readable face. POST_R_TOP is the post radius up where it mounts.
+const PANEL_CZ = POST_R_TOP + PANEL_T / 2
 const GLYPH_R = 0.2
 const GLYPH_T = 0.05
 // Stand the glyph proud of the panel's front (+z) face so the panel doesn't
 // occlude it — the same trick roadDetail's arrow uses on its sign panel.
-const GLYPH_Z = PANEL_T / 2 + GLYPH_T / 2
+const GLYPH_Z = PANEL_CZ + PANEL_T / 2 + GLYPH_T / 2
 
 /** A budget cap: POIs are sparse, but a huge dense city shouldn't run away. */
 const MAX_MARKERS = 400
@@ -164,10 +171,11 @@ const postGeo = (): THREE.BufferGeometry => {
   return g
 }
 
-/** The sign panel, centred at the mount height. */
+/** The sign panel, at the mount height and stood proud of the post's front face
+ * so the pole sits behind it rather than skewering through the plate. */
 const panelGeo = (): THREE.BufferGeometry => {
   const g = new THREE.BoxGeometry(PANEL_W, PANEL_H, PANEL_T)
-  g.translate(0, PANEL_CY, 0)
+  g.translate(0, PANEL_CY, PANEL_CZ)
   return g
 }
 

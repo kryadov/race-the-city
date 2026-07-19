@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.39 — signpost poles no longer spike through the panel
+- On POI/landmark signposts the post ran up its full height **through the sign panel**, poking out
+  above it — ugly. The panel is now bolted to the **front** of the post and the post stops **flush
+  with the panel's top**, so the pole backs the sign from behind instead of spiking through it.
+- 👀 Find a café/fuel/landmark signpost — the panel reads clean, no pole sticking out the top.
+
 ## v0.110.38 — manhole covers get cross-hatched ironwork
 - The manhole covers down the road centrelines were smooth; they now carry a **perpendicular waffle
   of raised ribs** (three bars each way), like real cast-iron covers. It's merged into the same shared

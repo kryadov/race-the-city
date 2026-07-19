@@ -98,6 +98,17 @@ describe('poi markers', () => {
     expect(b.max.y, 'the sign stands up off the ground').toBeGreaterThan(42)
   })
 
+  it('caps the post behind the panel — no bare pole pierces or pokes above it', () => {
+    const g = buildPoiMarkers([poi(0, 0, 'cafe')], flat)
+    const post = new THREE.Box3().setFromObject(findMesh(g, 'poi-posts')!)
+    const panel = new THREE.Box3().setFromObject(findMesh(g, 'poi-cafe-panel')!)
+    // the post's top ends at (or below) the panel's top edge — no pole spikes
+    // up above the sign it carries.
+    expect(post.max.y, 'post top not above panel top').toBeLessThanOrEqual(panel.max.y + 1e-6)
+    // and the pole sits behind the panel's readable (+z) face, not through it.
+    expect(post.max.z, 'pole stays behind the panel face').toBeLessThanOrEqual(panel.max.z + 1e-6)
+  })
+
   it('sits on a slope where the surface actually is', () => {
     // A sloped provider: two markers at different x land at different heights.
     const slope = { heightAt: (x: number) => x * 0.5 }
