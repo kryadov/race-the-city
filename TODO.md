@@ -85,6 +85,12 @@ Asked during a play-test; deferred here so they aren't lost. Ship order: bugs fi
       actual **flower shapes** (a small petalled head — a ring of petals around a centre, not a plain
       squashed sphere) and add **blue, violet and azure** to the palette alongside the pinks/golds.
       `props.ts` bloom geometry + colour list, still merged (one draw per colour).
+- [ ] **Nitro along cross-city highways** — place nitro so that where a **straight/near-straight
+      highway runs clear across the city**, the bottles are spaced to let you **boost the whole way
+      across the map** (chain the pickups). But **don't put them too close** (respect APART_MIN /
+      keep them findable). Needs a straight-run detector over the road graph in the pickup scatter
+      (pickups.ts + the road structure) — design first: identify long low-curvature runs, drop
+      bottles along them at ~boost-window spacing.
 - [ ] **Colour-coded nitro** — nitro bottles come in **different colours**, and the colour sets the
       boost: a **different acceleration effect and/or a different duration** per colour (e.g. a short
       hard punch vs a long gentle push). Needs a small table of nitro types (colour → boost strength
@@ -243,8 +249,9 @@ A coherent, mostly-free theme: the world dresses for the season and the date. Al
 an effect we already have** — so it satisfies "must not cost frame rate" by construction.
 
 **Seasonal (driven by date + latitude):**
-- [ ] **Grass & parks by season** — spring bright green, summer saturated, autumn ochre/rust/brown,
-      winter grey-green or snowy (northern latitudes, synced with the existing snow logic).
+- [ ] **Grass & parks by season** — season.ts (v0.110.21) already exposes `season(date,lat).grass`;
+      just tint `ground.ts` park vertices toward it instead of the fixed GREEN (needs lat passed to
+      buildGround — a small main.ts + ground.ts wiring). Tree crowns are DONE (v0.110.21).
 - [ ] **Tree crowns by season** (already instanced) — spring: a few blossoming white/pink deciduous
       crowns; summer green; autumn yellow-orange-red; winter bare / snow-dusted. A material tint on
       the existing draw call.

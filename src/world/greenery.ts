@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { pointInPolygon } from '../physics/collide'
+import { season, type Season } from './season'
 
 const MAX_TREES = 600
 const TREE_AREA = 550 // one scattered tree per ~this many m² of green
@@ -25,13 +26,18 @@ function makeRng(seed: number): () => number {
 /**
  * Low-poly instanced trees scattered in the green areas (the green ground tint
  * itself is painted onto the ground mesh in buildGround).
+ *
+ * The crowns are tinted for the season: summer green, autumn's yellow-orange-red,
+ * a scatter of spring blossom, winter's drained grey-green — all a per-instance
+ * colour swap, no extra geometry or draw calls. See season.ts for the palette.
  */
-/** @param lat the city's latitude — decides whether palms or conifers grow here. */
+/** @param lat the city's latitude — decides which trees grow here *and*, via its
+ * sign, which hemisphere's calendar the seasons follow. */
 export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number): THREE.Object3D {
   const group = new THREE.Group()
   const rng = makeRng(RNG_SEED)
   const spots = collectTreeSpots(green, trees, rng)
-  if (spots.length) group.add(buildTrees(spots, provider, rng, lat))
+  if (spots.length) group.add(buildTrees(spots, provider, rng, lat, season(new Date(), lat)))
   return group
 }
 
@@ -64,6 +70,7 @@ interface TreeVariant {
   color: number
   folY: number // foliage centre height factor (× scale) above ground
   trunk?: () => THREE.BufferGeometry // defaults to the stubby temperate trunk
+  deciduous?: boolean // sheds/turns with the season; the evergreens keep their green
 }
 
 /** How many fronds a palm carries. Enough to read as a crown, few enough to be cheap. */
@@ -98,7 +105,7 @@ const palmTrunk = (h: number) => (): THREE.BufferGeometry => {
 
 // Distinct crown shapes for variety; folY = 2 (trunk top) + half the crown height.
 const CONIFER: TreeVariant = { name: 'conifer', foliage: () => new THREE.ConeGeometry(1.5, 3.4, 6), color: 0x3f7a3a, folY: 3.7 }
-const BROADLEAF: TreeVariant = { name: 'broadleaf', foliage: () => new THREE.IcosahedronGeometry(1.6, 0), color: 0x4f8a3a, folY: 3.6 }
+const BROADLEAF: TreeVariant = { name: 'broadleaf', foliage: () => new THREE.IcosahedronGeometry(1.6, 0), color: 0x4f8a3a, folY: 3.6, deciduous: true }
 const SPRUCE: TreeVariant = { name: 'spruce', foliage: () => new THREE.ConeGeometry(1.1, 4.8, 6), color: 0x5c8f47, folY: 4.4 }
 const PALM_TALL: TreeVariant = { name: 'palm', foliage: () => frondGeo(2.3), color: 0x4e8f42, folY: 5.2, trunk: palmTrunk(6.4) }
 const PALM_SHORT: TreeVariant = { name: 'palm', foliage: () => frondGeo(1.9), color: 0x5c9a48, folY: 3.9, trunk: palmTrunk(5.0) }
@@ -117,7 +124,9 @@ export function variantsFor(lat: number): TreeVariant[] {
 
 const UP = new THREE.Vector3(0, 1, 0)
 
-function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => number, lat: number): THREE.Object3D {
+const WHITE = new THREE.Color(0xffffff)
+
+function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => number, lat: number, szn: Season): THREE.Object3D {
   const g = new THREE.Group()
   const variants = variantsFor(lat)
   const buckets: Vec2[][] = variants.map(() => [])
@@ -152,7 +161,19 @@ function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => numbe
       trunk.setMatrixAt(i, m.compose(pos, q, scl))
       pos.set(pts[i].x, y + v.folY * s, pts[i].z)
       foliage.setMatrixAt(i, m.compose(pos, q, scl))
-      col.setHex(v.color).offsetHSL((rng() - 0.5) * 0.03, (rng() - 0.5) * 0.12, (rng() - 0.5) * 0.1)
+      // Seasonal crown colour. Deciduous trees turn (and a seeded few blossom in
+      // spring); evergreens hold their green but catch a dusting of winter snow.
+      // The rng() draws feed off the same fixed seed, so a reload repaints the
+      // very same crowns — nothing here reads the wall clock past szn itself.
+      let hex = v.color
+      if (v.deciduous) {
+        const blossom = szn.blossomChance > 0 && rng() < szn.blossomChance
+        const r = rng()
+        hex = blossom ? szn.blossom : szn.crown(v.color, r)
+      }
+      col.setHex(hex)
+      if (!v.deciduous && szn.snow > 0) col.lerp(WHITE, szn.snow * 0.4)
+      col.offsetHSL((rng() - 0.5) * 0.03, (rng() - 0.5) * 0.12, (rng() - 0.5) * 0.1)
       foliage.setColorAt(i, col) // shade variety
     }
     trunk.instanceMatrix.needsUpdate = true

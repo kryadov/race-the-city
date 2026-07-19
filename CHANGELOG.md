@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.21 — trees turn with the seasons
+- Deciduous tree crowns now colour by the **real date and the city's latitude**: green in summer, a
+  lift with a scatter of **white-pink blossom** in spring, **ochre/orange/red** in autumn, and a bare
+  grey-green in winter (evergreens catch a dusting of snow). The southern hemisphere runs the opposite
+  half of the year. A per-instance colour swap on the existing tree draw — no cost. (Grass/parks by
+  season is a small follow-up.)
+- 👀 Load a city in autumn: the deciduous trees are turning; in spring, some are in blossom.
+
 ## v0.110.20 — building plinths are solid, not striped with windows
 - On a slope, a building's below-ground-floor plinth got the **window texture repeated down it** —
   v0.110.16's max-seating made big sloped buildings show a **tall striped base** (the "some buildings
