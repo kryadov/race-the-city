@@ -51,6 +51,18 @@ export interface Aircraft {
 const mat = (c: number): THREE.MeshStandardMaterial =>
   new THREE.MeshStandardMaterial({ color: c, flatShading: true, fog: false })
 
+/** Canopy glazing: {@link mat}'s flat look, but see-through and a touch glossy. */
+const glass = (c: number): THREE.MeshStandardMaterial =>
+  new THREE.MeshStandardMaterial({
+    color: c,
+    flatShading: true,
+    fog: false,
+    transparent: true,
+    opacity: 0.55,
+    metalness: 0.1,
+    roughness: 0.2,
+  })
+
 /** Every airframe points +x. */
 function build(kind: AircraftKind): THREE.Group {
   const g = new THREE.Group()
@@ -100,34 +112,68 @@ function build(kind: AircraftKind): THREE.Group {
     burner.position.y = 2.5
     g.add(burner)
   } else if (kind === 'helicopter') {
-    const cabin = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 6), body)
-    cabin.scale.set(1.5, 1, 1)
+    // Cabin: a stubby teardrop, widest at the cockpit and tucked in toward the
+    // boom, so the nose reads as the front even head-on.
+    const cabin = new THREE.Mesh(new THREE.SphereGeometry(1.5, 10, 8), body)
+    cabin.scale.set(1.55, 1.05, 1.1)
+    cabin.position.x = 0.35
     g.add(cabin)
-    const tail = new THREE.Mesh(new THREE.BoxGeometry(6, 0.4, 0.4), body)
-    tail.position.x = -4
-    g.add(tail)
-    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 0.15), body)
-    fin.position.set(-6.6, 0.6, 0)
+    // Nose canopy: the glazing wraps the front of the cabin.
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.15, 10, 8), glass(0x9fd0e6))
+    canopy.scale.set(1.2, 0.9, 1.0)
+    canopy.position.set(1.35, -0.15, 0)
+    g.add(canopy)
+    // Tail boom: a cone tapering from the cabin back to the tail rotor.
+    const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.62, 5.4, 7), body)
+    boom.rotation.z = Math.PI / 2
+    boom.position.set(-3.3, 0.15, 0)
+    g.add(boom)
+    // The fin the tail rotor hangs off, plus a small horizontal stabiliser.
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.5, 0.15), body)
+    fin.position.set(-6.2, 0.55, 0)
     g.add(fin)
-    for (const x of [0.6, -0.6]) {
-      const skid = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.12), mat(0x2a2c30))
-      skid.position.set(x * 0.4, -1.5, x * 1.4)
+    const stab = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.14, 2.6), body)
+    stab.position.set(-5.7, 0.1, 0)
+    g.add(stab)
+    // Engine housing on the cabin roof, carrying the rotor mast.
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.7, 1.2), mat(0x26405a))
+    deck.position.set(-0.1, 0.95, 0)
+    g.add(deck)
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.9, 6), mat(0x2a2c30))
+    mast.position.set(-0.1, 1.55, 0)
+    g.add(mast)
+    // Landing skids on splayed struts beneath the cabin.
+    for (const z of [1, -1]) {
+      const skid = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 0.12), mat(0x2a2c30))
+      skid.position.set(-0.2, -1.55, z * 1.05)
       g.add(skid)
+      for (const sx of [0.7, -1.1]) {
+        const strut = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.95, 0.1), mat(0x2a2c30))
+        strut.position.set(sx, -1.05, z * 0.9)
+        strut.rotation.x = -z * 0.22 // top leans in toward the belly
+        g.add(strut)
+      }
     }
     // Rotors spin: a helicopter with still blades reads as a crash.
     const rotor = new THREE.Group()
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.35, 6), mat(0x2a2c30))
+    rotor.add(hub)
     for (let i = 0; i < 2; i++) {
       const blade = new THREE.Mesh(new THREE.BoxGeometry(11, 0.08, 0.5), mat(0x33363d))
       blade.rotation.y = (i * Math.PI) / 2
       rotor.add(blade)
     }
-    rotor.position.y = 1.7
+    rotor.position.set(-0.1, 2.0, 0)
     rotor.userData.rotor = 'main'
     g.add(rotor)
+    // Tail rotor: a crossed pair of blades on the side of the fin.
     const tailRotor = new THREE.Group()
-    const tb = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.4, 0.2), mat(0x33363d))
-    tailRotor.add(tb)
-    tailRotor.position.set(-6.6, 0.6, 0.3)
+    for (let i = 0; i < 2; i++) {
+      const tb = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.2, 0.18), mat(0x33363d))
+      tb.rotation.x = (i * Math.PI) / 2
+      tailRotor.add(tb)
+    }
+    tailRotor.position.set(-6.2, 0.55, 0.3)
     tailRotor.userData.rotor = 'tail'
     g.add(tailRotor)
   } else {

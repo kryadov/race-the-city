@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.34 — the sky helicopter looks like a helicopter now
+- The ambient **helicopter** over the city was a plain body with a rotor; it's rebuilt with a rounded
+  cabin, a **glass nose canopy**, a tapering **tail boom** with a fin, an engine housing and mast, and
+  **landing skids** — still low-poly for distant sky traffic. Main and tail rotors spin as before.
+- 👀 Look up for a helicopter crossing the sky — it now has skids, a canopy and a proper tail.
+
 ## v0.110.33 — turn fuel use off for a free-roam drive
 - A new **Fuel use** toggle in the settings menu. Leave it on for the usual game — the tank drains and
   you top up at petrol cans — or switch it **off** so the tank never empties and the car never loses
