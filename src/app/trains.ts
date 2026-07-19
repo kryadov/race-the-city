@@ -49,6 +49,39 @@ const BOOM_UP = 1.45
 /** How fast the boom sweeps, per second — a framerate-independent ease rate. */
 const BOOM_EASE = 2.6
 
+/**
+ * Railway stops — platforms trains pull up at. OSM station points aren't parsed
+ * here, so the sites are derived geometrically: a few well-spaced points along
+ * each line, on straight-ish stretches and clear of the level crossings.
+ */
+const MIN_PLATFORM_LINE = 480 // metres of line needed before a stop is worth placing
+const PLAT_MARGIN = 140 // keep platforms off the tunnel-mouth ends of the line
+const PLAT_SPACING = 300 // metres between one stop and the next along a line
+const MAX_PLATFORMS_PER_LINE = 3 // a handful the player meets, not one every block
+const PLAT_CROSS_CLEAR = 40 // keep platforms this far off a level crossing, metres
+const PLAT_BEND = 0.3 // skip a site where the track turns more than this, radians
+const PLAT_LEN = 34 // slab length along the track, metres
+const PLAT_W = 4.5 // slab width, metres
+const PLAT_H = 1.05 // platform height above the railhead ground, metres
+const PLAT_OFFSET = 2.2 // gap from track centreline to the platform edge, metres
+const FIG_COUNT = 5 // figures stood on each platform to begin with
+const FIG_EASE = 3.5 // how fast a figure grows in / shrinks out, per second
+/** Small wardrobe for the figures — a crowd is never one flat colour. */
+const FIG_COLOURS = [0x3a4a6a, 0x7a3a3a, 0x3a6a4a, 0x6a5a3a, 0x55506a]
+
+/** How near a platform a train begins easing to a stand, metres. */
+const STOP_RANGE = 42
+/** Close enough to the platform to call it stopped and start the dwell, metres. */
+const STOP_ARRIVE = 5
+/** A floor on the approach speed, so the last few metres always close. */
+const STOP_CRAWL = 0.12
+/** How far past a served platform the train must get before it may call again. */
+const STOP_CLEAR = 60
+/** Seconds held at a platform while figures board and alight. */
+const DWELL = 4
+/** Ease rate of the speed factor as a train stops and pulls away, per second. */
+const STOP_EASE = 1.6
+
 export interface Trains {
   update(dt: number, night: number): void
   /** Where the carriages are, for the player and the demo to reckon with. */
@@ -414,6 +447,118 @@ function carriage(k: Kind): THREE.Group {
   return g
 }
 
+/** A railway stop: a slab beside the track, its figures, and its lamps. */
+interface Platform {
+  group: THREE.Group
+  at: Vec2 // where it sits on the centreline — trains reckon distance to this
+  s: number // that point's distance along its own line
+  /** The figures on it, each easing between stood (1) and boarded/gone (0). */
+  figs: { mesh: THREE.Mesh; scale: number; target: number }[]
+  lamps: THREE.Mesh[] // the canopy lamps, warmed by the `night` arg
+  turn: number // stops served so far — flips the board/alight mix, so the crowd shifts
+}
+
+/**
+ * One figure's geometry: a body box with a spherical head, merged into a single
+ * BufferGeometry so a platform carries no nested groups and each figure is one
+ * mesh to scale. Built once and shared across every figure on every platform —
+ * they differ only in material colour and where they stand.
+ */
+function figureGeometry(): THREE.BufferGeometry {
+  const body = new THREE.BoxGeometry(0.42, 1.0, 0.3)
+  body.translate(0, 0.5, 0)
+  const head = new THREE.SphereGeometry(0.2, 6, 5)
+  head.translate(0, 1.2, 0)
+  return mergeGeometries([body, head])
+}
+
+/**
+ * A platform at `s` metres along a line, thrown out to one `side` of the track.
+ *
+ * Anchored on the centreline like the tunnel mouths — the group sits ON the
+ * track and the slab is offset in local space — so the stop reads beside the
+ * rails without the anchor ever leaving the line. Local +x runs along the track.
+ */
+function buildPlatform(
+  line: Vec2[],
+  cum: number[],
+  s: number,
+  side: number,
+  provider: ElevationProvider,
+  figGeo: THREE.BufferGeometry,
+  rand: () => number,
+): Platform {
+  const c = at(line, cum, s)
+  const g = new THREE.Group()
+  g.position.set(c.x, provider.heightAt(c.x, c.z), c.z)
+  g.rotation.y = -c.angle // local +x along the track, as the tunnel mouths do
+  g.userData.platform = true // not a carriage: the tests count what moves
+  const zEdge = side * PLAT_OFFSET // the track-facing edge, beside the rails
+  const zMid = side * (PLAT_OFFSET + PLAT_W / 2) // slab centre
+  const zBack = side * (PLAT_OFFSET + PLAT_W - 0.3) // the far edge, away from the track
+
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(PLAT_LEN, PLAT_H, PLAT_W), mat(0x9aa0a6))
+  slab.position.set(0, PLAT_H / 2, zMid)
+  g.add(slab)
+  // The painted edge line you stand behind — a strip along the track side.
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(PLAT_LEN, 0.06, 0.4), mat(0xf0c000))
+  edge.position.set(0, PLAT_H + 0.03, zEdge + side * 0.2)
+  g.add(edge)
+  // A light canopy: a flat roof on four posts, lamps under it that warm at night.
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(PLAT_LEN * 0.7, 0.12, PLAT_W * 0.8), mat(0x3f4a55))
+  roof.position.set(0, PLAT_H + 3.0, zMid)
+  g.add(roof)
+  const lamps: THREE.Mesh[] = []
+  for (const px of [-PLAT_LEN * 0.3, PLAT_LEN * 0.3]) {
+    for (const pz of [zEdge + side * 0.3, zBack]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.0, 0.16), mat(0x2f353c))
+      post.position.set(px, PLAT_H + 1.5, pz)
+      g.add(post)
+    }
+    const bulbMat = new THREE.MeshStandardMaterial({
+      color: 0x6a6a58,
+      emissive: 0xffe6a0,
+      emissiveIntensity: 0,
+      flatShading: true,
+    })
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), bulbMat)
+    bulb.position.set(px, PLAT_H + 2.85, zMid)
+    bulb.userData.platformLamp = true
+    g.add(bulb)
+    lamps.push(bulb)
+  }
+  // Figures stood along the slab. They share one geometry (positioned by the
+  // mesh, not baked into the buffer), so however many stand here it stays cheap.
+  const figs: Platform['figs'] = []
+  for (let i = 0; i < FIG_COUNT; i++) {
+    const f = new THREE.Mesh(figGeo, mat(FIG_COLOURS[i % FIG_COLOURS.length]))
+    const along = (-0.5 + (i + 0.5) / FIG_COUNT) * PLAT_LEN * 0.8
+    const jitter = (rand() - 0.5) * (PLAT_W * 0.4)
+    f.position.set(along, PLAT_H, zMid + jitter)
+    f.rotation.y = rand() * Math.PI * 2
+    f.userData.figure = true
+    g.add(f)
+    figs.push({ mesh: f, scale: 1, target: 1 })
+  }
+  return { group: g, at: { x: c.x, z: c.z }, s, figs, lamps, turn: 0 }
+}
+
+/**
+ * A train has called: a couple of figures board (shrink to nothing) and a couple
+ * alight (grow in from nothing). The mix flips each call — one more off than on,
+ * then one more on than off — so the crowd on the platform genuinely shifts
+ * rather than settling back to the same faces every time.
+ */
+function board(p: Platform): void {
+  const vis = p.figs.filter((f) => f.target === 1)
+  const hid = p.figs.filter((f) => f.target === 0)
+  const nBoard = Math.min(vis.length, 1 + (p.turn % 2))
+  const nAlight = Math.min(hid.length, 2 - (p.turn % 2))
+  p.turn++
+  for (let i = 0; i < nBoard; i++) vis[i].target = 0
+  for (let i = 0; i < nAlight; i++) hid[i].target = 1
+}
+
 /**
  * Trains running the OSM railway lines.
  *
@@ -432,7 +577,20 @@ export function createTrains(
   const group = new THREE.Group()
   scene.add(group)
 
-  const running: { line: Vec2[]; cum: number[]; k: Kind; cars: THREE.Group[]; s: number; dir: number }[] = []
+  const running: {
+    line: Vec2[]
+    cum: number[]
+    k: Kind
+    cars: THREE.Group[]
+    s: number
+    dir: number
+    // Stop state: the platforms on this line, the eased speed factor `v` (1 line
+    // speed .. 0 stopped), the dwell timer, and the platform being served now.
+    stops: Platform[]
+    v: number
+    dwell: number
+    served: Platform | null
+  }[] = []
 
   // Every line worth running something on, trams kept apart from the mainline.
   const trams: Railway[] = []
@@ -485,7 +643,18 @@ export function createTrains(
       group.add(c)
       cars.push(c)
     }
-    running.push({ line, cum, k, cars, s: rand() * total, dir: rand() < 0.5 ? 1 : -1 })
+    running.push({
+      line,
+      cum,
+      k,
+      cars,
+      s: rand() * total,
+      dir: rand() < 0.5 ? 1 : -1,
+      stops: [],
+      v: 1,
+      dwell: 0,
+      served: null,
+    })
 
     // A mouth at each end for it to come out of and go into. The bearing is the
     // track's own at that end, and the far one faces back down the line.
@@ -571,6 +740,38 @@ export function createTrains(
     }
   }
 
+  // Platforms: a few stops along each long enough line, well spaced, on straight
+  // stretches, and clear of the level crossings the booms already stand at. The
+  // figure geometry is built once and shared across every figure on every stop.
+  const platforms: Platform[] = []
+  const figGeo = figureGeometry()
+  for (const tr of running) {
+    const total = tr.cum[tr.cum.length - 1]
+    if (total < MIN_PLATFORM_LINE) continue
+    const side = rand() < 0.5 ? 1 : -1 // stops on one consistent side of this line
+    for (let s = PLAT_MARGIN; s <= total - PLAT_MARGIN && tr.stops.length < MAX_PLATFORMS_PER_LINE; s += PLAT_SPACING) {
+      // Skip a bend: the slab is a straight box, and one thrown off the outside
+      // of a curve floats away from the track it is meant to sit beside.
+      let turn = Math.abs(at(tr.line, tr.cum, s + 18).angle - at(tr.line, tr.cum, s - 18).angle)
+      if (turn > Math.PI) turn = Math.abs(turn - Math.PI * 2)
+      if (turn > PLAT_BEND) continue
+      const c = at(tr.line, tr.cum, s)
+      if (crossings.some((x) => Math.hypot(x.at.x - c.x, x.at.z - c.z) < PLAT_CROSS_CLEAR)) continue
+      const p = buildPlatform(tr.line, tr.cum, s, side, provider, figGeo, rand)
+      group.add(p.group)
+      platforms.push(p)
+      tr.stops.push(p)
+    }
+    // A train that spawns on a stop pulls away first rather than freezing on it:
+    // mark that platform served so it is not asked to stand there from frame one.
+    for (const p of tr.stops) {
+      if (Math.abs(p.s - tr.s) < STOP_RANGE) {
+        tr.served = p
+        break
+      }
+    }
+  }
+
   const solidAt: Circle[] = []
 
   return {
@@ -590,12 +791,46 @@ export function createTrains(
       running.length = 0
       solidAt.length = 0
       barriers.length = 0
+      platforms.length = 0
     },
     update(dt, night) {
       solidAt.length = 0
       for (const tr of running) {
         const total = tr.cum[tr.cum.length - 1]
-        tr.s += tr.k.speed * dt * tr.dir
+        // Ease to a stand at each platform, dwell while figures board and alight,
+        // then pull away. `v` is a speed factor eased with the same framerate-
+        // independent approach the booms use, so the halt is never a snap. The
+        // next unserved platform ahead within range is the one being closed on.
+        let target: Platform | null = null
+        let gap = Infinity
+        for (const p of tr.stops) {
+          if (p === tr.served) continue
+          const ahead = (p.s - tr.s) * tr.dir // metres in front, along travel
+          if (ahead > -STOP_ARRIVE && ahead < STOP_RANGE && ahead < gap) {
+            gap = ahead
+            target = p
+          }
+        }
+        let desired = 1
+        if (tr.dwell > 0) {
+          tr.dwell -= dt // stood at the platform, waiting out the boarding
+          desired = 0
+        } else if (target) {
+          if (gap <= STOP_ARRIVE) {
+            tr.dwell = DWELL // arrived: hold, and set the figures boarding
+            tr.served = target
+            desired = 0
+            board(target)
+          } else {
+            // Ramp the speed down across the approach, but never below a crawl,
+            // so the last few metres always close rather than asymptoting short.
+            desired = Math.max(STOP_CRAWL, (gap - STOP_ARRIVE) / (STOP_RANGE - STOP_ARRIVE))
+          }
+        }
+        // Let a served platform be called at again once it is well behind us.
+        if (tr.served && (tr.served.s - tr.s) * tr.dir < -STOP_CLEAR) tr.served = null
+        tr.v += (desired - tr.v) * (1 - Math.exp(-STOP_EASE * dt))
+        tr.s += tr.k.speed * tr.v * dt * tr.dir
         // Run to the end of the line and come back, rather than jumping to the
         // start: the jump is visible, and a line that leaves the map has to end
         // somewhere anyway.
@@ -606,9 +841,11 @@ export function createTrains(
         if (tr.dir > 0 && tr.s > total + rake) {
           tr.s = total + rake
           tr.dir = -1
+          tr.served = null // free to call at the platforms again on the way back
         } else if (tr.dir < 0 && tr.s < -rake) {
           tr.s = -rake
           tr.dir = 1
+          tr.served = null
         }
         tr.cars.forEach((car, i) => {
           // Each carriage sits a car-length back along the same track, so the
@@ -687,6 +924,23 @@ export function createTrains(
           bar.t += ((near ? 1 : 0) - bar.t) * k
           const ang = BOOM_UP + (BOOM_DOWN - BOOM_UP) * bar.t
           for (const arm of bar.arms) arm.rotation.z = ang
+        }
+      }
+      // Platforms: ease each figure between stood and boarded/gone, and warm the
+      // canopy lamps at dusk. Gated on there being any platform at all. The ease
+      // is the same framerate-independent approach the trains and booms use, so a
+      // figure grows in or shrinks out smoothly however long the frame.
+      if (platforms.length) {
+        const fk = 1 - Math.exp(-FIG_EASE * dt)
+        for (const p of platforms) {
+          for (const f of p.figs) {
+            f.scale += (f.target - f.scale) * fk
+            f.mesh.visible = f.scale > 0.03 // a boarded figure is simply not drawn
+            f.mesh.scale.setScalar(Math.max(0.001, f.scale))
+          }
+          for (const l of p.lamps) {
+            ;(l.material as THREE.MeshStandardMaterial).emissiveIntensity = night * 1.6
+          }
         }
       }
     },

@@ -11,9 +11,9 @@ const mainLine: Railway = { points: [v(0, 0), v(500, 0), v(1000, 0)], tram: fals
 const siding: Railway = { points: [v(0, 50), v(40, 50)], tram: false, tunnel: false } // 40m: not worth one
 const tramLine: Railway = { points: [v(0, 90), v(600, 90)], tram: true, tunnel: false }
 
-/** The carriages, without the tunnel mouths standing at the ends of the line. */
+/** The carriages, without the tunnel mouths or platforms standing beside the line. */
 const carsOf = (scene: THREE.Scene): THREE.Object3D[] =>
-  (scene.children[0] as THREE.Group).children.filter((c) => !c.userData.portal)
+  (scene.children[0] as THREE.Group).children.filter((c) => !c.userData.portal && !c.userData.platform)
 const countCars = (scene: THREE.Scene): number => carsOf(scene).length
 
 describe('trains', () => {
@@ -302,6 +302,73 @@ describe('level crossings', () => {
     const moved = before - arm.rotation.z
     expect(moved, 'the boom did not start to lower').toBeGreaterThan(0)
     expect(arm.rotation.z, 'the boom snapped straight to flat in a single frame').toBeGreaterThan(0.3)
+  })
+})
+
+describe('railway stops', () => {
+  const platsOf = (scene: THREE.Scene): THREE.Object3D[] =>
+    (scene.children[0] as THREE.Group).children.filter((c) => c.userData.platform)
+  // Every figure stood on any platform that is currently drawn.
+  const figuresUp = (scene: THREE.Scene): number => {
+    let n = 0
+    for (const p of platsOf(scene)) p.traverse((o) => { if (o.userData.figure && o.visible) n++ })
+    return n
+  }
+
+  it('draws stops as platforms beside a line, with figures on them', () => {
+    const scene = new THREE.Scene()
+    createTrains(scene, [mainLine], flat, () => 0.5)
+    const plats = platsOf(scene)
+    expect(plats.length, 'no platform was built on a kilometre of track').toBeGreaterThan(0)
+    const plat = plats[0]
+    // Anchored on the centreline like the tunnel mouths — the line runs along z = 0.
+    expect(plat.position.z).toBeCloseTo(0, 5)
+    // The slab is thrown out to one side of the track, not sat on top of it.
+    expect(plat.children.some((o) => Math.abs(o.position.z) > 2), 'the platform is not beside the track').toBe(true)
+    // And a handful of figures stand on it.
+    let figs = 0
+    plat.traverse((o) => { if (o.userData.figure) figs++ })
+    expect(figs, 'nobody is stood on the platform').toBeGreaterThan(0)
+  })
+
+  it('eases a train to a stop at a platform, then pulls it away again', () => {
+    const scene = new THREE.Scene()
+    // rand = 0: a freight from the line start, running forward toward the first stop.
+    const t = createTrains(scene, [mainLine], flat, () => 0)
+    const lead = carsOf(scene)[0]
+    const steps: number[] = []
+    let prev = lead.position.clone()
+    for (let i = 0; i < 300; i++) {
+      t.update(0.1, 0)
+      steps.push(lead.position.distanceTo(prev))
+      prev = lead.position.clone()
+    }
+    // It stood near-still at the platform at some point...
+    const stall = steps.findIndex((d, i) => i > 3 && d < 0.05)
+    expect(stall, 'the train never eased to a stop at a platform').toBeGreaterThan(0)
+    // ...having been running before it,...
+    expect(steps.slice(0, stall).some((d) => d > 0.5), 'it was not moving before the stop').toBe(true)
+    // ...and it pulled away and ran on afterward.
+    expect(steps.slice(stall + 1).some((d) => d > 0.5), 'the train never pulled away again').toBe(true)
+  })
+
+  it('boards and alights figures as a train calls, so the crowd shifts', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0)
+    t.update(0.1, 0) // let the figures settle to their stood state
+    const before = figuresUp(scene)
+    expect(before, 'no figures to begin with').toBeGreaterThan(0)
+    // Long enough for the train to reach a stop and work its boarding.
+    for (let i = 0; i < 300; i++) t.update(0.1, 0)
+    expect(figuresUp(scene), 'nobody boarded or alighted at the stop').not.toBe(before)
+  })
+
+  it('frees the platforms and figures when the city changes', () => {
+    const scene = new THREE.Scene()
+    const t = createTrains(scene, [mainLine], flat, () => 0.5)
+    expect(platsOf(scene).length, 'no platform was built to dispose of').toBeGreaterThan(0)
+    t.dispose()
+    expect(scene.children.length, 'the platforms outlived the city').toBe(0)
   })
 })
 
