@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.33 — turn fuel use off for a free-roam drive
+- A new **Fuel use** toggle in the settings menu. Leave it on for the usual game — the tank drains and
+  you top up at petrol cans — or switch it **off** so the tank never empties and the car never loses
+  its legs to a dry tank, for pure free-roaming. Remembered between sessions.
+- 👀 Open ⚙, untick **Fuel use** — the gauge stays full however long you drive.
+
 ## v0.110.32 — bot buses stop at stops and pick up passengers
 - Buses now drive the roads and **route to bus stops**, halting a few seconds at each while a little
   crowd of figures at the kerb **boards** (shrinks away) and **alights** (grows in), then pull off to

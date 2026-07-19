@@ -73,6 +73,8 @@ import {
   setRoadDetail,
   getNitro,
   setNitro,
+  getFuelUse,
+  setFuelUse,
   getDemo,
   setDemo,
   getTrial,
@@ -220,6 +222,7 @@ const nitro = createNitro(stage.scene)
 nitro.setEnabled(getNitro())
 const cans = createCans(stage.scene)
 let fuel = 1
+let fuelUse = getFuelUse() // when off, the tank never drains — no running dry
 const flame = createNitroFlame()
 let density: Density = getDensity()
 const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
@@ -630,7 +633,8 @@ async function loadCity(query: string): Promise<void> {
           fuel = Math.min(1, fuel + CAN_WORTH)
           audio.chime(false)
         }
-        fuel = burn(fuel, input.throttle, dt)
+        if (fuelUse) fuel = burn(fuel, input.throttle, dt)
+        else fuel = 1 // fuel use off: keep the tank full so the car never runs dry
         hud.setFuel(fuel)
         if (boostTimer > 0) boostTimer -= dt
         const boostTarget = boostTimer > 0 ? 1 : 0
@@ -948,6 +952,7 @@ const menu = createSettingsMenu(
     clouds: getClouds(),
     roadDetail: getRoadDetail(),
     nitro: getNitro(),
+    fuel: getFuelUse(),
     demo: getDemo(),
     trial: getTrial(),
     race: getRace(),
@@ -1050,6 +1055,11 @@ const menu = createSettingsMenu(
         boostTimer = 0
         boost = 0
       }
+    },
+    onFuel: (on) => {
+      fuelUse = on
+      setFuelUse(on)
+      if (!on) fuel = 1 // switching it off tops the tank up at once
     },
     onUnits: (u) => {
       setUnits(u)

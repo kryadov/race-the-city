@@ -298,6 +298,25 @@ export function setNitro(on: boolean): void {
   }
 }
 
+const FUEL_KEY = 'rtc.fuel'
+
+/** Whether the fuel tank drains as you drive (on by default; off = never runs dry). */
+export function getFuelUse(): boolean {
+  try {
+    return localStorage.getItem(FUEL_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setFuelUse(on: boolean): void {
+  try {
+    localStorage.setItem(FUEL_KEY, on ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 const ZOOM_KEY = 'rtc.zoom'
 
 /** Persisted camera zoom (camDist multiplier; 1 = default). */

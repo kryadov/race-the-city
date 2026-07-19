@@ -61,6 +61,7 @@ export interface SettingsCallbacks {
   onClouds: (on: boolean) => void
   onRoadDetail: (on: boolean) => void
   onNitro: (on: boolean) => void
+  onFuel: (on: boolean) => void
   onDemo: (on: boolean) => void
   onTrial: (on: boolean) => void
   onRace: (on: boolean) => void
@@ -106,6 +107,7 @@ export function createSettingsMenu(
     clouds: boolean
     roadDetail: boolean
     nitro: boolean
+    fuel: boolean
     demo: boolean
     trial: boolean
     race: boolean
@@ -128,6 +130,7 @@ export function createSettingsMenu(
   let clouds = initial.clouds
   let roadDetail = initial.roadDetail
   let nitro = initial.nitro
+  let fuel = initial.fuel
   let demo = initial.demo
   let trial = initial.trial
   let race = initial.race
@@ -431,6 +434,14 @@ export function createSettingsMenu(
     paintLabelsToggle()
   })
   mapSec.appendChild(nitroBtn)
+  const fuelBtn = button()
+  fuelBtn.style.cssText += ';width:100%;margin-top:4px'
+  fuelBtn.addEventListener('click', () => {
+    fuel = !fuel
+    cb.onFuel(fuel)
+    paintLabelsToggle()
+  })
+  mapSec.appendChild(fuelBtn)
   const demoBtn = button()
   demoBtn.style.cssText += ';width:100%;margin-top:4px'
   demoBtn.addEventListener('click', () => {
@@ -482,6 +493,7 @@ export function createSettingsMenu(
     cloudsBtn.textContent = `${clouds ? '☑' : '☐'} ${t('menu.clouds')}`
     roadDetailBtn.textContent = `${roadDetail ? '☑' : '☐'} ${t('menu.roadDetail')}`
     nitroBtn.textContent = `${nitro ? '☑' : '☐'} ${t('menu.nitro')}`
+    fuelBtn.textContent = `${fuel ? '☑' : '☐'} ${t('menu.fuel')}`
     demoBtn.textContent = `${demo ? '☑' : '☐'} ${t('menu.demo')}`
     trialBtn.textContent = `${trial ? '☑' : '☐'} ${t('menu.trial')}`
     raceBtn.textContent = `${race ? '☑' : '☐'} ${t('menu.race')}`
