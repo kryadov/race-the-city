@@ -27,6 +27,11 @@ const NS = 'http://www.w3.org/2000/svg'
 // the gauge match the minimap without redoing every tick and needle by hand.
 const SIZE = 120
 const DISPLAY = 172 // same as the minimap's diameter, so the corners balance
+// The tacho is the secondary instrument, so it rides ~1.5x smaller than the
+// speedometer. Only the on-screen size shrinks: the dial geometry stays in the
+// SIZE coordinate system and the viewBox scales the whole thing down, so every
+// tick and the needle keep their proportions without being redrawn.
+const TACHO_DISPLAY = Math.round(DISPLAY / 1.5)
 const CX = 60
 const CY = 60
 const R = 48
@@ -61,8 +66,8 @@ interface Dial {
 // One round gauge — arc track, tick marks, needle and centre readout. Both the
 // speedometer and the tachometer are the same dial; `ticks` cuts the sweep into
 // that many marks and `redFrom` (0..1 along the sweep, or null) paints a redline.
-const buildDial = (ticks: number, redFrom: number | null): Dial => {
-  const svg = svgEl('svg', { width: DISPLAY, height: DISPLAY, viewBox: `0 0 ${SIZE} ${SIZE}` })
+const buildDial = (ticks: number, redFrom: number | null, display: number = DISPLAY): Dial => {
+  const svg = svgEl('svg', { width: display, height: display, viewBox: `0 0 ${SIZE} ${SIZE}` })
   const [tx0, ty0] = polar(START, R)
   const [tx1, ty1] = polar(START + SWEEP, R)
   svg.appendChild(
@@ -145,12 +150,14 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     'font-size:12px;color:rgba(255,255,255,.8);margin-bottom:2px;overflow:hidden;' +
     'text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.7)'
 
-  // The tachometer rides directly above the speedometer — same size and style,
-  // so the two dials read as one instrument cluster. Its needle and readout are
+  // The tachometer rides directly above the speedometer as the smaller, secondary
+  // dial, so the two read as one instrument cluster. Its needle and readout are
   // driven by setRpm; the redline sits at REDLINE/MAX_RPM along the sweep.
-  const tacho = buildDial(8, REDLINE / MAX_RPM)
+  const tacho = buildDial(8, REDLINE / MAX_RPM, TACHO_DISPLAY)
   tacho.unit.textContent = 'rpm'
-  tacho.svg.style.cssText = 'display:block;margin-bottom:-30px' // pull it down over the speedo's empty crown
+  // Pull it down over the speedo's empty crown. Scaled with the dial so the
+  // smaller tacho tucks in by the same proportion the full-size one did (-30).
+  tacho.svg.style.cssText = `display:block;margin-bottom:${Math.round(-30 * (TACHO_DISPLAY / DISPLAY))}px`
 
   const speedo = buildDial(5, null)
   const { svg, needle, num, unit } = speedo

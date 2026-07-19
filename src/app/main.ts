@@ -47,6 +47,7 @@ import { createReplay } from './replay'
 import { createReplayControls } from '../ui/replayControls'
 import { createAircraft } from './aircraft'
 import { createBirds } from './birds'
+import { createRevs } from './revs'
 import { countFor, crowdFor, gapFor, type Density } from './density'
 import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
@@ -175,6 +176,7 @@ const minimap = createMinimap(ui)
 const roadLabels = createRoadLabels(ui)
 roadLabels.setEnabled(getRoadLabels())
 const hud = createHud(ui, getUnits())
+const revs = createRevs() // smooth per-vehicle tacho model, in place of a gear staircase
 let odometer = 0 // metres driven, carried in the session
 // The start screen is up: a city drives itself as a backdrop, the player's
 // driving input is ignored, and the autopilot is forced on. Cleared on Play.
@@ -827,13 +829,12 @@ async function loadCity(query: string): Promise<void> {
         const fwd = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
         const lat = -car.vx * Math.sin(car.heading) + car.vz * Math.cos(car.heading)
         hud.setSpeed(Math.abs(fwd) * 3.6)
-        // Engine revs for the tacho: revs climb through a gear then drop at each
-        // "shift" as speed builds, with a throttle blip when stationary — same
-        // 0..1 load the engine audio uses, just made to look alive on the dial.
-        const revLoad = Math.min(1, Math.abs(fwd) / spec.maxSpeed)
-        const revGear = revLoad * 5
-        const inGear = revGear >= 5 ? 1 : revGear - Math.floor(revGear)
-        hud.setRpm(900 + inGear * 5600 + Math.max(0, input.throttle) * 1300 * (1 - revLoad))
+        // Engine revs for the tacho: a smooth, per-vehicle model (src/app/revs.ts)
+        // eases toward a speed-and-throttle target so the needle glides instead of
+        // ticking through gears. Fed the BASE spec, so revs read against the
+        // vehicle's own top speed and a nitro overshoot simply pins the redline.
+        revs.update(dt, Math.abs(fwd) * 3.6, input.throttle, spec)
+        hud.setRpm(revs.rpm())
         odometer += Math.hypot(car.vx, car.vz) * dt // ground distance travelled
         hud.setDistance(odometer)
         // Paused? Surface the exact pose so a bug screenshot is reproducible.

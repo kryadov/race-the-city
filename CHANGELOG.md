@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.111.1 — smooth, per-vehicle tachometer (and a smaller dial)
+- The tacho needle jumped like a clock: RPM was a gear-staircase that snapped to the top of each gear
+  and lagged, identical for every vehicle. It's now a smooth rev model that eases toward a target set
+  by the vehicle's own speed-vs-top-speed and throttle, scaled per vehicle — a truck sits low and lazy,
+  a sports car spins high and eager, and a nitro overshoot just pins the redline. The dial is also
+  ~1.5× smaller than the speedometer.
+- 👀 Accelerate through the range — the needle glides instead of ticking; compare a truck to a sports
+  car; the tacho dial is now smaller than the speedo.
+
 ## v0.111.0 — the rowboat is boat-shaped, with someone rowing
 - The rowboat was a box with a cone bow. It's now a proper tapered low-poly hull — pointed at both bow
   and stern, open on top like a shell you sit in, with an upswept sheer and a keel that dips amidships —
