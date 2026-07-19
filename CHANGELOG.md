@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.54 — bot cyclists ride the streets
+- **Bot cyclists** now pedal along the roads — slower than the traffic, hugging the kerb side like a
+  bike lane, leaning gently into turns, legs pedalling in time with the ground and a **rear reflector
+  that glows red at night**. Low-poly bicycles that stop pedalling when they stop.
+- 👀 Watch the streets — cyclists roll along the kerb, legs turning, red reflector lit after dark.
+
 ## v0.110.53 — holiday fireworks, and pedestrians up on the bridges
 - Load the game on a **firework holiday** — New Year's Eve/Day, the 4th of July, Bonfire Night — and
   **fireworks rise over the skyline** as you drive, paced to a pleasant cadence around the car. A pure
