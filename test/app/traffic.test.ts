@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { createTraffic } from '../../src/app/traffic'
 import { createPedestrians } from '../../src/app/pedestrians'
+import { buildDecks, createDeckIndex } from '../../src/world/bridge'
 import type { Road, Vec2 } from '../../src/geo/types'
 
 const v = (x: number, z: number): Vec2 => ({ x, z })
@@ -656,5 +657,90 @@ describe('car-to-car separation', () => {
     // that overlaps.
     expect(end[0].x - start[0].x, 'the lead car stalled').toBeGreaterThan(100)
     expect(end[1].x - start[1].x, 'the following car stalled').toBeGreaterThan(100)
+  })
+})
+
+describe('parked cars as obstacles', () => {
+  it('holds a bot short of a parked car sitting in its path rather than driving through it', () => {
+    // A service aisle runs across a lot: the graph carries the bot straight over
+    // ground a parked car already occupies, and with no physics the old code
+    // ghosted clean through it. Now the bot treats the parked car as an obstacle
+    // and coasts to a halt behind it, never overlapping.
+    //
+    // The one bot spawns at node 1 (800,0) and heads -x (rand=0.5 -> node index
+    // floor(0.5*2)=1, whose only edge leads back to node 0), so it drives down
+    // the road toward a parked car planted dead ahead in its lane (z=+2.2, the
+    // right-of-centre offset the bot itself keeps).
+    const road: Road[] = [{ points: [v(-800, 0), v(800, 0)], kind: 'residential' }]
+    const parked: Vec2[] = [v(760, 2.2)]
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, road, flat, () => 0.5, 1, parked)
+
+    let minDist = Infinity
+    for (let f = 0; f < 600; f++) {
+      t.update(1 / 60, 0, 0, 0)
+      for (const c of t.obstacles()) {
+        minDist = Math.min(minDist, Math.hypot(c.x - 760, c.z - 2.2))
+      }
+    }
+    // A parked car is ~4.4m long, a bot ~2m from centre to nose: centres nearer
+    // than ~4m mean they have merged. The bot holds a clear gap instead.
+    expect(minDist, 'a bot drove through a parked car').toBeGreaterThan(4)
+    // And it actually got there — a bot that never reached the parked car would
+    // prove nothing. It closes to within a couple of metres of the held gap.
+    expect(minDist, 'the bot never approached the parked car').toBeLessThan(8)
+  })
+
+  it('drives on past parked cars set well off to the side of the road', () => {
+    // Cars parked in bays a lane or two off the carriageway are not in the way;
+    // a bot must pass them, not brake for the whole street.
+    const road: Road[] = [{ points: [v(-800, 0), v(800, 0)], kind: 'residential' }]
+    const aside: Vec2[] = [v(760, 12), v(700, 12), v(640, 12)] // 12m off, well clear
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, road, flat, () => 0.5, 1, aside)
+    t.update(1 / 60, 0, 0, 0)
+    const [before] = t.obstacles()
+    for (let f = 0; f < 300; f++) t.update(1 / 60, 0, 0, 0)
+    const [after] = t.obstacles()
+    expect(Math.abs(after.x - before.x), 'a bot braked for cars parked off the road').toBeGreaterThan(20)
+  })
+})
+
+describe('bots on a bridge', () => {
+  it('seats a bot on the deck, not the ground under it', () => {
+    // A bridge road arching over flat ground: layer 2 lifts its deck to ~10m at
+    // the crown, settling to the ground at both ends. The bots spawn on the crown
+    // node (rand=0.5 -> node floor(0.5*5)=2, the middle of the five points) and
+    // must ride the deck overhead. The old code read the terrain under them and
+    // drove them along the riverbed; now they sit at the sampled deck height.
+    const span: Road[] = [
+      { points: [v(-200, 0), v(-100, 0), v(0, 0), v(100, 0), v(200, 0)], kind: 'residential', bridge: true, layer: 2 },
+    ]
+    const decks = createDeckIndex(buildDecks(span, flat))
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, span, flat, () => 0.5, 4, [], decks)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+
+    let maxY = -Infinity
+    for (let f = 0; f < 600; f++) {
+      t.update(1 / 60, 0, 0, 0)
+      for (const p of positions(bodies)) maxY = Math.max(maxY, p.y)
+    }
+    // On flat ground the terrain is y=0, so any real height can only come from
+    // the deck. The crown stands ~10m up; well clear of the ground either way.
+    expect(maxY, 'no bot rose onto the deck — they drove under the bridge').toBeGreaterThan(3)
+  })
+
+  it('keeps ground-road bots on the ground when a deck index is supplied', () => {
+    // A plain road with a deck index passed in but no bridge roads: nothing is a
+    // bridge edge, so every bot stays on the terrain rather than being lifted.
+    const decks = createDeckIndex(buildDecks(grid, flat)) // grid has no bridge roads
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, grid, flat, () => 0.5, 8, [], decks)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    for (let f = 0; f < 120; f++) t.update(1 / 60, 0, 0, 0)
+    for (const p of positions(bodies)) {
+      expect(Math.abs(p.y), 'a ground bot was lifted onto a phantom deck').toBeLessThan(0.001)
+    }
   })
 })

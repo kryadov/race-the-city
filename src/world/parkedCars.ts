@@ -50,11 +50,11 @@ const PALETTE = [
   0x27496d, 0x3a5a40, 0xd9b23a, 0x7a7f87, 0xcdd3d8,
 ]
 
-const SEED = 0x7a1c0c2b // fixed seed → the same cars park on every browser and reload
+export const SEED = 0x7a1c0c2b // fixed seed → the same cars park on every browser and reload
 
 /** Deterministic PRNG (mulberry32) — same idea as greenery.ts, so a lot's cars
  * are identical across loads instead of Math.random reshuffling them each time. */
-function makeRng(seed: number): () => number {
+export function makeRng(seed: number): () => number {
   let a = seed >>> 0
   return () => {
     a = (a + 0x6d2b79f5) | 0

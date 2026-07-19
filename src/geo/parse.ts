@@ -1,5 +1,5 @@
 import type { Projector } from './project'
-import type { Building, BuildingKind, Poi, Prop, PropKind, Railway, Road, RoadKind, Vec2, WorldData } from './types'
+import type { Building, BuildingKind, Poi, Prop, PropKind, Railway, Road, RoadKind, Surface, SurfaceKind, Vec2, WorldData } from './types'
 
 export interface OverpassMember {
   type: 'node' | 'way' | 'relation'
@@ -92,6 +92,27 @@ export function isForest(tags: Record<string, string>): boolean {
   return tags.natural === 'wood' || tags.landuse === 'forest'
 }
 
+// Land-use → ground tint. OSM carto paints these areas distinctly (cream farmland,
+// pale meadow, dotted orchard, grey built-up land); on a plain grass fill they all
+// vanish. Two maps, checked landuse-first: the `landuse` tag is the primary one,
+// with a couple of `natural` covers folded into the nearest tint (grassland/heath
+// read as meadow, scrub as an orchard's patchy tree-cover).
+const SURFACE_LANDUSE: Record<string, SurfaceKind> = {
+  farmland: 'farmland', farmyard: 'farmland',
+  meadow: 'meadow',
+  orchard: 'orchard', vineyard: 'orchard',
+  residential: 'residential', commercial: 'residential', industrial: 'residential',
+}
+const SURFACE_NATURAL: Record<string, SurfaceKind> = {
+  grassland: 'meadow', heath: 'meadow',
+  scrub: 'orchard',
+}
+
+/** The land-use tint this area carries, or null if it isn't one we paint. */
+export function classifySurface(tags: Record<string, string>): SurfaceKind | null {
+  return SURFACE_LANDUSE[tags.landuse] ?? SURFACE_NATURAL[tags.natural] ?? null
+}
+
 const HOUSE = new Set(['house', 'detached', 'semidetached_house', 'bungalow', 'terrace', 'hut', 'cabin'])
 const APARTMENTS = new Set(['apartments', 'residential', 'dormitory', 'hotel'])
 const RETAIL = new Set(['retail', 'supermarket', 'shop', 'kiosk', 'commercial', 'restaurant'])
@@ -169,6 +190,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const forests: Vec2[][] = []
   const parking: Vec2[][] = []
   const fields: Vec2[][] = []
+  const surfaces: Surface[] = []
   const coast: Vec2[][] = []
   const railWays: { nodes: number[]; tram: boolean; tunnel: boolean }[] = []
 
@@ -185,6 +207,17 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       props.push({ at: centroid(points), kind: propKind })
       continue
     }
+
+    // Land-use tint, collected independently of the green/field/building chain
+    // below: a farmland is grazing land (fields) and greenery (green) *and* a
+    // khaki surface, and a residential tract is none of those but still tints the
+    // built-up ground the parks never cover. So it rides alongside, not instead.
+    const surfaceKind = classifySurface(tags)
+    if (surfaceKind) {
+      const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
+      if (ring.length >= 3) surfaces.push({ kind: surfaceKind, ring })
+    }
+
     if (tags.natural === 'coastline') {
       coast.push(points) // linear boundary between land and sea
     } else if (isWater(tags)) {
@@ -303,7 +336,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     )
   }
 
-  return { roads, buildings, water, green, forests, parking, fields, trees, props, coast, railways, benches, busStops, pois }
+  return { roads, buildings, water, green, forests, parking, fields, surfaces, trees, props, coast, railways, benches, busStops, pois }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */

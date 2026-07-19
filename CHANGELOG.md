@@ -6,6 +6,23 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.112.0 — one unified menu, plus three world fixes
+The start splash and the in-game ⚙ side menu are now **one menu**. It opens the same way at the start
+and on **Esc**, keeps the branded main-screen look (city, car, a **single-select mode picker** —
+Free · Time-trial · Race · Taxi · 🕹 Find-a-car — and Play/Resume/Continue), and tucks every setting
+behind a **⚙ Options** screen (view, audio, map & density, language, autopilot, about). One mode model
+replaces the old split where you could switch trial + race + arcade on independently. (Bundled in one
+release because the menu and the three fixes below all wire through `main.ts`.)
+- **Start position** — you no longer spawn staring into a wall or with a house behind you blocking the
+  chase camera; the spawn vertex/heading is scored for a clear view ahead and along the camera track.
+- **Ground surfaces** — farmland, meadow, orchard and residential land now render as their own ground
+  tints instead of uniform grass (one merged draw, no frame cost).
+- **Traffic** — bot cars stop driving **through parked cars** on a lot (they slow and hold), and now
+  drive **on bridge decks** at deck height instead of under them.
+- 👀 Open the menu at start or with **Esc** — one screen, a mode picker + **⚙ Options**. Then: drive a
+  **bridge** (bots up there too); a **car park** (bots weave round the parked cars); **respawn** in a
+  few cities (a clear view, not a wall); a **rural** map (farmland/meadow/orchard tints).
+
 ## v0.111.1 — smooth, per-vehicle tachometer (and a smaller dial)
 - The tacho needle jumped like a clock: RPM was a gear-staircase that snapped to the top of each gear
   and lagged, identical for every vehicle. It's now a smooth rev model that eases toward a target set

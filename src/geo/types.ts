@@ -32,6 +32,13 @@ export interface Poi { x: number; z: number; kind: PoiKind }
 export type BuildingKind = 'house' | 'apartments' | 'retail' | 'office' | 'industrial' | 'civic'
 
 export interface Building { footprint: Vec2[]; height: number; kind: BuildingKind }
+
+/** A land-use area the ground is tinted for — the country and the built-up land
+ * a plain grass fill flattens: `farmland` warm cropland, `meadow` rough grass,
+ * `orchard`/scrub tree-cover, `residential` (and commercial/industrial) built-up
+ * ground. See classifySurface in parse.ts for the tag map. */
+export type SurfaceKind = 'farmland' | 'meadow' | 'orchard' | 'residential'
+export interface Surface { kind: SurfaceKind; ring: Vec2[] }
 export interface WorldData {
   roads: Road[]
   buildings: Building[]
@@ -47,6 +54,12 @@ export interface WorldData {
   props: Prop[]
   /** Open country: where livestock graze. */
   fields: Vec2[][]
+  /** Land-use areas painted as distinct flat ground tints — farmland, meadow,
+   * orchard/scrub and built-up (residential/commercial/industrial) land. Kept
+   * apart from `green` (park lawns) so each reads as its own colour; a farmland or
+   * meadow is *also* filed under `green`/`fields`, so its tint here just overrides
+   * the generic greenery where they overlap. */
+  surfaces: Surface[]
   coast: Vec2[][]
   railways: Railway[]
   /** Street furniture points: benches (`amenity=bench`) and bus stops. */

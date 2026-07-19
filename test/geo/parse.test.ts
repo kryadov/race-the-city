@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fixture from '../fixtures/overpass-small.json'
-import { parseOsm, classifyRoad, buildingHeight, type OverpassResponse } from '../../src/geo/parse'
+import { parseOsm, classifyRoad, buildingHeight, classifySurface, type OverpassResponse } from '../../src/geo/parse'
 import { Projector } from '../../src/geo/project'
 
 const projector = new Projector({ lat: 41.7151, lon: 44.8271 })
@@ -149,6 +149,89 @@ describe('wooded areas', () => {
     // both the way-wood and the relation-forest carry through to green
     expect(world.green.length).toBeGreaterThanOrEqual(2)
     for (const ring of world.forests) expect(world.green).toContain(ring)
+  })
+})
+
+describe('classifySurface', () => {
+  it('maps cropland tags to farmland', () => {
+    expect(classifySurface({ landuse: 'farmland' })).toBe('farmland')
+    expect(classifySurface({ landuse: 'farmyard' })).toBe('farmland')
+  })
+  it('maps meadow and rough grass to meadow', () => {
+    expect(classifySurface({ landuse: 'meadow' })).toBe('meadow')
+    expect(classifySurface({ natural: 'grassland' })).toBe('meadow')
+    expect(classifySurface({ natural: 'heath' })).toBe('meadow')
+  })
+  it('maps orchards, vineyards and scrub to orchard', () => {
+    expect(classifySurface({ landuse: 'orchard' })).toBe('orchard')
+    expect(classifySurface({ landuse: 'vineyard' })).toBe('orchard')
+    expect(classifySurface({ natural: 'scrub' })).toBe('orchard')
+  })
+  it('maps built-up land (residential/commercial/industrial) to residential', () => {
+    expect(classifySurface({ landuse: 'residential' })).toBe('residential')
+    expect(classifySurface({ landuse: 'commercial' })).toBe('residential')
+    expect(classifySurface({ landuse: 'industrial' })).toBe('residential')
+  })
+  it('prefers the landuse tag over a natural cover', () => {
+    expect(classifySurface({ landuse: 'residential', natural: 'scrub' })).toBe('residential')
+  })
+  it('returns null for water, forest, parks and untagged areas', () => {
+    expect(classifySurface({ landuse: 'forest' })).toBeNull()
+    expect(classifySurface({ leisure: 'park' })).toBeNull()
+    expect(classifySurface({ natural: 'water' })).toBeNull()
+    expect(classifySurface({})).toBeNull()
+  })
+})
+
+describe('land-use surfaces', () => {
+  // One small non-overlapping closed square per land-use area. idBase spaces the
+  // node ids apart; latStep pushes each square north so none touch.
+  function square(idBase: number, step: number, tags: Record<string, string>) {
+    const lat = 41.72 + step * 0.002
+    const lon = 44.83
+    const d = 0.0005
+    return [
+      { type: 'node', id: idBase + 1, lat, lon },
+      { type: 'node', id: idBase + 2, lat, lon: lon + d },
+      { type: 'node', id: idBase + 3, lat: lat + d, lon: lon + d },
+      { type: 'node', id: idBase + 4, lat: lat + d, lon },
+      { type: 'way', id: idBase, nodes: [idBase + 1, idBase + 2, idBase + 3, idBase + 4, idBase + 1], tags },
+    ]
+  }
+  const world = parseOsm(
+    {
+      elements: [
+        ...square(100, 0, { landuse: 'farmland' }),
+        ...square(110, 1, { landuse: 'meadow' }),
+        ...square(120, 2, { landuse: 'orchard' }),
+        ...square(130, 3, { landuse: 'residential' }),
+        ...square(140, 4, { natural: 'grassland' }),
+        ...square(150, 5, { natural: 'scrub' }),
+        ...square(160, 6, { landuse: 'commercial' }),
+        ...square(170, 7, { landuse: 'vineyard' }),
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+
+  it('collects each land-use area as a typed surface polygon', () => {
+    expect(world.surfaces.length).toBe(8)
+    const count = (k: string): number => world.surfaces.filter((s) => s.kind === k).length
+    expect(count('farmland')).toBe(1)
+    expect(count('meadow')).toBe(2) // landuse=meadow + natural=grassland
+    expect(count('orchard')).toBe(3) // landuse=orchard + natural=scrub + landuse=vineyard
+    expect(count('residential')).toBe(2) // landuse=residential + landuse=commercial
+  })
+
+  it('keeps every surface ring closed-and-usable (>=3 pts)', () => {
+    for (const s of world.surfaces) expect(s.ring.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('still files farmland and meadow as grazing fields and greenery', () => {
+    // The tint is additive: farmland/meadow/orchard remain fields (livestock) and
+    // green (tint + tree scatter), so nothing that depended on them regresses.
+    expect(world.fields.length).toBeGreaterThanOrEqual(2)
+    expect(world.green.length).toBeGreaterThanOrEqual(2)
   })
 })
 

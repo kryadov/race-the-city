@@ -1,6 +1,7 @@
 import * as THREE from 'three'
-import type { Road } from '../geo/types'
+import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
+import type { DeckIndex } from '../world/bridge'
 import { groundQuat } from '../terrain/slope'
 import { buildRoadGraph, nextNode, roomToDrive, type RoadGraph } from '../world/roadGraph'
 import type { Circle } from '../physics/collide'
@@ -43,6 +44,30 @@ const CROSSING_LOOK = 11
  */
 const FOLLOW_GAP = 7
 const BRAKE_ZONE = 6
+
+/**
+ * Parked cars as static obstacles.
+ *
+ * A retail park's service aisles run right through its bays, so the road graph
+ * carries a bot straight across ground the parked cars already occupy — and with
+ * no physics the bot sailed clean through them. The parked positions are handed
+ * in (see the `parkedCars` argument) and a bot holds a gap to the nearest one
+ * dead ahead in its path, exactly as it does behind a moving car: PARKED_GAP is
+ * the along-road distance it keeps to the parked car's centre (a bot's nose plus
+ * the parked car's half-length and a margin), PARKED_LOOK how far up the road it
+ * watches for one — long enough that BRAKE_ZONE fits inside the run-up so it
+ * coasts to a halt rather than stamping the brake — and PARKED_HALF the lateral
+ * reach either side of the bot's line that counts as "in the way", so a car
+ * parked well off the aisle is passed and only one actually blocking it stops it.
+ * PARK_CELL buckets the (static) parked cars into a fixed grid built once, so a
+ * bot tests only the handful in its own cell and the ring around it, never the
+ * whole lot; it is >= PARKED_LOOK so a 3x3 neighbourhood is guaranteed to catch
+ * every car within reach.
+ */
+const PARKED_GAP = 5
+const PARKED_LOOK = 12
+const PARKED_HALF = 3
+const PARK_CELL = 16
 
 /**
  * Ramming knockback. When the player's car shoves a bot (see `shove`), it sets a
@@ -122,6 +147,10 @@ interface Agent {
   /** The heading actually drawn, eased toward the edge direction, so the car
    *  arcs through a junction instead of snapping 90 degrees on the spot. */
   yaw: number
+  /** True while the current segment belongs to a bridge road, so the car rides
+   *  the deck overhead rather than the ground beneath it. Resolved once per
+   *  segment from the road-edge lookup, not scanned per frame. */
+  bridge: boolean
   /** Ramming knockback: the drawn offset (metres) off the route (kx/kz), and the
    *  target it eases toward (tx/tz) which itself relaxes to zero. All zero when
    *  undisturbed; a shove sets the target, not the offset, so the lurch is smooth. */
@@ -135,6 +164,10 @@ interface Placed {
   x: number
   z: number
   angle: number
+  /** The point on the centreline, before the lane offset — where the deck is
+   *  sampled, so the height query stays on the deck whatever the offset does. */
+  cx: number
+  cz: number
 }
 
 function makeRng(seed: number): () => number {
@@ -165,12 +198,90 @@ export function createTraffic(
   provider: ElevationProvider,
   rand: () => number = Math.random,
   count = COUNT,
+  // Static parked cars (a retail park's bays) the bots must not drive through.
+  // Only their positions matter here; ParkedCar[] passes straight in as it is a
+  // superset of Vec2. Empty by default, so a city with no lots wires nothing.
+  parkedCars: readonly Vec2[] = [],
+  // Where the bridge decks are, so a bot on a bridge road rides the deck instead
+  // of trailing along the ground under it. Defaults to a no-op index (the shape
+  // main.ts holds before a city loads), so nothing breaks when a city has no
+  // bridges or a caller passes none.
+  decks: DeckIndex = { heightAt: () => null },
 ): Traffic {
   const group = new THREE.Group()
   scene.add(group)
   const graph: RoadGraph = buildRoadGraph(roads)
   const rng = makeRng(0xc0ffee)
   const agents: Agent[] = []
+
+  // Which welded graph edges belong to a bridge road, so a bot on one is seated
+  // on the deck rather than the ground below. The graph carries no bridge flag,
+  // so we recover it from the roads: each bridge road's points are graph
+  // vertices, so `nearest` resolves them to node ids, keyed as an unordered
+  // pair. A one-off at construction — a city has a handful of bridges.
+  const bridgeEdges = new Set<string>()
+  const edgeKey = (a: number, b: number): string => (a < b ? `${a},${b}` : `${b},${a}`)
+  for (const road of roads) {
+    if (!road.bridge || road.points.length < 2) continue
+    let prev = -1
+    for (const p of road.points) {
+      const id = graph.nearest(p.x, p.z)
+      if (id >= 0 && prev >= 0 && id !== prev) bridgeEdges.add(edgeKey(prev, id))
+      prev = id
+    }
+  }
+  const onBridge = (a: number, b: number): boolean => bridgeEdges.has(edgeKey(a, b))
+
+  // Static parked cars filed once into a fixed grid (see PARK_CELL). Nothing here
+  // moves, so the grid is built at construction and a bot only ever tests the few
+  // cars in its own cell and the ring around it. The cell key packs the signed
+  // grid coordinates into one integer — no string, so a lookup allocates nothing
+  // per frame. The +4096 offset keeps both coordinates positive for cities out to
+  // ~65km from the origin, far past any map.
+  const parkX: number[] = []
+  const parkZ: number[] = []
+  const parkBucket = new Map<number, number[]>()
+  const parkKey = (cx: number, cz: number): number => (cx + 4096) * 8192 + (cz + 4096)
+  for (const c of parkedCars) {
+    const idx = parkX.length
+    parkX.push(c.x)
+    parkZ.push(c.z)
+    const k = parkKey(Math.floor(c.x / PARK_CELL), Math.floor(c.z / PARK_CELL))
+    const b = parkBucket.get(k)
+    if (b) b.push(idx)
+    else parkBucket.set(k, [idx])
+  }
+  /**
+   * Distance straight ahead to the nearest parked car in a bot's path from
+   * (px, pz) heading `angle`, or Infinity when the way is clear. Only cars up to
+   * PARKED_LOOK ahead and within PARKED_HALF either side count as blocking; a car
+   * off to the side is passed. Bounded to the 3x3 grid cells around the bot, so
+   * it stays O(1) however many are parked across the map.
+   */
+  const parkedAhead = (px: number, pz: number, angle: number): number => {
+    if (parkBucket.size === 0) return Infinity
+    const cs = Math.cos(angle)
+    const sn = Math.sin(angle)
+    const gx = Math.floor(px / PARK_CELL)
+    const gz = Math.floor(pz / PARK_CELL)
+    let best = Infinity
+    for (let ix = gx - 1; ix <= gx + 1; ix++) {
+      for (let iz = gz - 1; iz <= gz + 1; iz++) {
+        const b = parkBucket.get(parkKey(ix, iz))
+        if (!b) continue
+        for (const j of b) {
+          const dx = parkX[j] - px
+          const dz = parkZ[j] - pz
+          const ahead = dx * cs + dz * sn
+          if (ahead < -PARKED_HALF || ahead > PARKED_LOOK) continue
+          const lateral = -dx * sn + dz * cs
+          if (Math.abs(lateral) > PARKED_HALF) continue
+          if (ahead < best) best = ahead
+        }
+      }
+    }
+    return best
+  }
 
   const spawn = (near: { x: number; z: number } | null): Agent | null => {
     if (graph.nodes.length < 2) return null
@@ -195,7 +306,7 @@ export function createTraffic(
     const A = graph.nodes[at]
     const B = graph.nodes[to]
     const yaw = Math.atan2(B.z - A.z, B.x - A.x)
-    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw, kx: 0, kz: 0, tx: 0, tz: 0 }
+    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw, bridge: onBridge(at, to), kx: 0, kz: 0, tx: 0, tz: 0 }
   }
 
   for (let i = 0; i < count; i++) {
@@ -287,11 +398,15 @@ export function createTraffic(
     const len = Math.hypot(B.x - A.x, B.z - A.z) || 1
     const f = Math.min(1, a.s / len)
     const angle = Math.atan2(B.z - A.z, B.x - A.x)
+    const cx = A.x + (B.x - A.x) * f
+    const cz = A.z + (B.z - A.z) * f
     // Keep right of the centreline, so oncoming cars pass rather than merge.
     return {
-      x: A.x + (B.x - A.x) * f + Math.sin(angle) * LANE,
-      z: A.z + (B.z - A.z) * f - Math.cos(angle) * LANE,
+      x: cx + Math.sin(angle) * LANE,
+      z: cz - Math.cos(angle) * LANE,
       angle,
+      cx,
+      cz,
     }
   }
 
@@ -416,12 +531,16 @@ export function createTraffic(
           const lateral = -dx * Math.sin(here.angle) + dz * Math.cos(here.angle)
           return Math.abs(lateral) < b.r + 1.6
         })
-        // Advance, but no further than the gap to the car ahead allows. Easing
-        // the step to zero as that gap closes lets a car coast onto the leader's
-        // tail and hold there, rather than lurching the last metre and jittering.
+        // Advance, but no further than the gap to whatever is ahead allows —
+        // the moving car in front (gapAhead) or a static parked car the aisle
+        // runs across (parkedAhead). Take the tighter of the two, then ease the
+        // step to zero as that gap closes, so a car coasts to a halt onto the
+        // obstacle rather than lurching the last metre and jittering.
         let step = blocked ? 0 : a.speed * dt
         if (step > 0) {
-          const clear = gapAhead(i) - FOLLOW_GAP
+          let clear = gapAhead(i) - FOLLOW_GAP
+          const parked = parkedAhead(here.x, here.z, here.angle) - PARKED_GAP
+          if (parked < clear) clear = parked
           if (clear < BRAKE_ZONE) step *= Math.max(0, clear / BRAKE_ZONE)
           step = Math.min(step, Math.max(0, clear))
         }
@@ -453,6 +572,11 @@ export function createTraffic(
           a.at = a.to
           a.to = next
         }
+        // A fresh segment may cross onto or off a bridge; resolve that here, once
+        // per segment (a set lookup, not a deck scan), so the height below knows
+        // whether to seat the car on the deck or the ground. A recycled car gets
+        // its flag from spawn, so this only needs to fire when the edge changed.
+        if (hops > 0) a.bridge = onBridge(a.at, a.to)
         if (hops >= MAX_HOPS || a.uturns >= 2) {
           const fresh = spawn({ x: camX, z: camZ })
           if (fresh) {
@@ -485,7 +609,13 @@ export function createTraffic(
         const pz = p.z + a.kz
 
         solidAt.push({ x: px, z: pz, r: 2.0 })
-        pos.set(px, provider.heightAt(px, pz), pz)
+        // On a bridge the car rides the deck, not the ground under it. The deck is
+        // flat across its width, so its height at the centreline is its height at
+        // the lane too; sampling the centreline (p.cx, p.cz) keeps the query on the
+        // deck however far the lane offset pushes the car toward its edge. Fall
+        // back to the ground if there's somehow no deck here (or none were passed).
+        const y = a.bridge ? decks.heightAt(p.cx, p.cz) ?? provider.heightAt(px, pz) : provider.heightAt(px, pz)
+        pos.set(px, y, pz)
         // Ease the drawn heading toward the edge's direction rather than taking
         // it whole. `place` snaps `angle` the instant a car crosses a junction
         // node — the yaw jumped a right-angle in one frame and the car pivoted on

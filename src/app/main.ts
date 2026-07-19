@@ -29,13 +29,12 @@ import { withRetry, LOAD_ATTEMPTS } from './retry'
 import { createLoading } from '../ui/loading'
 import { createUpdateNotice } from '../ui/updateNotice'
 import { createHud } from '../ui/hud'
-import { createSettingsMenu } from '../ui/settingsMenu'
+import { createMenu, type Mode } from '../ui/menu'
 import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
 import { createPauseButton } from '../ui/pauseButton'
 import { createHelpOverlay } from '../ui/helpOverlay'
-import { createStartMenu, type StartMode } from '../ui/startMenu'
 import { pickRandomCity } from './cities'
 import { createAutopilot } from './autopilot'
 import { createTimeTrial } from './timeTrial'
@@ -81,14 +80,8 @@ import {
   setNitro,
   getFuelUse,
   setFuelUse,
-  getArcade,
-  setArcade,
   getDemo,
   setDemo,
-  getTrial,
-  setTrial,
-  getRace,
-  setRace,
   getDensity,
   setDensity,
   getQuality,
@@ -124,7 +117,7 @@ import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildManholes } from '../world/manholes'
 import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
-import { buildParkedCars } from '../world/parkedCars'
+import { buildParkedCars, collectParkedCars, makeRng as parkedRng, SEED as PARKED_SEED } from '../world/parkedCars'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery, type TreePerch } from '../world/greenery'
 import { buildStreetFurniture } from '../world/streetFurniture'
@@ -231,7 +224,7 @@ const sky = createSky(stage.scene)
 const sunDir = new THREE.Vector3()
 const nitro = createNitro(stage.scene)
 const carPickups: CarPickups = createCarPickups(stage.scene)
-carPickups.setEnabled(getArcade()) // arcade "find a car": pickable cars appear when on
+carPickups.setEnabled(false) // arcade "find a car": off until the arcade mode is picked
 nitro.setEnabled(getNitro())
 const cans = createCans(stage.scene)
 let fuel = 1
@@ -269,8 +262,8 @@ const replayControls = createReplayControls(ui, {
   onPlay: () => replay.play(),
   onStopPlay: () => replay.stopPlay(),
 })
-trial.setEnabled(getTrial())
-trialHud.setVisible(getTrial())
+trial.setEnabled(false) // mode starts 'free' (attract); a mode pick applies via applyMode
+trialHud.setVisible(false)
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
 function showVehicle(type: VehicleType): void {
   const mesh = buildVehicleMesh(type)
@@ -373,9 +366,9 @@ let provider: ElevationProvider = new FlatProvider()
 // v0.82.0, and the reason that check exists.
 let birds = makeBirds()
 const rivals = createRivals(stage.scene)
-// Rivals race the trial's gates. Racing with the trial off would put three cars
-// on a course that does not exist, so the switch only bites once both are on.
-rivals.setEnabled(getRace() && getTrial())
+// Rivals race the trial's gates — only in the 'race' mode, applied via applyMode.
+// Off at start (attract is a free-roam demo).
+rivals.setEnabled(false)
 let stopLoop: (() => void) | null = null
 let loading_ = false
 // A city requested while another is still loading is remembered here and run the
@@ -386,11 +379,14 @@ let queued: string | null = null
 // Set when a Play / Random / city-search click wants to *play* the city being
 // loaded (not just watch it as the backdrop): the load drops out of attract and
 // enters this mode once the car exists.
-let playAfterLoad: StartMode | null = null
-let startMode: StartMode = 'free' // the mode picked on the start menu, recorded via onMode
+let playAfterLoad: Mode | null = null
+// The one game mode — the single source of truth. Recorded from the menu picker
+// (at start) or applied live in-session; applyMode() does the mutually-exclusive work.
+let mode: Mode = 'free'
 let errorDismiss: ReturnType<typeof setTimeout> | undefined // clears a load-failed notice after a few seconds
 let currentCity = '' // the loaded city query, for session save/restore
 let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
+let lastParkedCars: ReturnType<typeof collectParkedCars> = [] // parked-car set, so a density change re-feeds traffic
 let lastRailways: import('../geo/types').Railway[] = []
 let lastWater: import('../geo/types').Vec2[][] = []
 let lastLat = 0 // the loaded city's latitude, so a density rebuild dresses the crowd for its season
@@ -476,7 +472,7 @@ async function loadCity(query: string): Promise<void> {
     }
     worldGroup = []
 
-    const ground = buildGround(provider, RADIUS, world.green, GROUND_SEGMENTS)
+    const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS)
     facades?.dispose() // the outgoing city's facade textures
     const { mesh: buildingsMesh, footprints, tops, facades: newFacades } = buildBuildings(world.buildings, provider)
     facades = newFacades
@@ -520,6 +516,8 @@ async function loadCity(query: string): Promise<void> {
       .map((ring) => ({ ring, level: waterLevel(ring, provider) }))
     const parkingMesh = buildParking(world.parking, provider)
     const parkedCarsMesh = buildParkedCars(world.parking, provider) // fixed seed: same cars each reload
+    // The exact fixed-seed set buildParkedCars just drew, so traffic can avoid them (same seed → same cars).
+    const parkedCarList = collectParkedCars(world.parking, parkedRng(PARKED_SEED))
     const propsMesh = buildProps(world.props, provider)
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
     const poiMesh = buildPoiMarkers(world.pois, provider)
@@ -577,7 +575,7 @@ async function loadCity(query: string): Promise<void> {
     )
     // On the nearest road, not on the spot the geocoder named: a geocoder names
     // a place, and Tokyo's is a building — you started inside it, against a wall.
-    const start = startPose(normalRoads)
+    const start = startPose(normalRoads, world.buildings.map((b) => b.footprint))
     car = createCar(start?.x ?? 0, start?.z ?? 0)
     car.heading = start?.heading ?? 0
     car.y = provider.heightAt(car.x, car.z) + (HOVERS[vehicle] ? HOVER_H : 0)
@@ -614,7 +612,7 @@ async function loadCity(query: string): Promise<void> {
     trains?.dispose() // the outgoing city's trains ran on its railways
     trains = createTrains(stage.scene, world.railways, provider, Math.random, countFor(density, 5), world.roads)
     traffic?.dispose()
-    traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16))
+    traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16), parkedCarList, decks)
     people?.dispose()
     people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat, decks)
     boats?.dispose()
@@ -630,6 +628,7 @@ async function loadCity(query: string): Promise<void> {
     herds?.dispose()
     herds = createLivestock(stage.scene, world.fields, provider)
     lastRoads = world.roads
+    lastParkedCars = parkedCarList
     lastBusStops = world.busStops
     lastRailways = world.railways
     lastPerches = greenPerches
@@ -654,7 +653,7 @@ async function loadCity(query: string): Promise<void> {
     stage.renderer.compile(stage.scene, stage.camera)
     stage.renderer.render(stage.scene, stage.camera)
     loading.hide()
-    startMenu.revealCity() // a city is on the canvas now — fade the animated boot backdrop
+    menu.revealCity() // a city is on the canvas now — fade the animated boot backdrop
 
     // A Play / Random / city-search click asked to play THIS city: now that the
     // car exists, drop out of attract and enter the chosen mode. A newer city
@@ -966,13 +965,13 @@ async function loadCity(query: string): Promise<void> {
       // leave them where they were: the start menu if nothing ever loaded, else
       // the map they were already driving (a cancelled in-game switch is a no-op).
       loading.hide()
-      if (!currentCity) startMenu.show()
+      if (!currentCity) menu.open()
       else if (playAfterLoad !== null) {
-        const mode = playAfterLoad
+        const m = playAfterLoad
         playAfterLoad = null
-        startMenu.hide()
+        menu.close()
         replayControls.setVisible(true)
-        enterPlay(mode)
+        enterPlay(m)
       }
       return
     }
@@ -984,7 +983,7 @@ async function loadCity(query: string): Promise<void> {
     errorDismiss = setTimeout(() => {
       loading.hide()
       if (!currentCity) {
-        startMenu.show() // nothing ever loaded — offer the (fixed-layout) menu to try again
+        menu.open() // nothing ever loaded — offer the (fixed-layout) menu to try again
         return
       }
       // We still have the map we were driving. A failed switch must NOT yank the
@@ -992,11 +991,11 @@ async function loadCity(query: string): Promise<void> {
       // the map we were already on; an in-game city change leaves the menu hidden
       // and this is a no-op, so we keep driving.
       if (playAfterLoad !== null) {
-        const mode = playAfterLoad
+        const m = playAfterLoad
         playAfterLoad = null
-        startMenu.hide()
+        menu.close()
         replayControls.setVisible(true)
-        enterPlay(mode)
+        enterPlay(m)
       }
     }, 5000)
   } finally {
@@ -1011,72 +1010,78 @@ async function loadCity(query: string): Promise<void> {
 }
 
 /**
- * Turn the time trial on or off, gates, HUD, rivals and all.
+ * The one place a game mode is applied. Exactly one mode is ever active, so
+ * turning one on turns the rest off: clear the trial/race gates when leaving them,
+ * stop the taxi meter, hide the arcade pickups. Folds together what the old
+ * applyTrial / applyTaxi / onArcade / onRace handlers each did.
  *
- * Shared because the race switch pulls the trial on with it: racing round gates
- * needs gates, and there is exactly one way to lay them out.
+ * `race` implies the trial: racing round gates needs gates, and there is exactly
+ * one way to lay them out.
  */
-function applyTrial(on: boolean): void {
-  if (on) applyTaxi(false) // taxi and the trial/race are mutually exclusive
-  setTrial(on)
-  trial.setEnabled(on)
-  trialHud.setVisible(on)
-  if (on && car) trial.reset(lastRoads, provider, car)
-  rivals.setEnabled(on && getRace())
-  if (on && car && getRace()) rivals.reset(lastRoads, grid, provider, car, trial.course())
+function applyMode(m: Mode): void {
+  mode = m
+  const wantsTrial = m === 'trial' || m === 'race'
+  const wantsRace = m === 'race'
+  // Trial / race gates + HUD + rivals.
+  trial.setEnabled(wantsTrial)
+  trialHud.setVisible(wantsTrial)
+  if (wantsTrial && car) trial.reset(lastRoads, provider, car)
+  rivals.setEnabled(wantsRace)
+  if (wantsRace && car) rivals.reset(lastRoads, grid, provider, car, trial.course())
+  // Taxi shift.
+  taxi.setEnabled(m === 'taxi')
+  taxiHud.setVisible(m === 'taxi')
+  if (m === 'taxi' && car) taxi.reset(lastRoads, provider, car)
+  // Arcade "find a car" pickups.
+  carPickups.setEnabled(m === 'arcade')
 }
 
-/** Taxi mode on/off — a chained pick-up/deliver shift, exclusive with the trial. */
-function applyTaxi(on: boolean): void {
-  taxi.setEnabled(on)
-  taxiHud.setVisible(on)
-  if (on) {
-    applyTrial(false)
-    if (car) taxi.reset(lastRoads, provider, car)
-  }
-}
+// A ?city= link names the backdrop (and pre-fills the search); otherwise a random
+// city drives itself behind the menu until you Play.
+const linkCity = new URL(location.href).searchParams.get('city') || ''
 
-const menu = createSettingsMenu(
+const menu = createMenu(
   ui,
   {
-    city: getDefaultCity(),
-    view: theme.current,
-    vehicle,
-    audio: audio.getState(),
-    roadLabels: getRoadLabels(),
-    time: timeOfDay,
-    driftFx: getDriftFx(),
-    hud: getHud(),
-    shadows: getShadows(),
-    clouds: getClouds(),
-    roadDetail: getRoadDetail(),
-    nitro: getNitro(),
-    fuel: getFuelUse(),
-    arcade: getArcade(),
-    demo: getDemo(),
-    trial: getTrial(),
-    race: getRace(),
-    quality: getQuality(),
-    density,
-    units: getUnits(),
-    weather: getWeather(),
-    timeMode,
-    zoom: getZoom(),
-  },
-  {
-    onLoadCity: (q) => void loadCity(q),
-    onSetDefaultCity: (q) => setDefaultCity(q),
-    onShareCity: () => void navigator.clipboard?.writeText(location.href),
-    onSetView: (mode) => theme.set(mode),
-    onSelectVehicle: (type) => {
-      vehicle = type
-      audio.setVehicle(type)
-      showVehicle(type)
-      if (car) {
-        car.vx = 0 // reset momentum for the new handling
-        car.vz = 0
+    onPlay: (m) => {
+      if (attract) startPlay(m)
+      else {
+        // In-session the big button is Resume/Apply: apply the picked mode, unpause
+        // (Esc paused the sim to open the menu) and drop back into the game.
+        applyMode(m)
+        pause.set(false)
+        menu.close()
       }
     },
+    onContinue: startContinue,
+    onCity: (q) => {
+      if (attract) playCity(q)
+      else {
+        // A live session: swap to the new city and keep driving.
+        pause.set(false)
+        menu.close()
+        void loadCity(q)
+      }
+    },
+    onRandom: () => {
+      const city = pickRandomCity(currentCity)
+      menu.setCity(city)
+      if (attract) playCity(city)
+      else {
+        pause.set(false)
+        menu.close()
+        void loadCity(city)
+      }
+    },
+    onVehicle: selectVehicle,
+    onMode: (m) => {
+      // Recorded at start (applied on Play); applied live once a session is on.
+      if (attract) mode = m
+      else applyMode(m)
+    },
+    onSetDefaultCity: (q) => setDefaultCity(q),
+    onShareCity: () => void navigator.clipboard?.writeText(location.href),
+    onSetView: (m) => theme.set(m),
     onAudioChange: (patch) => audio.setState(patch),
     onCustomMusic: (file) => {
       audio.resume() // the picker click is a user gesture — safe to start audio
@@ -1119,7 +1124,7 @@ const menu = createSettingsMenu(
       trains?.dispose()
       trains = createTrains(stage.scene, lastRailways, provider, Math.random, countFor(density, 5), lastRoads)
       traffic?.dispose()
-      traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16))
+      traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16), lastParkedCars, decks)
       people?.dispose()
       people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat, decks)
       boats?.dispose()
@@ -1134,20 +1139,6 @@ const menu = createSettingsMenu(
       cyclists = createCyclists(stage.scene, lastRoads, provider, Math.random, countFor(density, 4))
       birds.dispose()
       birds = makeBirds()
-    },
-    onTrial: (on) => applyTrial(on),
-    onRace: (on) => {
-      setRace(on)
-      // There is nothing to race without gates, so switching the race on brings
-      // the trial with it — course, HUD and all — rather than leaving you
-      // wondering why three cars appeared and nothing else did.
-      if (on && !trial.enabled()) {
-        applyTrial(true)
-        menu.setTrial(true) // or its checkbox sits there unticked over a running trial
-      } else {
-        rivals.setEnabled(on && trial.enabled())
-        if (on && car && trial.enabled()) rivals.reset(lastRoads, grid, provider, car, trial.course())
-      }
     },
     onDemo: (on) => {
       setDemo(on)
@@ -1166,10 +1157,6 @@ const menu = createSettingsMenu(
       fuelUse = on
       setFuelUse(on)
       if (!on) fuel = 1 // switching it off tops the tank up at once
-    },
-    onArcade: (on) => {
-      setArcade(on)
-      carPickups.setEnabled(on) // show/hide the pickable cars right away
     },
     onUnits: (u) => {
       setUnits(u)
@@ -1229,8 +1216,31 @@ const menu = createSettingsMenu(
       location.reload()
     },
   },
+  {
+    city: linkCity || getDefaultCity(),
+    vehicle,
+    hasSession: !!getSession(),
+    view: theme.current,
+    audio: audio.getState(),
+    roadLabels: getRoadLabels(),
+    time: timeOfDay,
+    driftFx: getDriftFx(),
+    hud: getHud(),
+    shadows: getShadows(),
+    clouds: getClouds(),
+    roadDetail: getRoadDetail(),
+    nitro: getNitro(),
+    fuel: getFuelUse(),
+    demo: getDemo(),
+    quality: getQuality(),
+    density,
+    units: getUnits(),
+    weather: getWeather(),
+    timeMode,
+    zoom: getZoom(),
+  },
 )
-theme.onChange = (mode) => menu.setViewMode(mode)
+theme.onChange = (m) => menu.setViewMode(m)
 
 /**
  * Whether a building stands between the car and the camera. Walks the sight line
@@ -1285,9 +1295,9 @@ window.addEventListener('keydown', (e) => {
   if (e.key === '+' || e.key === '=') applyZoom(stage.camDist - CAM_DIST_STEP) // zoom in
   else if (e.key === '-' || e.key === '_') applyZoom(stage.camDist + CAM_DIST_STEP) // zoom out
   else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
-  else if (e.key === 'Escape') menu.toggle() // Esc opens/closes the settings — where the modes live
+  else if (e.key === 'Escape') menu.toggle() // Esc opens/closes the menu (the pause button's own Esc handler freezes the sim)
 })
-// --- start screen: a live city drives itself behind the menu while you pick ---
+// --- the menu: a live city drives itself behind it while you pick ---
 function selectVehicle(type: VehicleType): void {
   vehicle = type
   audio.setVehicle(type)
@@ -1298,77 +1308,48 @@ function selectVehicle(type: VehicleType): void {
   }
 }
 /**
- * Drop out of the attract backdrop and start a driving session in `mode`. The
- * car and roads must already exist (the city is loaded): this runs either off the
- * Play button (playing the current backdrop) or at the tail of a load kicked off
- * by Random / city-search — see `playAfterLoad`.
+ * Drop out of the attract backdrop and start a driving session in `m`. The car
+ * and roads must already exist (the city is loaded): this runs either off the Play
+ * button (playing the current backdrop) or at the tail of a load kicked off by
+ * Random / city-search — see `playAfterLoad`.
  */
-function enterPlay(mode: StartMode): void {
+function enterPlay(m: Mode): void {
   attract = false
-  if (mode === 'race') {
-    setRace(true)
-    applyTrial(true)
-  } else if (mode === 'trial') {
-    setRace(false)
-    applyTrial(true)
-  } else if (mode === 'taxi') {
-    setRace(false)
-    applyTaxi(true)
-  } else {
-    setRace(false)
-    applyTrial(false)
-    applyTaxi(false)
-  }
+  applyMode(m) // the one place a mode is applied: trial/race/taxi/arcade, mutually exclusive
+  menu.setSessionLive(true) // PLAY→Resume; the "resume saved session" Continue is now redundant
   autopilot.setEnabled(getDemo()) // restore the demo setting (off by default → you drive)
   if (getDemo() && car) autopilot.reset(lastRoads, car)
 }
-function startPlay(mode: StartMode): void {
-  startMenu.hide()
+function startPlay(m: Mode): void {
+  menu.close()
   replayControls.setVisible(true) // record / replay your drive, in-game
   audio.resume() // the Play click is a user gesture — safe to start audio
-  enterPlay(mode) // the backdrop is already loaded — play what you're watching
+  enterPlay(m) // the backdrop is already loaded — play what you're watching
 }
 /**
- * Load `query` and play it: hide the menu now, and once the city lands, enter the
- * mode picked on the start screen. Backs the Random button and the city search —
- * which used to only swap the backdrop and leave the menu (and the demo) up, so a
- * click during the opening backdrop load did nothing at all.
+ * Load `query` and play it: drop the menu controls now, and once the city lands,
+ * enter the picked mode. Backs the Random button and the city search — which used
+ * to only swap the backdrop and leave the menu (and the demo) up, so a click during
+ * the opening backdrop load did nothing at all.
  */
 function playCity(query: string): void {
-  startMenu.enterLoading() // keep the animated backdrop up as a loading screen
+  menu.enterLoading() // keep the animated backdrop up as a loading screen
   replayControls.setVisible(true)
   audio.resume() // user gesture — safe to start audio
-  playAfterLoad = startMode
+  playAfterLoad = mode
   void loadCity(query)
 }
 function startContinue(): void {
   const sess = getSession()
   if (!sess) return
   attract = false
-  startMenu.enterLoading() // backdrop stays up as a loading screen while the city comes in
+  menu.enterLoading() // backdrop stays up as a loading screen while the city comes in
   replayControls.setVisible(true)
   audio.resume()
   autopilot.setEnabled(getDemo())
   void loadCity(sess.city) // loadCity resumes the saved pose when the city matches
 }
 
-// A ?city= link names the backdrop (and pre-fills the search); otherwise a random
-// city drives itself behind the menu. Play hands you whatever you're watching.
-const linkCity = new URL(location.href).searchParams.get('city') || ''
-const startMenu = createStartMenu(
-  ui,
-  {
-    onPlay: startPlay,
-    onContinue: startContinue,
-    onCity: playCity,
-    onRandom: () => playCity(pickRandomCity()),
-    onVehicle: selectVehicle,
-    onMode: (m) => {
-      startMode = m
-    },
-  },
-  { vehicle, city: linkCity, hasSession: !!getSession() },
-)
 void loadCity(linkCity || pickRandomCity())
 
 // persist the session (city + car pose) so a reload resumes in place

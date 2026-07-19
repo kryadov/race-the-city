@@ -37,7 +37,9 @@ if (!bundle) {
 }
 
 // The canvas and the touch controls are built in main.ts's first lines, so they
-// prove nothing. The ⚙ is built near its last: it only exists if nothing threw.
+// prove nothing. The ⚙ Options button is built near its last (createMenu, late in
+// main.ts): it only exists if nothing threw. Since the menu rework its label reads
+// "⚙ <Options>" rather than a bare gear, so match a button that CONTAINS the gear.
 const PAGE = `<!doctype html><html><body>
 <div id="app"></div><div id="ui"></div><div id="out">PENDING</div>
 <script>
@@ -53,7 +55,7 @@ const PAGE = `<!doctype html><html><body>
   var GEAR = '⚙'
   setTimeout(() => {
     var canvas = document.querySelector('#app canvas')
-    var gear = [].slice.call(document.querySelectorAll('#ui button')).some(function (b) { return b.textContent === GEAR })
+    var gear = [].slice.call(document.querySelectorAll('#ui button')).some(function (b) { return b.textContent.indexOf(GEAR) !== -1 })
     document.title = canvas && gear ? 'BOOTED' : 'DEAD canvas=' + !!canvas + ' gear=' + gear + ' err=' + window.__err
   }, 2500)
 </script></body></html>`
