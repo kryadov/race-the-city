@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import * as THREE from 'three'
 import { buildBuildings } from '../../src/world/buildings'
+import { storeysIn } from '../../src/world/facadeUv'
+import { ROOF_UV, STOREYS_PER_TILE } from '../../src/world/facade'
 import type { Building, BuildingKind, Vec2 } from '../../src/geo/types'
 
 /**
@@ -152,5 +154,41 @@ describe('no windows in the dirt on a slope', () => {
     }
     // Still seated: the base reaches down past the lowest corner, not floating.
     expect(baseY).toBeLessThanOrEqual(ramp.heightAt(0))
+  })
+
+  it('makes the plinth below the ground floor a solid base, not window rows', () => {
+    // A big low footprint on a slope: the base drops far below the ground floor,
+    // so the plinth would stripe with repeated window rows if it kept counting
+    // storeys downward into negative v. It must read as one plain surface.
+    const b: Building = {
+      footprint: [v(0, 0), v(60, 0), v(60, 40), v(0, 40)], // 30m rise under it
+      height: 12,
+      kind: 'apartments',
+    }
+    const geo = wallMesh(buildBuildings([b], ramp).mesh).geometry
+    const pos = geo.attributes.position
+    const uv = geo.attributes.uv
+
+    let topY = -Infinity
+    for (let i = 0; i < pos.count; i++) topY = Math.max(topY, pos.getY(i))
+    const groundY = topY - b.height // the facade's v=0 ground floor
+
+    let plinthChecked = 0
+    let facadeTop = false
+    const roofline = storeysIn(b.height) / STOREYS_PER_TILE // v at the eaves
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i)
+      const vv = uv.getY(i)
+      if (y < groundY - 1e-3) {
+        // Below the ground floor: the plain sliver, never a window row.
+        expect(uv.getX(i), `plinth u at y=${y.toFixed(2)}`).toBeCloseTo(ROOF_UV.u)
+        expect(vv, `plinth v at y=${y.toFixed(2)}`).toBeCloseTo(ROOF_UV.v)
+        plinthChecked++
+      } else if (Math.abs(vv - roofline) < 1e-4) {
+        facadeTop = true // a wall vertex still climbing the storey grid above
+      }
+    }
+    expect(plinthChecked, 'the sloped base should have plinth vertices').toBeGreaterThan(0)
+    expect(facadeTop, 'the facade above must still carry the storey grid').toBe(true)
   })
 })

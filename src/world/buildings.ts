@@ -42,6 +42,96 @@ function paintVolume(geo: THREE.BufferGeometry, wall: THREE.Color, roof: THREE.C
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 }
 
+/**
+ * Split every wall quad at the ground floor (Y = groundY) into a facade band
+ * above and a plinth band below, the plinth in its own group (material index 2).
+ *
+ * ExtrudeGeometry runs each wall as a SINGLE quad from the base straight to the
+ * roof, with no vertex at the ground floor. facadeUVs counts storeys up from
+ * groundY, so on a slope — where the base drops to the lowest corner well below
+ * groundY — every wall vertex under the ground floor lands at a negative v and
+ * the window texture, set to repeat, wraps DOWNWARD: rows of windows striping
+ * the whole plinth, taller and more striped the bigger the sloped footprint.
+ *
+ * Cutting the quad gives the plinth its own vertices and its own group, which
+ * facadeUVs then aims at the plain sliver — a solid base, windows only above.
+ * The facade band keeps the extrude's exact vertices, normals and winding, so
+ * anything above the ground floor (and every building on the flat) is untouched.
+ *
+ * The extrude lays each wall as six vertices — a = Pj·top, b = Pk·top,
+ * d = Pj·base, then b, c = Pk·base, d — so a quad's four corners sit at local
+ * offsets 0, 1, 2 and 4, all sharing one flat outward normal.
+ */
+function splitPlinth(geo: THREE.BufferGeometry, groundY: number): void {
+  const pos = geo.attributes.position
+  const nor = geo.attributes.normal
+  const cap: number[] = []
+  const capN: number[] = []
+  const facade: number[] = []
+  const facadeN: number[] = []
+  const plinth: number[] = []
+  const plinthN: number[] = []
+
+  const emit = (
+    p: number[], n: number[],
+    x: number, y: number, z: number,
+    nx: number, ny: number, nz: number,
+  ): void => {
+    p.push(x, y, z)
+    n.push(nx, ny, nz)
+  }
+
+  for (const g of geo.groups) {
+    const end = g.start + g.count
+    if (g.materialIndex === 0) {
+      // Roof and floor caps pass straight through.
+      for (let i = g.start; i < end; i++) {
+        emit(cap, capN, pos.getX(i), pos.getY(i), pos.getZ(i), nor.getX(i), nor.getY(i), nor.getZ(i))
+      }
+      continue
+    }
+    for (let s = g.start; s + 6 <= end; s += 6) {
+      const nx = nor.getX(s)
+      const ny = nor.getY(s)
+      const nz = nor.getZ(s) // one flat normal for the whole quad
+      const jtx = pos.getX(s), jty = pos.getY(s), jtz = pos.getZ(s) // Pj top
+      const ktx = pos.getX(s + 1), kty = pos.getY(s + 1), ktz = pos.getZ(s + 1) // Pk top
+      const jbx = pos.getX(s + 2), jbz = pos.getZ(s + 2) // Pj base
+      const kbx = pos.getX(s + 4), kbz = pos.getZ(s + 4) // Pk base
+      const jbY = pos.getY(s + 2) // base Y (same for both corners)
+      // The two rings the cut introduces, seated at the ground floor.
+      const jmx = jtx, jmz = jtz
+      const kmx = ktx, kmz = ktz
+      // Facade band: the extrude's two triangles with their bases raised to the
+      // ground floor, so the winding — and the outward normal — is unchanged.
+      emit(facade, facadeN, jtx, jty, jtz, nx, ny, nz)
+      emit(facade, facadeN, ktx, kty, ktz, nx, ny, nz)
+      emit(facade, facadeN, jmx, groundY, jmz, nx, ny, nz)
+      emit(facade, facadeN, ktx, kty, ktz, nx, ny, nz)
+      emit(facade, facadeN, kmx, groundY, kmz, nx, ny, nz)
+      emit(facade, facadeN, jmx, groundY, jmz, nx, ny, nz)
+      // Plinth band: the same quad from the ground floor down to the base.
+      emit(plinth, plinthN, jmx, groundY, jmz, nx, ny, nz)
+      emit(plinth, plinthN, kmx, groundY, kmz, nx, ny, nz)
+      emit(plinth, plinthN, jbx, jbY, jbz, nx, ny, nz)
+      emit(plinth, plinthN, kmx, groundY, kmz, nx, ny, nz)
+      emit(plinth, plinthN, kbx, jbY, kbz, nx, ny, nz)
+      emit(plinth, plinthN, jbx, jbY, jbz, nx, ny, nz)
+    }
+  }
+
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(cap.concat(facade, plinth), 3))
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(capN.concat(facadeN, plinthN), 3))
+  geo.deleteAttribute('uv') // stale after the cut; facadeUVs lays fresh ones
+  const capV = cap.length / 3
+  const facadeV = facade.length / 3
+  const plinthV = plinth.length / 3
+  geo.clearGroups()
+  geo.addGroup(0, capV, 0) // roof + floor caps
+  geo.addGroup(capV, facadeV, 1) // facade, windowed
+  geo.addGroup(capV + facadeV, plinthV, 2) // plinth, solid
+}
+
 /** Vertex data piling up for one building class, before it is merged. */
 interface Batch {
   pos: number[]
@@ -123,6 +213,11 @@ export function buildBuildings(
     const geo = new THREE.ExtrudeGeometry(shape, { depth: b.height + skirt, bevelEnabled: false })
     geo.rotateX(Math.PI / 2) // extrude along +Y without mirroring z
     geo.translate(0, max + b.height, 0)
+
+    // Cut a horizontal edge loop at the ground floor (Y = max) so the plinth —
+    // the wall below it that reaches down to the lowest corner — is its own band
+    // and can be a solid base rather than window rows counted underground.
+    splitPlinth(geo, max)
 
     // Jitter each facade off the palette so neighbours never share a shade, and
     // give the roof a darker, greyer tone so volumes read apart from the road.

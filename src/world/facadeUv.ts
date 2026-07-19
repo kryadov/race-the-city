@@ -18,7 +18,10 @@ export function storeysIn(height: number): number {
  * its own length instead of being smeared diagonally.
  *
  * The roof caps are aimed at the tile's plain sliver: that is what lets the
- * whole building stay on a single material and one draw call.
+ * whole building stay on a single material and one draw call. The plinth — the
+ * wall band below the ground floor, split off into its own group (index 2) —
+ * points there too, so it reads as a solid base instead of window rows counted
+ * down into negative v. Only the facade proper (index 1) gets the storey grid.
  *
  * @param groundY the building's ground level — v counts storeys up from here
  * @param height the building's height above groundY
@@ -37,7 +40,9 @@ export function facadeUVs(geo: THREE.BufferGeometry, groundY: number, height: nu
   for (const g of groups) {
     const end = Math.min(g.start + g.count, pos.count)
     for (let i = g.start; i < end; i++) {
-      if (g.materialIndex === 0) {
+      // Anything that is not a facade wall — roof caps (0) and the plinth (2) —
+      // samples the plain sliver, so no window row is ever drawn on it.
+      if (g.materialIndex !== 1) {
         uv[i * 2] = ROOF_UV.u
         uv[i * 2 + 1] = ROOF_UV.v
         continue

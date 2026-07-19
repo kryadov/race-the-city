@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.20 — building plinths are solid, not striped with windows
+- On a slope, a building's below-ground-floor plinth got the **window texture repeated down it** —
+  v0.110.16's max-seating made big sloped buildings show a **tall striped base** (the "some buildings
+  render with an error" report). The wall is now **split at the ground floor**: windows above, a
+  solid plain plinth below. Flat-ground buildings and the no-underground-windows fix are unchanged.
+- 👀 A big building on a hillside: a clean solid base under the windows, no stripes down the plinth.
+
 ## v0.110.19 — manholes with rim bolts, and some left ajar
 - Manhole covers gain **four small bolts around the rim** (baked into the shared cover geometry, so
   still one instanced draw for the whole city), and about **one in eight now sits ajar** — tilted and
