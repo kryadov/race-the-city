@@ -12,7 +12,7 @@ import {
 } from './scene'
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
-import { applyDayNight, sampleDayNight, sunElevation } from './daynight'
+import { applyDayNight, sampleDayNight, sunElevation, DAY_TIME, NIGHT_TIME, type TimeMode } from './daynight'
 import { createDriftFx } from './driftfx'
 import { createWeather, WEATHERS, type WeatherSetting } from './weather'
 import { createClouds } from './clouds'
@@ -63,6 +63,8 @@ import {
   setShadows,
   getWeather,
   setWeather,
+  getTimeMode,
+  setTimeMode,
   getClouds,
   setClouds,
   getRoadDetail,
@@ -309,7 +311,9 @@ let blinkClock = 0 // free-running clock for the indicator blink
  * across a city without the sun setting on you.
  */
 const CYCLE_SECONDS = 480
-let timeOfDay = 0.35 // start mid-morning
+// The clock runs ('cycle'), or holds at noon / midnight for a fixed-light drive.
+let timeMode: TimeMode = getTimeMode()
+let timeOfDay = timeMode === 'day' ? DAY_TIME : timeMode === 'night' ? NIGHT_TIME : 0.35
 showVehicle(vehicle)
 audio.setVehicle(vehicle)
 // Pausing resets the engine's idle timer, so resuming doesn't start mid-fade.
@@ -766,7 +770,7 @@ async function loadCity(query: string): Promise<void> {
         BEACON_BLUE.emissiveIntensity = beaconOn ? 0.15 : 3
         prevForward = fwd
         driftFx.update(car, dt, provider)
-        timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
+        if (timeMode === 'cycle') timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
         applyDayNight(stage, timeOfDay, theme.current === 'neon')
         mist.setColor((stage.scene.fog as THREE.Fog).color) // veil matches the fog
         // keep the sun's shadow frustum centred on the car
@@ -922,6 +926,7 @@ const menu = createSettingsMenu(
     density,
     units: getUnits(),
     weather: getWeather(),
+    timeMode,
     zoom: getZoom(),
   },
   {
@@ -1028,6 +1033,13 @@ const menu = createSettingsMenu(
     onWeather: (w) => {
       setWeather(w)
       applyWeatherSetting(w)
+    },
+    onTimeMode: (m) => {
+      timeMode = m
+      setTimeMode(m)
+      // Locking to day or night jumps the sky there at once; cycle picks up from here.
+      if (m === 'day') timeOfDay = DAY_TIME
+      else if (m === 'night') timeOfDay = NIGHT_TIME
     },
     onZoom: (v) => {
       stage.camDist = clampCamDist(v)

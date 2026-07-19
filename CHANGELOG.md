@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.29 — lock the clock to a day or night drive
+- A new **time-of-day** control in the settings menu (under Weather): leave it on the full
+  **day/night cycle**, or lock it to **Always day** (permanent noon) or **Always night** (permanent
+  midnight) for a pure daytime or nighttime cruise. The choice is remembered between sessions.
+- 👀 Open ⚙, click the 🔄 time button to cycle to ☀ Always day / 🌙 Always night — the sky holds there.
+
 ## v0.110.28 — forests and woodland fill in with real trees
 - Woods (`natural=wood`, `landuse=forest`) — including multipolygon relations — used to get only the
   same **sparse scatter** as a small park, so a big forest read as bare green. They're now filled with

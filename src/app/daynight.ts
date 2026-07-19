@@ -18,6 +18,16 @@ const KEYS: Key[] = [
   { t: 1.0, sky: 0x0a1024, sun: 0x33427a, sunI: 0.05, ambI: 0.18 }, // wraps to midnight
 ]
 
+/**
+ * The clock's mode: 'cycle' runs the full day/night loop; 'day' and 'night'
+ * hold the sky fixed so you can drive in permanent noon or permanent midnight.
+ */
+export type TimeMode = 'cycle' | 'day' | 'night'
+export const TIME_MODES: TimeMode[] = ['cycle', 'day', 'night']
+/** The times the 'day' and 'night' locks hold at — noon, and deep midnight. */
+export const DAY_TIME = 0.5
+export const NIGHT_TIME = 0.0
+
 /** Sun elevation from time: +1 at noon, -1 at midnight. Pure/testable. */
 export function sunElevation(t: number): number {
   return Math.sin((t - 0.25) * Math.PI * 2)

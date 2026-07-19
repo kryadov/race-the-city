@@ -3,6 +3,7 @@ import { VEHICLE_GROUPS, type VehicleType } from '../vehicle/vehicles'
 import type { ViewMode } from '../app/theme'
 import { type AudioState, TRACK_NAMES } from '../audio/audio'
 import { WEATHER_SETTINGS, type WeatherSetting } from '../app/weather'
+import { TIME_MODES, type TimeMode } from '../app/daynight'
 import { pickRandomCity } from '../app/cities'
 import { QUALITIES, type Quality } from '../app/scene'
 import { DENSITIES, type Density } from '../app/density'
@@ -11,6 +12,8 @@ import { UNITS, type Units } from './hud'
 const QUALITY_EMOJI: Record<Quality, string> = { low: '🐢', normal: '⚖', high: '✨' }
 
 const WEATHER_EMOJI: Record<WeatherSetting, string> = { auto: '🔄', clear: '☀', rain: '🌧', snow: '❄', fog: '🌫' }
+
+const TIME_EMOJI: Record<TimeMode, string> = { cycle: '🔄', day: '☀', night: '🌙' }
 
 const VEHICLE_EMOJI: Record<VehicleType, string> = {
   car: '🚗',
@@ -65,6 +68,7 @@ export interface SettingsCallbacks {
   onDensity: (d: Density) => void
   onUnits: (u: Units) => void
   onWeather: (w: WeatherSetting) => void
+  onTimeMode: (m: TimeMode) => void
   onZoom: (v: number) => void
   /** Forget the saved position/city and go back to the default start. */
   onResetLocation: () => void
@@ -109,6 +113,7 @@ export function createSettingsMenu(
     density: Density
     units: Units
     weather: WeatherSetting
+    timeMode: TimeMode
     zoom: number
   },
   cb: SettingsCallbacks,
@@ -130,6 +135,7 @@ export function createSettingsMenu(
   let density = initial.density
   let units = initial.units
   let weather = initial.weather
+  let timeMode = initial.timeMode
 
   const gear = document.createElement('button')
   gear.textContent = '⚙'
@@ -493,6 +499,19 @@ export function createSettingsMenu(
     weatherBtn.textContent = `${WEATHER_EMOJI[weather]} ${t('weather.' + weather)}`
   }
 
+  // Time of day: cycle the full day/night loop, or lock to permanent day / night
+  const timeBtn = button()
+  timeBtn.style.cssText += ';width:100%;margin-top:4px'
+  timeBtn.addEventListener('click', () => {
+    timeMode = TIME_MODES[(TIME_MODES.indexOf(timeMode) + 1) % TIME_MODES.length]
+    cb.onTimeMode(timeMode)
+    paintTime()
+  })
+  mapSec.appendChild(timeBtn)
+  function paintTime(): void {
+    timeBtn.textContent = `${TIME_EMOJI[timeMode]} ${t('time.' + timeMode)}`
+  }
+
   // Render quality: cycles low → normal → high (resolution scale, shadows, particles)
   const qualityBtn = button()
   qualityBtn.style.cssText += ';width:100%;margin-top:4px'
@@ -622,6 +641,7 @@ export function createSettingsMenu(
     paintMelody()
     paintLabelsToggle()
     paintWeather()
+    paintTime()
     paintQuality()
     paintUnits()
   }

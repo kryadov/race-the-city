@@ -1,6 +1,7 @@
 import type { WeatherSetting } from './weather'
 import type { Quality } from './scene'
 import type { Units } from '../ui/hud'
+import type { TimeMode } from './daynight'
 
 const UNITS_KEY = 'rtc.units'
 
@@ -378,6 +379,27 @@ export function getWeather(): WeatherSetting {
 export function setWeather(w: WeatherSetting): void {
   try {
     localStorage.setItem(WEATHER_KEY, w)
+  } catch {
+    /* ignore */
+  }
+}
+
+const TIME_MODE_KEY = 'rtc.timeMode'
+
+/** Persisted clock mode ('cycle' by default — the full day/night loop runs). */
+export function getTimeMode(): TimeMode {
+  try {
+    const m = localStorage.getItem(TIME_MODE_KEY)
+    if (m === 'cycle' || m === 'day' || m === 'night') return m
+  } catch {
+    /* ignore */
+  }
+  return 'cycle'
+}
+
+export function setTimeMode(m: TimeMode): void {
+  try {
+    localStorage.setItem(TIME_MODE_KEY, m)
   } catch {
     /* ignore */
   }
