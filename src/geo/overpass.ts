@@ -23,6 +23,16 @@ const M_PER_DEG_LAT = 111320
  */
 const TIMEOUT_S = 90
 
+/**
+ * Client-side ceiling per mirror. `fetch` has no timeout of its own, so a request
+ * that a busy Overpass queues (or never answers) would hang until the browser's
+ * own ~5-minute wall — the "загружаю карту OSM" that never clears. We abort well
+ * before that and fail over to the other mirror / the next withRetry attempt.
+ * Comfortably above the server-side TIMEOUT_S so a genuinely slow-but-working
+ * query still lands, well below the browser hang.
+ */
+const REQUEST_TIMEOUT_MS = 100_000
+
 export function bboxAround(center: LatLon, radiusMeters: number): BBox {
   const dLat = radiusMeters / M_PER_DEG_LAT
   const dLon = radiusMeters / (M_PER_DEG_LAT * Math.cos((center.lat * Math.PI) / 180))
@@ -114,14 +124,25 @@ export function overpassQuery(b: BBox): string {
  * Paulo bug. Throwing instead lets the next mirror, and main's withRetry, try
  * again for a whole answer.
  */
-async function runQuery(query: string): Promise<OverpassResponse> {
+async function runQuery(query: string, signal?: AbortSignal): Promise<OverpassResponse> {
   let lastErr: unknown
   for (const url of OVERPASS_ENDPOINTS) {
+    // Abort a mirror that hangs (queued behind a busy server) so we fail over
+    // rather than waiting on the browser's ~5-minute wall. An outer `signal` (a
+    // user pressing Cancel) aborts it too, and is not retried against.
+    const ctrl = new AbortController()
+    const onOuterAbort = (): void => ctrl.abort()
+    if (signal) {
+      if (signal.aborted) ctrl.abort()
+      else signal.addEventListener('abort', onOuterAbort)
+    }
+    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'data=' + encodeURIComponent(query),
+        signal: ctrl.signal,
       })
       if (!res.ok) throw new Error(`Overpass error ${res.status}`)
       const json = (await res.json()) as OverpassResponse & { remark?: string }
@@ -131,6 +152,10 @@ async function runQuery(query: string): Promise<OverpassResponse> {
       return json
     } catch (e) {
       lastErr = e
+      if (signal?.aborted) throw e // the user cancelled — stop, don't try more mirrors
+    } finally {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onOuterAbort)
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('Overpass request failed')
@@ -147,10 +172,10 @@ async function runQuery(query: string): Promise<OverpassResponse> {
  * survive that wall. The two responses share their corner nodes, but nodes
  * dedupe by id in parseOsm, so merging is a plain concatenation.
  */
-export async function fetchOsm(bbox: BBox): Promise<OverpassResponse> {
+export async function fetchOsm(bbox: BBox, signal?: AbortSignal): Promise<OverpassResponse> {
   const [buildings, features] = await Promise.all([
-    runQuery(buildingsQuery(bbox)),
-    runQuery(featuresQuery(bbox)),
+    runQuery(buildingsQuery(bbox), signal),
+    runQuery(featuresQuery(bbox), signal),
   ])
   return { elements: [...buildings.elements, ...features.elements] }
 }

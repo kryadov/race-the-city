@@ -6,6 +6,28 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎮 Play-test backlog — 2026-07-19 (live session)
 Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
 
+- [ ] **Cancel button on the "загружаю карту OSM" overlay** — add a localized **Отмена/Cancel**
+      button to the loading plate that aborts the in-flight load (fetchOsm now takes an AbortSignal —
+      wire an AbortController from loadCity to it) and returns to the menu / stays on the current map.
+- [ ] **BUG — neon mode skips the car and bots** — in neon view the player car, bot cars and
+      pedestrians are NOT drawn as neon wireframe lines like the rest of the world; they render solid.
+      Bring them into the neon material flip (they're not in `theme.collectNeonMats`, and the car/bot
+      models are built separately). 
+- [ ] **BUG — under-bridge traffic collides with the car on the bridge** — driving on a bridge deck,
+      a bot car passing on the road *underneath* is treated as solid and you hit it. Traffic obstacles
+      (`solidAt`) need a height/level so a bot far below the deck isn't collided with. Collision check
+      in main.ts should compare car.y vs the bot's ground height.
+- [ ] **Pedestrians can walk the bridge decks** — let pedestrians route over bridge crossings/decks,
+      not just ground roads (they currently stay on the ground under the bridge).
+- [ ] **BUG — car can drive through the waterfront railing** — the new embankment railing (набережная)
+      looks great and bubbles are great, but the railing/curb has no collision; add a soft one-way
+      barrier so the car can't cross into the water (but can drive back out if it got in).
+- [ ] **Birds — varied natural colours + rare white crow** — give birds a range of natural plumage
+      colours (not all one), and occasionally spawn a white crow/raven.
+- [ ] **Motorcycle bots** — add bot motorcycles to the traffic.
+- [ ] **Shopfronts / storefront windows** — render shop and service-business frontages on ground
+      floors of buildings (glazed retail fronts, signage) where OSM tags a shop/amenity.
+
 - [ ] **BUG — signpost pole pierces the panel** — on POI/landmark signposts the post pokes up
       *through* the sign panel, which looks ugly. `src/world/poiMarkers.ts` mounts the panel near the
       top of the post (POST_H) but the post runs its full height behind/through it — stop the post at

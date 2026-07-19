@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.42 — the OSM load can't hang forever any more
+- "Загружаю карту OSM" could stick for minutes: `fetch` has no timeout of its own, so a request a
+  busy Overpass mirror **queues but never answers** hung until the browser's own ~5-minute wall — and
+  that same stall is why benches, flowerbeds and monuments (all in the one features query) sometimes
+  came back empty. Each mirror request now has a **client-side timeout** and aborts to fail over to
+  the other mirror / retry instead of hanging. (`fetchOsm` also takes an abort signal now, for a
+  Cancel button next.)
+- 👀 Load a city on a bad connection — instead of hanging forever it retries and recovers (or errors).
+
 ## v0.110.41 — benches and trees fill the gaps between houses
 - The bare ground between buildings was empty. It's now scattered with the odd **bench** and small
   **clumps of trees** — placed only in genuine inter-building gaps: never inside a footprint, off the
