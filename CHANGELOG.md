@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.62 — parked cars look like cars, sat on the tarmac
+- Parked cars were dark boxes sunk into the tarmac, packed in one dense line. They now have four
+  wheels, a glass cabin and head/tail lamp dabs, ride ON the surface (a band of tyre shows beneath),
+  spread across the lot's bays, and there are fewer of them — a real, part-empty car park rather than
+  a showroom crush. Still a handful of instanced draws for the whole map.
+- 👀 Drive through a car park — cars with wheels and lamps, seated on the tarmac, with gaps between.
+
 ## v0.110.61 — wide-river bridges read as solid decks, not floating slabs
 - A bridge across a wide river planted a pier under every densified deck point — ~50 thin stilts under
   a shallow slab, which read as a thin, floating deck. Piers now stand about every 25m (a handful, not

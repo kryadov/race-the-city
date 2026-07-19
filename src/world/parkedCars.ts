@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { bayLines, ringAngle } from './parking'
@@ -9,21 +10,38 @@ import { bayLines, ringAngle } from './parking'
 // rather than a showroom. Static build-time geometry: parked cars don't drive,
 // so there's nothing to update per frame.
 
-export const PARKED_CAR_CAP = 320 // a few hundred cars across the whole map, no more
-export const PER_LOT_CAP = 40 // and no single retail park swallows the budget
-const FILL = 0.62 // chance a bay is taken — the rest stay empty, as lots are
+export const PARKED_CAR_CAP = 280 // a few hundred cars across the whole map, no more
+export const PER_LOT_CAP = 30 // and no single retail park swallows the budget
+const FILL = 0.4 // chance a bay is taken — most stay empty, so a lot reads partly full
 const YAW_JITTER = 0.1 // radians of wonkiness, so the rows aren't ruler-straight
 
-// A parked car is a coloured body box with a darker cabin box for a roof — two
-// instanced draws for the whole map. Dimensions sit inside a 2.5 × 5m bay.
+// A parked car is authored ONCE in its own local frame with y = 0 at the tyres'
+// contact patch: a coloured body box, a darker cabin for glass, four wheels and
+// four lamp dabs. Every part bakes its offset into its geometry, so one instance
+// matrix per car places and turns the whole thing as a unit. Dimensions sit
+// inside a 2.5 × 5m bay.
 const CAR_W = 1.9
-const CAR_H = 0.85
+const CAR_H = 0.7 // a touch lower than before now the body rides on real wheels
 const CAR_L = 4.4
-export const BODY_Y = 0.5 // body centre above the tarmac (clears the imagined wheels)
+// Body centre above the tarmac. It has to clear the wheels: with 0.33m wheels the
+// old 0.5 buried the sills, so the car read as a box sunk in the road. At 0.66 the
+// body's underside sits at ~0.31m and a good band of tyre shows beneath it.
+export const BODY_Y = 0.66
 const CABIN_W = 1.6
-const CABIN_H = 0.6
+const CABIN_H = 0.5
 const CABIN_L = 2.2
-const CABIN_Y = 1.05 // cabin centre, stacked on the body
+const CABIN_Y = 1.16 // cabin centre, nested on top of the body
+
+const WHEEL_R = 0.33 // low, fat wheel — reads at a glance without being an SUV
+const WHEEL_W = 0.22
+const HALF_TRACK = CAR_W / 2 - WHEEL_W / 2 // wheels tucked flush with the body sides
+const HALF_BASE = 1.3 // front/rear axles, ~0.9m of overhang at each end
+
+const LAMP_W = 0.3
+const LAMP_H = 0.16
+const LAMP_D = 0.08
+const LAMP_Y = 0.6 // low on the nose/tail, within the body band
+const HALF_LAMP = CAR_W / 2 - 0.35 // inset from the corners
 
 // Colours a real car park is full of: silver, white, black and grey, with the
 // odd red or blue or green. Chosen per car via the instanced colour buffer.
@@ -56,8 +74,11 @@ export interface ParkedCar {
 }
 
 /**
- * Pick which bays get a car. Walks the same bay grid the paint uses, drops a car
- * into each with probability FILL, and stops at the per-lot and map-wide caps.
+ * Pick which bays get a car. Walks the same bay grid the paint uses — which
+ * already runs across every row of the lot, not just its kerb — and drops a car
+ * into each with probability FILL, stopping at the per-lot and map-wide caps. The
+ * low FILL means acceptance is thin and even across all the rows the walk visits,
+ * so cars end up scattered over the lot rather than packed along the first rank.
  * Bays already sit inside their polygon (bayLines rejects any that don't), so a
  * placed car is inside by construction.
  */
@@ -82,10 +103,45 @@ export function collectParkedCars(parking: Vec2[][], rand: () => number): Parked
   return cars
 }
 
+/** The four wheels as one geometry: low cylinders barrelled along x (the car's
+ * width, the axle they turn about) and dropped at each corner, tyre bottoms at
+ * y = 0 so the whole car rests square on the tarmac. */
+function wheelsGeometry(): THREE.BufferGeometry {
+  const wheels: THREE.BufferGeometry[] = []
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      // 12 sides, not 10: a multiple of four puts a vertex at bottom-dead-centre,
+      // so the tyre's lowest point is exactly WHEEL_R below its axle and rests flat
+      // on the tarmac instead of floating on the flat between two facets.
+      const w = new THREE.CylinderGeometry(WHEEL_R, WHEEL_R, WHEEL_W, 12)
+      w.rotateZ(Math.PI / 2) // Y-axis barrel → X-axis, so it rolls the right way
+      w.translate(sx * HALF_TRACK, WHEEL_R, sz * HALF_BASE)
+      wheels.push(w)
+    }
+  }
+  return mergeGeometries(wheels)
+}
+
+/** A pair of lamp dabs at one end (front or rear), merged into one geometry. Kept
+ * as its own mesh per colour — a uniform pale front, a uniform red rear — because
+ * an InstancedMesh already carries a per-car body tint on instanceColor, and
+ * mixing that with a vertex-colour attribute paints every instance black (see
+ * AGENTS.md). Two flat-shaded materials sidestep the whole trap. */
+function lampsGeometry(zEnd: number): THREE.BufferGeometry {
+  const dabs: THREE.BufferGeometry[] = []
+  for (const sx of [-1, 1]) {
+    const d = new THREE.BoxGeometry(LAMP_W, LAMP_H, LAMP_D)
+    d.translate(sx * HALF_LAMP, LAMP_Y, zEnd)
+    dabs.push(d)
+  }
+  return mergeGeometries(dabs)
+}
+
 /**
- * Parked cars for the whole map: one instanced body draw and one instanced cabin
- * draw, built once. Each car sits in a marked bay, draped onto the terrain and
- * turned to face down its space, with a per-instance body colour.
+ * Parked cars for the whole map: five instanced draws — body, cabin, wheels,
+ * headlamps and taillamps — built once, each carrying every car as one instance.
+ * Each car sits in a marked bay, draped onto the terrain and turned to face down
+ * its space; the body takes a per-instance colour, the rest share flat materials.
  */
 export function buildParkedCars(
   parking: Vec2[][],
@@ -97,16 +153,32 @@ export function buildParkedCars(
   if (!cars.length) return group
 
   const body = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(CAR_W, CAR_H, CAR_L),
+    new THREE.BoxGeometry(CAR_W, CAR_H, CAR_L).translate(0, BODY_Y, 0),
     new THREE.MeshStandardMaterial({ flatShading: true }), // white base, tinted per instance
     cars.length,
   )
   const cabin = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(CABIN_W, CABIN_H, CABIN_L),
-    new THREE.MeshStandardMaterial({ color: 0x1b1f27, flatShading: true }), // dark glass roof
+    new THREE.BoxGeometry(CABIN_W, CABIN_H, CABIN_L).translate(0, CABIN_Y, 0),
+    new THREE.MeshStandardMaterial({ color: 0x14171f, flatShading: true }), // dark glass roof
+    cars.length,
+  )
+  const wheels = new THREE.InstancedMesh(
+    wheelsGeometry(),
+    new THREE.MeshStandardMaterial({ color: 0x111114, flatShading: true }), // near-black tyre
+    cars.length,
+  )
+  const headlamps = new THREE.InstancedMesh(
+    lampsGeometry(CAR_L / 2), // +z is the nose
+    new THREE.MeshStandardMaterial({ color: 0xf3eccf, flatShading: true }), // pale front pair
+    cars.length,
+  )
+  const taillamps = new THREE.InstancedMesh(
+    lampsGeometry(-CAR_L / 2), // -z is the tail
+    new THREE.MeshStandardMaterial({ color: 0x8e1a12, flatShading: true }), // red rear pair
     cars.length,
   )
 
+  const parts = [body, cabin, wheels, headlamps, taillamps]
   const m = new THREE.Matrix4()
   const q = new THREE.Quaternion()
   const p = new THREE.Vector3()
@@ -114,19 +186,18 @@ export function buildParkedCars(
   const up = new THREE.Vector3(0, 1, 0)
   const col = new THREE.Color()
   cars.forEach((car, i) => {
-    const y = provider.heightAt(car.x, car.z)
-    // Car length runs along the box's local z, and -angle turns z to lie along the
+    // The whole car is authored with y = 0 at the tyres, so a single matrix drops
+    // it onto the ground: origin at the tarmac, -angle turning local z along the
     // bay's depth — exactly the turn parking.ts gives its bay dividers.
+    const y = provider.heightAt(car.x, car.z)
     q.setFromAxisAngle(up, -car.angle)
-    p.set(car.x, y + BODY_Y, car.z)
-    body.setMatrixAt(i, m.compose(p, q, one))
+    p.set(car.x, y, car.z)
+    m.compose(p, q, one)
+    for (const part of parts) part.setMatrixAt(i, m)
     body.setColorAt(i, col.setHex(PALETTE[car.tint]))
-    p.set(car.x, y + CABIN_Y, car.z)
-    cabin.setMatrixAt(i, m.compose(p, q, one))
   })
-  body.instanceMatrix.needsUpdate = true
+  for (const part of parts) part.instanceMatrix.needsUpdate = true
   if (body.instanceColor) body.instanceColor.needsUpdate = true
-  cabin.instanceMatrix.needsUpdate = true
-  group.add(body, cabin)
+  group.add(...parts)
   return group
 }
