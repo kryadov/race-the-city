@@ -17,6 +17,11 @@ colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfron
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
 ### 🔧 Bugs in shipped features (fix next)
+- [ ] **Bridges over a wide river render incorrectly** — screenshot (Santiago): the arched bridge
+      **railings** are there but the **deck/roadway across the water reads wrong** (decks look thin /
+      floating / disconnected from the banks, or the arch is over-humped on a wide span). Check
+      `src/world/bridgeMesh.ts` (deck surface + piers + railing) and `deckHeights`/`MAX_ARCH` for wide
+      water crossings.
 - [ ] **BUG (serious) — waterfront barrier walls off bridges (v0.110.52)** — invisible collision
       across a bridge approach where a river runs under it (Santiago ~x-192 z-684): you can't drive the
       bridge/road, only pass well to the side. `waterBarriers` puts a wall along the whole embanked

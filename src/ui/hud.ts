@@ -132,11 +132,12 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     `position:absolute;bottom:16px;left:16px;width:${DISPLAY}px;pointer-events:none;text-align:center;` +
     'font-family:system-ui,sans-serif'
 
-  // A pause-only readout of the car's world x/z and heading, above the city
-  // name, so a bug screenshot carries the exact spot to reproduce the render at.
+  // A pause-only readout of the car's world x/z and heading, tucked BELOW the
+  // speedometer (not up over the city/skyline), so a bug screenshot carries the
+  // exact spot to reproduce the render at without covering the view.
   const debug = document.createElement('div')
   debug.style.cssText =
-    'font:11px ui-monospace,Consolas,monospace;color:rgba(120,230,160,.92);margin-bottom:1px;' +
+    'font:11px ui-monospace,Consolas,monospace;color:rgba(120,230,160,.92);margin-top:3px;' +
     'white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85);display:none'
 
   const city = document.createElement('div')
@@ -208,7 +209,7 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   paint()
   onLangChange(paint)
 
-  box.append(debug, city, tacho.svg, svg)
+  box.append(city, tacho.svg, svg, debug)
   root.appendChild(box)
   root.appendChild(fuelBox)
 

@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.59 — pause coordinates sit under the speedometer
+- The pause-only x/z/heading readout was up over the city skyline (above the tacho); it now sits
+  **under the speedometer** where the other instruments are, so it doesn't cover the view.
+- 👀 Pause — the green coordinates line appears just below the speedo, not over the city.
+
 ## v0.110.58 — remove the broken waterfront collision (invisible walls)
 - The waterfront-railing collision (v0.110.52) was placed on the wrong edges: it threw **invisible
   walls along whole riverbanks and across bridge approaches** — you couldn't drive the bridge or a
