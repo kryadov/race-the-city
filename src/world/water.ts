@@ -14,6 +14,17 @@ const SKIRT_DROP = 1.5
 /** How far the stone embankment's dry lip stands above the waterline, metres. */
 const EMB_LIP = 0.5
 /**
+ * The quayside collision wall: a footprint a few decimetres deep laid in plan
+ * along every embanked shore edge, for the physics grid to shove the car out of.
+ * BARRIER_W is how far it reaches back onto the bank from the waterline — thin,
+ * since it only has to be a line the car cannot cross. BARRIER_IN is how far it
+ * also pokes the other way, INTO the water: the car sinks the instant it clears
+ * the lip, so the footprint straddles the line, and a car already a nudge past it
+ * still lands inside the wall and is pushed back to the bank (a soft barrier).
+ */
+const BARRIER_W = 0.6
+const BARRIER_IN = 0.15
+/**
  * Embankment stone — a warm grey tuned to sit with the grass and tarmac (NOT red
  * brick), with a darker band below the waterline reading as a wet tide-mark, so a
  * body of water reads as a built, edged channel instead of bare water just sitting
@@ -275,4 +286,77 @@ export function buildWater(water: Vec2[][], provider: ElevationProvider): THREE.
     group.add(new THREE.Mesh(railGeo, railMat))
   }
   return group
+}
+
+/**
+ * Does this shore edge carry the stone embankment — a dry bank standing proud of
+ * the water, railed and walled — or is it open water the car may drive into and
+ * sink? The mesh floats the surface at `level` and skirts the bank down from
+ * `Math.min(level, ground)`: the bank is dry, and an embankment stands, exactly
+ * where the ground clears the waterline. We ask for a full lip's worth of that
+ * clearance (`EMB_LIP`, the same dry lip the stone is built to) at BOTH ends, so a
+ * transitional edge — one foot on the shore, one in the water — stays open and
+ * only true quayside is called embanked. This is the ONE definition of "embanked":
+ * the barriers below key off it so they cannot drift from the embankment the mesh
+ * draws (the stone skirt itself is laid on every edge regardless — it plugs the
+ * daylight under a surface floating over a sloping bank, a separate job).
+ */
+function embanksEdge(a: Vec2, b: Vec2, level: number, provider: ElevationProvider): boolean {
+  const lip = level + EMB_LIP
+  return provider.heightAt(a.x, a.z) >= lip && provider.heightAt(b.x, b.z) >= lip
+}
+
+/**
+ * Solid footprints walling off the quayside: one thin quad per embanked shore
+ * edge, for the physics grid to push the car out of so it can't cross the railing
+ * into the water. For each water ring we walk its edges and, on exactly the edges
+ * that carry the stone embankment (`embanksEdge` — the bank stands proud there),
+ * lay a rectangle a few decimetres deep along the edge on the BANK side of the
+ * waterline. Edges where the bank sits at or below the water get nothing, so a
+ * natural open-water shore stays drivable into — the car sinks and the bubbles
+ * rise, which we keep.
+ *
+ * Pure and deterministic — plain `Vec2[][]`, no THREE, no elevation beyond the
+ * reads `embanksEdge` makes. The quad straddles the waterline (`BARRIER_IN` into
+ * the water, `BARRIER_W` onto the bank) so a car already a hair past the lip is
+ * nudged back rather than trapped out over the water.
+ */
+export function waterBarriers(water: Vec2[][], provider: ElevationProvider): Vec2[][] {
+  const bars: Vec2[][] = []
+  for (const ring of water) {
+    if (ring.length < 3) continue
+    const level = waterLevel(ring, provider)
+    // Which side of a directed edge is the bank? The interior lies to one fixed
+    // side of every edge, decided by the ring's winding; signed area tells us the
+    // winding, so the outward normal lands the wall on the bank, not out over the
+    // water. (`area2` is twice the signed area — its sign is all we need.)
+    let area2 = 0
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i]
+      const b = ring[(i + 1) % ring.length]
+      area2 += a.x * b.z - b.x * a.z
+    }
+    const orient = area2 > 0 ? 1 : -1
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i]
+      const b = ring[(i + 1) % ring.length]
+      if (!embanksEdge(a, b, level, provider)) continue
+      // Outward-pointing unit normal (away from the water interior), fixed by the
+      // winding: rotate the edge direction a quarter turn, the way `orient` says.
+      const dx = b.x - a.x
+      const dz = b.z - a.z
+      const len = Math.hypot(dx, dz) || 1
+      const ox = (orient * dz) / len
+      const oz = (orient * -dx) / len
+      // A rectangle hugging the edge: back into the water by BARRIER_IN, out onto
+      // the bank by BARRIER_W, wound around the two shifted edge endpoints.
+      bars.push([
+        { x: a.x - ox * BARRIER_IN, z: a.z - oz * BARRIER_IN },
+        { x: b.x - ox * BARRIER_IN, z: b.z - oz * BARRIER_IN },
+        { x: b.x + ox * BARRIER_W, z: b.z + oz * BARRIER_W },
+        { x: a.x + ox * BARRIER_W, z: a.z + oz * BARRIER_W },
+      ])
+    }
+  }
+  return bars
 }

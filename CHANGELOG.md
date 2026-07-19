@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.52 — you can't drive through the waterfront railing now
+- The embankment railing (набережная) was decoration — the car drove straight through it into the
+  water. Each **embanked edge now has a solid barrier** in the physics grid, so the quayside stops the
+  car. It's gated to embanked edges only: **open shores stay passable**, so you can still plunge into
+  open water (and get the bubbles). If you're already in, the barrier nudges you back to the bank.
+- 👀 Drive at a railed waterfront — the car is stopped at the rail, not sailing through into the river.
+
 ## v0.110.51 — shopfronts glaze the ground floor of shops
 - Shops and civic buildings now get a proper **glazed shopfront** on the ground floor — a run of bright
   glass bays with a mullion, a stall-riser at pavement level and a fascia board — instead of the same

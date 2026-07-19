@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { waterLevel, buildWater } from '../../src/world/water'
+import { waterLevel, buildWater, waterBarriers } from '../../src/world/water'
 import type { Vec2 } from '../../src/geo/types'
 
 const v = (x: number, z: number): Vec2 => ({ x, z }) as Vec2
@@ -63,5 +63,51 @@ describe('buildWater railing', () => {
   it('leaves a tiny pond unrailed', () => {
     const pond = [v(0, 0), v(6, 0), v(6, 6), v(0, 6)] // 24m perimeter, under the minimum
     expect(railingMesh(buildWater([pond], flat))).toBeUndefined()
+  })
+})
+
+describe('waterBarriers', () => {
+  const flat = { heightAt: () => 0 }
+  // A big square basin, so the coarse bed sampler catches several points inside.
+  const basin = [v(-100, -100), v(100, -100), v(100, 100), v(-100, 100)]
+
+  it('walls an embanked shore but leaves open water passable', () => {
+    // A bowl tipped east: the west half of the bed sits low and sets the water
+    // level, so the east bank stands proud (embanked) while the west bank is
+    // drowned (open water). Only the east edge should get a wall.
+    const provider = { heightAt: (x: number) => (x >= 0 ? 5 : -5) }
+    const bars = waterBarriers([basin], provider)
+    expect(bars.length).toBe(1)
+
+    const quad = bars[0]
+    expect(quad.length).toBe(4) // a rectangle
+    // It hugs the east edge (x≈100), on the BANK side — outside the water body,
+    // whose interior reaches only to x=100.
+    const cx = quad.reduce((s, p) => s + p.x, 0) / 4
+    expect(cx).toBeGreaterThan(100)
+    // Thin across the edge, long along it: a wall, not a slab.
+    const xs = quad.map((p) => p.x)
+    const zs = quad.map((p) => p.z)
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(1) // a few decimetres
+    expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(200) // spans the edge
+  })
+
+  it('leaves a flush shore unwalled so the car can sink into open water', () => {
+    // Ground level with the water everywhere: no bank stands proud, so it is all
+    // open water — nothing to wall, and the sinking/bubbles stay reachable.
+    expect(waterBarriers([basin], flat)).toEqual([])
+  })
+
+  it('walls every side of a body sunk into raised ground', () => {
+    // A basin dug into a plateau, low only along a thin cross through the middle
+    // that sets the water level; all four banks stand well above it.
+    const provider = { heightAt: (x: number, z: number) => (Math.abs(x) < 20 || Math.abs(z) < 20 ? -30 : 40) }
+    const bars = waterBarriers([basin], provider)
+    expect(bars.length).toBe(4) // one wall per shore edge
+    for (const quad of bars) expect(quad.length).toBe(4)
+  })
+
+  it('ignores degenerate rings', () => {
+    expect(waterBarriers([[v(0, 0), v(1, 1)]], flat)).toEqual([])
   })
 })
