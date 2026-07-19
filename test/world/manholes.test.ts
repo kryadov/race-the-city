@@ -180,6 +180,27 @@ describe('buildManholes', () => {
     expect(empty.count).toBe(0)
   })
 
+  it('bakes a raised perpendicular cross-hatch into the shared cover geometry', () => {
+    const mesh = buildManholes([straight(400)], flat, makeRng(2))
+    expect(mesh).toBeInstanceOf(THREE.InstancedMesh)
+    // The dome crowns at DOME_RISE (0.17) and the bolts stand only 0.1 tall; any
+    // vertex above 0.175 belongs to a rib standing proud of the dome — proof the
+    // waffle rode into the single shared geometry (no extra mesh, no extra draw).
+    const pos = mesh.geometry.attributes.position as THREE.BufferAttribute
+    let proud = 0
+    for (let i = 0; i < pos.count; i++) if (pos.getY(i) > 0.175) proud++
+    expect(proud).toBeGreaterThan(0)
+    // Ribs run both ways: some proud vertices sit off the X axis, some off the Z.
+    let offX = false
+    let offZ = false
+    for (let i = 0; i < pos.count; i++) {
+      if (pos.getY(i) <= 0.175) continue
+      if (Math.abs(pos.getX(i)) > 0.1) offX = true
+      if (Math.abs(pos.getZ(i)) > 0.1) offZ = true
+    }
+    expect(offX && offZ).toBe(true)
+  })
+
   it('sets a deterministic few covers ajar (tilted off-flat) while most sit flush — all in ≤2 instanced draws', () => {
     const mesh = buildManholes([straight(6000)], flat, makeRng(21))
     // One InstancedMesh for the lot: the four rim fixings are baked into its shared

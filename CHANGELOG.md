@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.38 — manhole covers get cross-hatched ironwork
+- The manhole covers down the road centrelines were smooth; they now carry a **perpendicular waffle
+  of raised ribs** (three bars each way), like real cast-iron covers. It's merged into the same shared
+  cover geometry, so it rides every instance for free — no extra draw calls, bolts and ajar tilt kept.
+- 👀 Look down at a manhole in the road — a cross-hatch of ridges across the lid.
+
 ## v0.110.37 — no more bouncing and launching on bridge arches
 - Driving up a bridge the camera juddered and the car eventually flung itself into the air near the
   crown. The deck lookup, when the car asked what it was riding, returned the **highest** deck segment

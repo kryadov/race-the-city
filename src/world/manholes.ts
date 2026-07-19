@@ -59,6 +59,21 @@ const BOLT_RING = 0.52 // how far from centre the ring of four sits — just ins
 const BOLT_SIDES = 6 // low-poly studs, in keeping with the 16-facet dome
 
 /**
+ * A raised cross-hatch of ribs over the lid's crown — the waffle of cast bars you
+ * see on real ironwork (there for grip). The user asked for perpendicular stripes,
+ * so it's two sets of low bars at right angles. Like the bolts, they're baked into
+ * the SHARED dome geometry, so they ride every instance for free — no per-cover
+ * mesh, no second draw. Each bar runs from the road surface up through the dome and
+ * stands a hair proud of the crown: its foot is buried in the tarmac and its flanks
+ * in the dome, so it *cuts through* the opaque dome rather than resting on it —
+ * solid intersection, never coplanar, so nothing z-fights.
+ */
+const STRIPE_W = 0.07 // rib width, ~14cm — a chunky cast bar, not a scratch
+const STRIPE_SPAN = 0.8 // rib length; ±0.4 keeps even the outer bars' corners inside the bolt ring
+const STRIPE_LIFT = 0.02 // how far the ribs' flat crown stands proud of the dome apex (DOME_RISE)
+const STRIPE_OFFSETS = [-0.26, 0, 0.26] // three bars each way — a 3×3 waffle across the crown
+
+/**
  * A deterministic ~1-in-8 of the covers sit *ajar*: shoved a touch off their seat
  * and tipped a few degrees, as if a wheel or a work crew left the lid half-open.
  * The nudge is small (stays on the road), the tilt is a few degrees; both come off
@@ -157,8 +172,9 @@ export function buildManholes(
  * The dome is a sphere squashed to a lens — its equator sits on the road and the
  * top curves up DOME_RISE proud; the bottom half is under the tarmac. The four
  * studs stand at N/E/S/W just inside the rim, straddling the dome flank so they
- * read as cast bolts. Merged into one geometry, so every instance draws the lid
- * *and* its fixings in a single instanced draw — no second batch for the bolts.
+ * read as cast bolts, and a perpendicular cross-hatch of ribs sits over the crown.
+ * Merged into one geometry, so every instance draws the lid *and* its fixings *and*
+ * its waffle in a single instanced draw — no second batch for any of it.
  */
 function coverGeo(): THREE.BufferGeometry {
   const dome = new THREE.SphereGeometry(COVER_R, SEGMENTS, 6)
@@ -168,6 +184,18 @@ function coverGeo(): THREE.BufferGeometry {
     const bolt = new THREE.CylinderGeometry(BOLT_R, BOLT_R, BOLT_H, BOLT_SIDES)
     bolt.translate(bx, BOLT_H / 2, bz) // stand it on the road surface, proud of the flank
     parts.push(bolt)
+  }
+  // The waffle: two passes of bars at right angles. Each bar reaches from the road
+  // surface (y=0) up to STRIPE_TOP, so its foot buries in the tarmac and its flanks
+  // in the dome; only the flat crown, a hair above the apex, shows. The X-pass bars
+  // run along X, spaced out along Z (and vice versa), overlapping at the crossings.
+  const stripeTop = DOME_RISE + STRIPE_LIFT
+  for (const off of STRIPE_OFFSETS) {
+    const alongX = new THREE.BoxGeometry(STRIPE_SPAN, stripeTop, STRIPE_W)
+    alongX.translate(0, stripeTop / 2, off)
+    const alongZ = new THREE.BoxGeometry(STRIPE_W, stripeTop, STRIPE_SPAN)
+    alongZ.translate(off, stripeTop / 2, 0)
+    parts.push(alongX, alongZ)
   }
   return mergeGeometries(parts)
 }
