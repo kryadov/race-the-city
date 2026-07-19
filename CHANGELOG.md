@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.56 — traffic lights cycle at the junctions
+- Major road junctions (T-junctions and crossroads) now stand a **traffic-light head** — red/amber/green
+  lenses on a pole — that **cycles** green → amber → red and glows, its phase staggered from the next
+  so a run of them doesn't switch in lock-step. Ambient for now (the bots don't stop at them yet).
+- 👀 Pull up to a busy junction — a signal head cycling through its colours.
+
 ## v0.110.55 — railway platforms, and trains that stop to board
 - Railways now get **platforms** along the line — a slab with a painted edge, a canopy on posts and
   lamps that glow at night, with **figures waiting** on it. A train **eases to a halt** at each stop,
