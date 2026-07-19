@@ -32,6 +32,17 @@ const TURN_RATE = 5
 const MAX_HOPS = 8
 /** How far up its own road a car looks for a train, in metres. */
 const CROSSING_LOOK = 11
+/**
+ * Car-to-car following. A background car is a point walking an edge, and it
+ * read none of its neighbours: a faster car caught a slower one and interpolated
+ * clean through it — two cars in the same spot, one sliding out the far side.
+ * Now each holds a gap to the car ahead in its lane. FOLLOW_GAP is the smallest
+ * centre-to-centre distance kept (a car's ~4m plus a margin), and BRAKE_ZONE is
+ * the run-up over which the step eases from full speed down to a dead stop, so a
+ * blocked car coasts onto the leader's tail rather than stamping on the brake.
+ */
+const FOLLOW_GAP = 7
+const BRAKE_ZONE = 6
 
 /**
  * What a street actually looks like: mostly white, silver, grey and black, with
@@ -256,6 +267,53 @@ export function createTraffic(
 
   const solidAt: Circle[] = []
 
+  // Car-to-car separation, kept O(cars) by bucketing.
+  //
+  // Each frame every car is filed under the directed edge it's driving (its
+  // `at -> to`), and its arc position `s` is snapshotted alongside. A car then
+  // only compares itself against the few cars sharing its edge, plus the cars
+  // just past the node it's heading into — never against all of them. With a
+  // couple of dozen cars spread over a city that's a handful of comparisons
+  // each, so a busy junction costs no more than an empty street.
+  const N = graph.nodes.length
+  const bucket = new Map<number, number[]>()
+  const snapEdge: number[] = []
+  const snapArc: number[] = []
+
+  /**
+   * Distance along the road to the nearest car ahead of car `i` in its own lane
+   * — on this edge, or just across the node it's approaching — or Infinity when
+   * the road ahead is clear. Only same-direction cars count: oncoming traffic
+   * keeps to the other lane (see LANE) and passes, so it's skipped at the
+   * junction. Looking only forward, never at cars merely converging on the same
+   * node from another road, is what keeps two of them from each yielding to the
+   * other and deadlocking the junction — nobody waits on a car behind them.
+   */
+  const gapAhead = (i: number): number => {
+    const a = agents[i]
+    const s = snapArc[i]
+    let best = Infinity
+    const same = bucket.get(snapEdge[i])
+    if (same) {
+      for (const j of same) {
+        if (j === i) continue
+        const sj = snapArc[j]
+        // Two cars pinned to the exact same spot would each yield to the other
+        // and both freeze; the lower index gives way, so precisely one does.
+        if (sj > s || (sj === s && j < i)) best = Math.min(best, sj - s)
+      }
+    }
+    const A = graph.nodes[a.at]
+    const B = graph.nodes[a.to]
+    const remain = Math.hypot(B.x - A.x, B.z - A.z) - s
+    for (const x of graph.nodes[a.to].links) {
+      if (x === a.at) continue // that edge is oncoming, in the other lane
+      const out = bucket.get(a.to * N + x)
+      if (out) for (const j of out) best = Math.min(best, remain + snapArc[j])
+    }
+    return best
+  }
+
   return {
     obstacles: () => solidAt,
     setEnabled(on) {
@@ -277,6 +335,19 @@ export function createTraffic(
       solidAt.length = 0
       tailMat.emissiveIntensity = night * 1.6
       headMat.emissiveIntensity = night * 2.2
+      // Rebuild the following buckets from this frame's positions (see gapAhead).
+      // Snapshotting `s` here, before anyone moves, keeps a car that hops to a
+      // new edge partway through the loop from shifting the gap for one still
+      // being processed — every car is measured against the same frozen frame.
+      bucket.clear()
+      for (let i = 0; i < agents.length; i++) {
+        const a = agents[i]
+        snapEdge[i] = a.at * N + a.to
+        snapArc[i] = a.s
+        const b = bucket.get(snapEdge[i])
+        if (b) b.push(i)
+        else bucket.set(snapEdge[i], [i])
+      }
       for (let i = 0; i < agents.length; i++) {
         let a = agents[i]
         // Hold at a crossing rather than driving through the train: the traffic
@@ -290,7 +361,16 @@ export function createTraffic(
           const lateral = -dx * Math.sin(here.angle) + dz * Math.cos(here.angle)
           return Math.abs(lateral) < b.r + 1.6
         })
-        if (!blocked) a.s += a.speed * dt
+        // Advance, but no further than the gap to the car ahead allows. Easing
+        // the step to zero as that gap closes lets a car coast onto the leader's
+        // tail and hold there, rather than lurching the last metre and jittering.
+        let step = blocked ? 0 : a.speed * dt
+        if (step > 0) {
+          const clear = gapAhead(i) - FOLLOW_GAP
+          if (clear < BRAKE_ZONE) step *= Math.max(0, clear / BRAKE_ZONE)
+          step = Math.min(step, Math.max(0, clear))
+        }
+        a.s += step
         // Walk by arc length, carrying the overshoot into the next edge. The old
         // test — "within ARRIVE of the end" — fired on the very first frame for
         // any edge shorter than ARRIVE, and city blocks are full of vertices a

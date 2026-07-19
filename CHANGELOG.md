@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.22 — bot cars queue instead of driving through each other
+- AI traffic had no awareness of itself — a faster car slid **clean through** a slower one in the
+  same lane. Cars now keep a **following gap**: each looks at the car ahead in its lane (and just
+  across the junction it's approaching) and eases to a stop behind it, queuing nose-to-tail. It only
+  looks forward, so junctions don't deadlock; oncoming traffic passes in the other lane. O(cars) via
+  per-edge bucketing — no frame-rate cost.
+- 👀 Catch up to bot traffic: cars line up behind each other instead of merging into one spot.
+
 ## v0.110.21 — trees turn with the seasons
 - Deciduous tree crowns now colour by the **real date and the city's latitude**: green in summer, a
   lift with a scatter of **white-pink blossom** in spring, **ochre/orange/red** in autumn, and a bare

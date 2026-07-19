@@ -469,3 +469,51 @@ describe('cars trapped on a stub', () => {
   })
 
 })
+
+describe('car-to-car separation', () => {
+  it('queues a faster car behind a slower one instead of driving through it', () => {
+    // Two cars on one long straight road, both set off the same way: the RNG is
+    // scripted so both spawn on node 0 and head +x, a slow one at 7m/s and a
+    // fast one at ~13m/s behind it. Before, the fast car simply interpolated
+    // through the slow one and out the far side; now it must catch up, then sit
+    // on its tail holding a gap — never overlapping, and never breaking free.
+    const straight: Road[] = [{ points: [v(-800, 0), v(800, 0)], kind: 'residential' }]
+    // rand is only touched while building: per car, [node pick, speed, type];
+    // node 0.1 -> node 0, speed 0 -> 7m/s for the first, 0.99 -> ~13m/s for the
+    // second. Direction is drawn from the traffic's own internal RNG, not this.
+    const seq = [0.1, 0, 0, 0.1, 0.99, 0]
+    let k = 0
+    const rand = (): number => (k < seq.length ? seq[k++] : 0)
+
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, straight, flat, rand, 2)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    expect(bodies.count).toBe(2)
+
+    // Let the fast car close the gap and settle into a steady follow.
+    for (let f = 0; f < 400; f++) t.update(1 / 60, 0, 0, 0)
+
+    const start = positions(bodies).map((p) => p.clone())
+    let minGap = Infinity
+    let maxGap = 0
+    for (let f = 0; f < 1500; f++) {
+      t.update(1 / 60, 0, 0, 0)
+      const [a, b] = positions(bodies)
+      const gap = a.distanceTo(b)
+      minGap = Math.min(minGap, gap)
+      maxGap = Math.max(maxGap, gap)
+    }
+    const end = positions(bodies)
+
+    // Never passed through: a car is ~4m long, so centres closer than that mean
+    // they have merged. They queue with clear air between them instead.
+    expect(minGap, 'the cars overlapped').toBeGreaterThan(4)
+    // Never broke free: were following not working, the fast car would sail on
+    // and the gap would grow without bound down 1600m of open road.
+    expect(maxGap, 'the fast car drove off rather than following').toBeLessThan(14)
+    // Both still made real progress — a jam that freezes is as wrong as one
+    // that overlaps.
+    expect(end[0].x - start[0].x, 'the lead car stalled').toBeGreaterThan(100)
+    expect(end[1].x - start[1].x, 'the following car stalled').toBeGreaterThan(100)
+  })
+})
