@@ -117,6 +117,7 @@ import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildManholes } from '../world/manholes'
 import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
+import { buildParkedCars } from '../world/parkedCars'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery } from '../world/greenery'
 import { buildStreetFurniture } from '../world/streetFurniture'
@@ -505,6 +506,7 @@ async function loadCity(query: string): Promise<void> {
       .filter((r) => r.length >= 3)
       .map((ring) => ({ ring, level: waterLevel(ring, provider) }))
     const parkingMesh = buildParking(world.parking, provider)
+    const parkedCarsMesh = buildParkedCars(world.parking, provider) // fixed seed: same cars each reload
     const propsMesh = buildProps(world.props, provider)
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
     const poiMesh = buildPoiMarkers(world.pois, provider)
@@ -521,7 +523,7 @@ async function loadCity(query: string): Promise<void> {
     greenMesh.traverse((o) => {
       o.castShadow = true
     })
-    for (const obj of [ground, seaMesh, greenMesh, infillMesh, waterMesh, parkingMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
+    for (const obj of [ground, seaMesh, greenMesh, infillMesh, waterMesh, parkingMesh, parkedCarsMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }

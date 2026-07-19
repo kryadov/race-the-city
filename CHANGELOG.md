@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.110.50 — parked cars fill the car parks
+- Car parks were bare tarmac. They now hold **parked cars** — laid out square in the marked bays
+  (reusing the same bay layout the paint uses), about 60% of bays filled so it looks lived-in, each a
+  different colour, draped on the terrain. Two instanced draws for the whole map, capped, static.
+- 👀 Drive past a parking lot — rows of parked cars in the bays now, with gaps.
+
 ## v0.110.49 — a favicon for the browser tab
 - The page had no icon — it now ships a crisp **SVG favicon**: a little red car on a strip of road, in
   the game's palette, so the tab and bookmarks are recognisable.
