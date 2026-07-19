@@ -17,26 +17,26 @@ colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfron
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
 ### 🔧 Bugs in shipped features (fix next)
-- [ ] **Some birds perch in mid-air on nothing** — a few birds sit motionless in the air with nothing
+- [x] **Some birds perch in mid-air on nothing** — ✅ v0.110.60: each tree hands the flock its real crown height. a few birds sit motionless in the air with nothing
       under them (regression of the earlier "sitting in the air" fix, or perch points chosen above a
       surface). Check `src/app/birds.ts` perch/idle placement — perches should sit on a roof/tree/ground.
-- [ ] **Bridges over a wide river render incorrectly** — screenshot (Santiago): the arched bridge
+- [x] **Bridges over a wide river render incorrectly** — ✅ v0.110.61: piers spaced ~25m + span-deep girder. screenshot (Santiago): the arched bridge
       **railings** are there but the **deck/roadway across the water reads wrong** (decks look thin /
       floating / disconnected from the banks, or the arch is over-humped on a wide span). Check
       `src/world/bridgeMesh.ts` (deck surface + piers + railing) and `deckHeights`/`MAX_ARCH` for wide
       water crossings.
-- [ ] **BUG (serious) — waterfront barrier walls off bridges (v0.110.52)** — invisible collision
+- [x] **BUG (serious) — waterfront barrier walls off bridges (v0.110.52)** — ✅ FIXED v0.110.58 (collision removed entirely). invisible collision
       across a bridge approach where a river runs under it (Santiago ~x-192 z-684): you can't drive the
       bridge/road, only pass well to the side. `waterBarriers` puts a wall along the whole embanked
       water edge including where a **road/bridge crosses** it. Fix: pass `roads` to `waterBarriers` and
       **leave a gap** wherever a (non-tunnel) road crosses the edge — never wall a carriageway. Also
       gate barriers on the SAME condition the mesh actually draws the stone/rail, so no invisible walls.
-- [ ] **Parked cars look wrong (v0.110.50)** — screenshot: they read as dark flat boxes **sunk into
+- [x] **Parked cars look wrong (v0.110.50)** — ✅ v0.110.62: wheels/lamps, seated on tarmac, bay rows, thinned. screenshot: they read as dark flat boxes **sunk into
       the tarmac**, in **one dense line**, too many, **no wheels / head- or tail-lights**. Fix
       `src/world/parkedCars.ts`: give them a proper low-poly car body (wheels, glass, lamp dabs), seat
       them ON the surface (BODY_Y too low — they're sinking), lay them in **proper bay rows** across
       the lot (not a single kerb line), and thin the count.
-- [ ] **Tachometer (v0.110.47)** — (a) make the dial **~1.5× smaller** than the speedometer; (b) the
+- [x] **Tachometer (v0.110.47)** — ✅ v0.111.1: smaller dial + smooth per-vehicle rev model (src/app/revs.ts). (a) make the dial **~1.5× smaller** than the speedometer; (b) the
       needle **jumps like a clock** (the gear-staircase RPM in main.ts snaps up to ~6k then back with
       lag) and **doesn't reflect each vehicle type** correctly — replace the gear-staircase with a
       smooth rev model that eases and is scaled per `VEHICLES[type]`.
@@ -79,11 +79,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Shopfronts / storefront windows** — render shop and service-business frontages on ground
       floors of buildings (glazed retail fronts, signage) where OSM tags a shop/amenity.
 
-- [ ] **BUG — signpost pole pierces the panel** — on POI/landmark signposts the post pokes up
+- [x] **BUG — signpost pole pierces the panel** — ✅ v0.110.63: pole stops at the panel bottom, tucked behind. on POI/landmark signposts the post pokes up
       *through* the sign panel, which looks ugly. `src/world/poiMarkers.ts` mounts the panel near the
       top of the post (POST_H) but the post runs its full height behind/through it — stop the post at
       (or just below) the panel, or move the panel to the post's top so the pole doesn't stick out.
-- [ ] **Manhole perpendicular stripes** — draw perpendicular hatch stripes on the manhole cover
+- [x] **Manhole perpendicular stripes** — ✅ already shipped (ribs v0.110.38, bolts/ajar v0.110.19); regression tests added this session. draw perpendicular hatch stripes on the manhole cover
       (`src/world/manholes.ts`) for a more realistic ironwork look.
 - [ ] **Menu refactoring — modes reachable, arcade mode selectable** — the current flow makes it
       impossible to pick the arcade mode via **Esc**, which "сильно мешает". Refactor the menu / pause
@@ -127,7 +127,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       fence it with a **railing** and a **curb the car can't cross into the water**; but if the car
       DID get in, it can drive back out (one-way soft barrier). Ties into the pedestrian water-avoid
       work and boats.
-- [ ] **Boats: better hull + rower** — make the rowboat **more boat-shaped** and give it a **little
+- [x] **Boats: better hull + rower** — ✅ v0.111.0: tapered double-ender hull + rowing figure. make the rowboat **more boat-shaped** and give it a **little
       figure rowing with oars** (animated stroke). `boats.ts` rowboat model + a per-boat oar animation
       in the update loop; keep it cheap.
 - [ ] **BUG — Boston: sparse roads but ZERO buildings.** Roads render (sparse), buildings don't —
@@ -179,7 +179,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       Measure where floaters perch; fix by keeping the offset within the canopy for tree perches (or
       only tree-perch when a real tree/canopy is there). birds.ts — free of agents.
 - [x] **Flowerbed stems** — v0.108.7: blooms on varied-length stems (dome + jitter).
-- [ ] **Flowerbed colours + flower shape** — the blooms currently read as **mushrooms**; give them
+- [x] **Flowerbed colours + flower shape** — ✅ already shipped (petalled blooms + blue/violet/azure, commit 051b082); regression tests added this session. the blooms currently read as **mushrooms**; give them
       actual **flower shapes** (a small petalled head — a ring of petals around a centre, not a plain
       squashed sphere) and add **blue, violet and azure** to the palette alongside the pinks/golds.
       `props.ts` bloom geometry + colour list, still merged (one draw per colour).
