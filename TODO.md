@@ -6,6 +6,24 @@ Backlog of ideas for Race the City. Shipped features live in the git tags / rele
 ## 🎮 Play-test backlog — 2026-07-19 (live session)
 Asked during a play-test; deferred here so they aren't lost. Ship order: bugs first, then polish.
 
+- [ ] **BUG — signpost pole pierces the panel** — on POI/landmark signposts the post pokes up
+      *through* the sign panel, which looks ugly. `src/world/poiMarkers.ts` mounts the panel near the
+      top of the post (POST_H) but the post runs its full height behind/through it — stop the post at
+      (or just below) the panel, or move the panel to the post's top so the pole doesn't stick out.
+- [ ] **Manhole perpendicular stripes** — draw perpendicular hatch stripes on the manhole cover
+      (`src/world/manholes.ts`) for a more realistic ironwork look.
+- [ ] **Menu refactoring — modes reachable, arcade mode selectable** — the current flow makes it
+      impossible to pick the arcade mode via **Esc**, which "сильно мешает". Refactor the menu / pause
+      so game modes (incl. arcade) are selectable in-session (Esc → menu with mode choice). Design
+      before building.
+- [ ] **Arcade mode: "find a car"** — occasionally a drivable car of a *different* type sits on the
+      map; drive up to it and you swap into it (sedan → sports car → …). Pickable car-objects that
+      change the player's vehicle type on contact. (Pairs with the arcade-mode menu item.)
+- [ ] **Combine harvester mows fields** — drive a combine onto a field of tall grass/wheat: the
+      sectors you pass over turn to **mown stubble**, and a few sectors behind, **haystacks / hay
+      bales** form in the harvested strip. Field sectors track a mown state; harvester lays bales in
+      its wake.
+
 - [ ] **BUG — nitro spawns beyond the map edge** — nitro (and probably fuel) pickups appear outside
       the drivable map. They scatter on road vertices (`pickups.ts` setSpots / pickSpot), and some
       roads run past the map bound — clamp candidate spots to within the world radius (drop or pull in
