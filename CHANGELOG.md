@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.118.0 — landmarks get a beacon
+- Tourist and historic sights (museums, monuments, memorials, castles, viewpoints…) now stand under
+  a tall, soft **pillar of gold light**, like the taxi beam, so you can spot a landmark from across
+  the city — over the monument itself, with its plaque beside it. One instanced draw for all of them,
+  capped and unculled. Also the groundwork for a future tour/excursion mode.
+- 👀 Scan the skyline for gold light-pillars — drive to one and there's a sight at its foot.
+
 ## v0.117.1 — bridge pillars are solid now
 - Bridge support piers were drawn but had no collision, so a car (or bot) on the road **under** a
   bridge drove straight through the pillars. Each pier is now a solid footprint in the collision grid,

@@ -269,8 +269,8 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Sports grounds** — place **pitches with goals (football) / courts with hoops (basketball)**
       via the same OSM-prop pattern as fountains/benches (`leisure=pitch`), with a few **figures
       playing with a ball** on them. Instanced figures + a simple ball-and-players loop, capped.
-- [ ] **Glowing landmark markers** — a **lit beacon over `tourism`/`historic` POIs**, exactly like
-      the cafe/fuel markers already do (`buildPoiMarkers`). Ships on its own AND is the base for:
+- [x] **Glowing landmark markers** — ✅ v0.118.0: a tall translucent gold light-pillar over every
+      landmark POI (`buildPoiMarkers`, instanced, over the monument point). Base for the Excursion mode.
 - [ ] **Arcade mode: Excursion / Tour** — **visit the `tourism`/`historic` markers within a time
       limit**, using the **same beacon + minimap-arrow mechanism as Taxi**, just over a different set
       of points. Reuses `taxi.ts`/`taxiHud.ts` structure; a mode on the start menu.
