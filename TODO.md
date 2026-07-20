@@ -316,9 +316,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Fly over traffic & people when airborne** — when the player is **jumped/airborne above**
       passing bot cars OR pedestrians, they shouldn't collide with them — the collision check must
       respect height (only collide when vertically overlapping), so you pass freely overhead.
-- [ ] **Step up onto a slightly higher surface** — if the player has driven onto a building/ledge and
-      an **adjacent surface is only a wheel-radius higher**, allow driving up onto it (a small
-      step-up allowance in the vertical collision, not a hard wall).
+- [x] **Step up onto a slightly higher surface** — ✅ v0.118.1: `resolveCircle` height-gate now skips a
+      footprint the car is within `STEP_UP` (0.35m, a wheel-radius) below, so you climb a kerb/ledge/roof
+      step instead of hitting a wall; the surface fn then raises the car (ROOF_SNAP). Tested in `collide.test.ts`.
 - [x] **Smooth bot cornering** — v0.110.14: eased yaw toward the edge, arcs through junctions.
 - [ ] **BUG — bot cars drive through each other** — traffic cars overlap and pass straight through
       one another; they should not. Add car-to-car separation in `traffic.ts` — each car checks the

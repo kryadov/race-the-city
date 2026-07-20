@@ -25,6 +25,14 @@ function closestOnSegment(p: Vec2, a: Vec2, b: Vec2): { point: Vec2; dist2: numb
 }
 
 /**
+ * How much higher than the car a surface may be and still be driven UP onto,
+ * rather than hit as a wall — a wheel-radius. Lets you mount a kerb, a low ledge,
+ * or the next step of a terraced roof instead of being stopped dead against ground
+ * only a few centimetres above your own.
+ */
+export const STEP_UP = 0.35
+
+/**
  * If (x,z) with the given radius overlaps a nearby footprint, push it out to
  * the closest polygon edge plus the radius. Sliding falls out naturally: only
  * the penetration component is removed, tangential motion is preserved.
@@ -38,9 +46,10 @@ export function resolveCircle(
 ): Vec2 {
   let pos: Vec2 = { x, z }
   for (const poly of grid.near(x, z)) {
-    // Over the top of it: a car with the height is entitled to clear a wall
-    // rather than be stopped in mid-air by ground it is nowhere near.
-    if (y >= grid.topOf(poly)) continue
+    // Over the top of it — or within a step of the top — is not a wall: a car high
+    // enough clears a roof, and one only a wheel-radius below a ledge climbs onto it
+    // rather than being stopped in mid-air by ground it is nearly level with.
+    if (y >= grid.topOf(poly) - STEP_UP) continue
     const inside = pointInPolygon(pos.x, pos.z, poly)
     let best: { point: Vec2; dist2: number } | null = null
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {

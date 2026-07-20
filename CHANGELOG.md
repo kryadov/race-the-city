@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.118.1 — drive up a low kerb instead of hitting a wall
+- A surface only a wheel-radius (0.35 m) higher than the car — a kerb, a low ledge, the next step of
+  a terraced roof — used to be a hard wall that stopped you dead. The collision now lets you climb up
+  onto anything within a step of your own height (it was already height-gated for flying OVER a roof;
+  this extends the same idea downward by one step). A wall taller than a step still stops you.
+- 👀 Nose the car at a low kerb or ledge — you ride up onto it now instead of bouncing off.
+
 ## v0.118.0 — landmarks get a beacon
 - Tourist and historic sights (museums, monuments, memorials, castles, viewpoints…) now stand under
   a tall, soft **pillar of gold light**, like the taxi beam, so you can spot a landmark from across

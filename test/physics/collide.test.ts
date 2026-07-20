@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pointInPolygon, resolveCircle, roofUnder } from '../../src/physics/collide'
+import { pointInPolygon, resolveCircle, roofUnder, STEP_UP } from '../../src/physics/collide'
 import { SpatialGrid } from '../../src/physics/grid'
 import type { Vec2 } from '../../src/geo/types'
 
@@ -55,10 +55,13 @@ describe('flying over an obstacle', () => {
     expect(Math.hypot(p.x, p.z), 'it should have been shoved out of the wall').toBeGreaterThan(1)
   })
 
-  it('stops it at the roofline, not a metre under', () => {
-    // Level with the top counts as over it: you are on the roof, not in the wall.
+  it('mounts a ledge within a wheel-radius (step-up), but walls off a taller one', () => {
+    // Level with the top is on the roof; so is within STEP_UP below it — you climb up.
     expect(resolveCircle(0, 0, 2, grid, 8)).toEqual({ x: 0, z: 0 })
-    expect(resolveCircle(0, 0, 2, grid, 7.99)).not.toEqual({ x: 0, z: 0 })
+    expect(resolveCircle(0, 0, 2, grid, 8 - STEP_UP + 0.05), 'a low step is climbable').toEqual({ x: 0, z: 0 })
+    // but a step deeper than that is still a wall you cannot mount
+    const p = resolveCircle(0, 0, 2, grid, 8 - STEP_UP - 0.5)
+    expect(Math.hypot(p.x, p.z), 'a wall taller than a step must still stop you').toBeGreaterThan(1)
   })
 
   it('never flies over something whose height nobody stated', () => {
