@@ -21,7 +21,8 @@ session. A `?city=` share link pre-fills the city.
 
 ## Controls
 
-**Drive (keyboard)**
+**Drive (keyboard)** — matched by physical key position, so WASD and the hotkeys work on any
+keyboard layout (Cyrillic, AZERTY, …), not just QWERTY.
 - **W / ↑** — accelerate · **S / ↓** — brake / reverse
 - **A / ←** — steer left · **D / →** — steer right
 - **Space** — handbrake (slide it into a drift)

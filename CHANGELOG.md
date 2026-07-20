@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.113.3 — keys work on any keyboard layout (WASD, horn, neon, zoom)
+- The driving keys and hotkeys were matched on the **character** the key produces (`event.key`),
+  so on a **Cyrillic (or AZERTY) layout WASD did nothing** — the W position yields `ц`, not `w` —
+  and the **horn (H) never sounded**. They're now matched on the **physical key** (`event.code`),
+  so WASD, **H** (horn), **V** (neon), **+/−** (zoom) and **?** (help) all work whatever the layout.
+  The arrow keys always worked and still do. Input mapping moved into a pure, tested helper.
+- 👀 On a non-English layout: WASD now drives, and **H** honks — neither did before.
+
 ## v0.113.2 — neon covers birds/aircraft/arcade pickups too; arcade never offers your own car
 - Finishing v0.113.1: the last movers now flip to neon wireframe as well — the **bird flock**, the
   **aircraft**, and the **arcade car-pickups**. Neon coverage is complete for everything that moves.

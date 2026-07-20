@@ -72,7 +72,7 @@ export function createHelpOverlay(root: HTMLElement): HelpOverlay {
 
   btn.addEventListener('click', () => set(!open))
   window.addEventListener('keydown', (e) => {
-    if (e.key === '?' || e.key === '/') set(!open)
+    if (e.code === 'Slash') set(!open) // the physical ? / key, so it fires on any layout
     else if (e.key === 'Escape' && open) set(false) // Escape closes the card before it pauses
   })
   paint()

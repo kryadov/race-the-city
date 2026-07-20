@@ -297,10 +297,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Pickable car-objects on the map** — occasionally a real, selectable vehicle sits parked on
       the map that the player can **walk/drive up to and switch into** (choose it as their car).
       Rare spawns tied to parking/roadside; reuses the vehicle roster + `selectVehicle`.
-- [ ] **BUG — horn dead on non-Latin keyboard layouts** — the klaxon key is matched on `event.key`,
-      which changes with the layout, so on a Russian (or other) layout it never fires. Match the
-      **physical key via `event.code`** for the horn (and audit the other driving keys the same way)
-      so the bound key works regardless of layout.
+- [x] **BUG — horn dead on non-Latin keyboard layouts** — ✅ v0.113.3: all key handling matches
+      `event.code` (physical position) now — horn (KeyH), neon (KeyV), zoom (Equal/Minus), help (Slash),
+      and **WASD driving** (`vehicle/input.ts`, which had the same bug — WASD was dead on Cyrillic, only
+      arrows worked). Pure `readInput`/`hotkeyFor` helpers, tested in `test/vehicle/input.test.ts`.
 - [ ] **Flashing police lightbar** — the police car's roof beacons should **flash red/blue while
       driving** (alternating), not glow steady. Animate the shared BEACON_RED/BLUE emissive intensity
       in the loop for emergency vehicles. (Doing this myself — main.ts + parts.ts.)

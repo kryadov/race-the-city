@@ -130,7 +130,7 @@ import { SpatialGrid } from '../physics/grid'
 import { roofUnder } from '../physics/collide'
 import { pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
-import { Keyboard } from '../vehicle/input'
+import { Keyboard, hotkeyFor } from '../vehicle/input'
 import { VEHICLES, LEANS, HOVERS, HOVER_H, type VehicleType } from '../vehicle/vehicles'
 import { BEACON_RED, BEACON_BLUE } from '../vehicle/models/parts'
 import {
@@ -323,12 +323,12 @@ const audio = new AudioEngine()
 const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
 window.addEventListener('keydown', resumeAudio, { once: true })
-// Horn on H, for as long as it's held.
+// Horn on H (by physical key, so it fires on any keyboard layout), while it's held.
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'h' || e.key === 'H') audio.horn(true)
+  if (hotkeyFor(e.code) === 'horn') audio.horn(true)
 })
 window.addEventListener('keyup', (e) => {
-  if (e.key === 'h' || e.key === 'H') audio.horn(false)
+  if (hotkeyFor(e.code) === 'horn') audio.horn(false)
 })
 let vehicle: VehicleType = 'car'
 let prevForward = 0
@@ -1307,9 +1307,10 @@ const applyZoom = (d: number): void => {
 window.addEventListener('keydown', (e) => {
   const tgt = e.target as HTMLElement | null
   if (tgt && (tgt.tagName === 'INPUT' || tgt.isContentEditable)) return // ignore while typing a city
-  if (e.key === '+' || e.key === '=') applyZoom(stage.camDist - CAM_DIST_STEP) // zoom in
-  else if (e.key === '-' || e.key === '_') applyZoom(stage.camDist + CAM_DIST_STEP) // zoom out
-  else if (!e.repeat && e.key.toLowerCase() === 'v') theme.toggle()
+  const hk = hotkeyFor(e.code) // by physical key, so these fire on any layout
+  if (hk === 'zoomIn') applyZoom(stage.camDist - CAM_DIST_STEP)
+  else if (hk === 'zoomOut') applyZoom(stage.camDist + CAM_DIST_STEP)
+  else if (hk === 'neon' && !e.repeat) theme.toggle()
   else if (e.key === 'Escape') menu.toggle() // Esc opens/closes the menu (the pause button's own Esc handler freezes the sim)
 })
 // --- the menu: a live city drives itself behind it while you pick ---
