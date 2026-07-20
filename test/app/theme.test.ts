@@ -125,6 +125,75 @@ describe('ThemeController', () => {
     expect(onChange).toHaveBeenLastCalledWith('day')
   })
 
+  const NEON_HERO = 0xffffff
+  const NEON_BOT = 0xff8a3d
+
+  function mover(scene: THREE.Scene, tag: 'hero' | 'bot', mat: THREE.MeshStandardMaterial): THREE.Group {
+    const g = new THREE.Group()
+    g.userData.neonMover = tag
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(2, 1, 4), mat))
+    scene.add(g)
+    return g
+  }
+
+  it('flips a flagged bot mover to wireframe + amber in neon, and restores it on day', () => {
+    const { stage, scene } = makeStage()
+    const theme = new ThemeController(stage)
+    theme.setWorld(makeWorld())
+    const botMat = new THREE.MeshStandardMaterial({ color: 0x334455 })
+    const dayEmissive = botMat.emissive.getHex()
+    mover(scene, 'bot', botMat)
+
+    theme.toggle() // neon
+    expect(botMat.wireframe).toBe(true)
+    expect(botMat.emissive.getHex()).toBe(NEON_BOT)
+
+    theme.toggle() // day
+    expect(botMat.wireframe).toBe(false)
+    expect(botMat.emissive.getHex()).toBe(dayEmissive)
+  })
+
+  it('glows the hero (player car) a distinct white from the amber bots', () => {
+    const { stage, scene } = makeStage()
+    const theme = new ThemeController(stage)
+    theme.setWorld(makeWorld())
+    const heroMat = new THREE.MeshStandardMaterial({ color: 0x808080 })
+    mover(scene, 'hero', heroMat)
+
+    theme.toggle() // neon
+    expect(heroMat.emissive.getHex()).toBe(NEON_HERO)
+    expect(NEON_HERO).not.toBe(NEON_BOT)
+  })
+
+  it('refreshMovers flips a mover that arrives (car swap / crowd rebuild) while already in neon', () => {
+    const { stage, scene } = makeStage()
+    const theme = new ThemeController(stage)
+    theme.setWorld(makeWorld())
+    theme.set('neon')
+
+    // a fresh, day-styled mover drops in after we're already in neon
+    const mat = new THREE.MeshStandardMaterial({ color: 0x223344 })
+    mover(scene, 'bot', mat)
+    expect(mat.wireframe, 'flipped before we asked').toBe(false)
+
+    theme.refreshMovers()
+    expect(mat.wireframe).toBe(true)
+    expect(mat.emissive.getHex()).toBe(NEON_BOT)
+  })
+
+  it('leaves unflagged scene objects (no neonMover) alone', () => {
+    const { stage, scene } = makeStage()
+    const theme = new ThemeController(stage)
+    theme.setWorld(makeWorld())
+    const mat = new THREE.MeshStandardMaterial({ color: 0x111111 })
+    const plain = new THREE.Group()
+    plain.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat))
+    scene.add(plain)
+
+    theme.toggle() // neon
+    expect(mat.wireframe).toBe(false)
+  })
+
   it('reapplies neon to a newly loaded world (edges rebuilt, solids hidden)', () => {
     const { stage, scene } = makeStage()
     const theme = new ThemeController(stage)

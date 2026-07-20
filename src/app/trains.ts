@@ -576,6 +576,7 @@ export function createTrains(
 ): Trains {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the trains to wireframe like the road traffic
 
   const running: {
     line: Vec2[]

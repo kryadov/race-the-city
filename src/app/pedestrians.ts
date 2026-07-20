@@ -170,6 +170,7 @@ export function createPedestrians(
 ): Pedestrians {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the walkers to wireframe like the traffic
   // Dress the whole crowd for today's season: recolour each garment palette once,
   // here, so it's a pure instanceColor swap with no per-frame cost. Hair keeps its
   // natural colours (a season doesn't change what grows on your head); hats are a

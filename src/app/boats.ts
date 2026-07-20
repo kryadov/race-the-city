@@ -553,6 +553,7 @@ export function createBoats(
 ): Boats {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the boats to wireframe like the road traffic
   const rng = makeRng(0x5ea)
   const afloat: Afloat[] = []
 

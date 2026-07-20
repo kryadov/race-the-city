@@ -237,6 +237,7 @@ export function createCyclists(
 ): Cyclists {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the cyclists to wireframe like the traffic
   const graph: RoadGraph = buildRoadGraph(roads)
   const nodes = graph.nodes
   // A private stream for the wander, kept off `rand`, so the choices at each

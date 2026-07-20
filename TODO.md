@@ -83,9 +83,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       type on the map and swap into it. (User: "оба — в план".) Design first.
 - [ ] **Combine harvester mows fields** — drive a combine over tall grass/wheat → mown stubble, hay
       bales form behind. Fields need a mown state + the harvester in its wake. Design-level.
-- [ ] **Neon mode skips the car & bots** — in neon view the player car, bot cars and pedestrians stay
-      SOLID, not wireframe-neon. Needs the dynamic groups folded into theme's neon flip (a cross-cutting
-      refactor across theme.ts + every bot module) — best done where the aesthetic can be reviewed.
+- [x] **Neon mode skips the car & bots** — ✅ v0.113.1: movers flag `userData.neonMover` ('hero'|'bot');
+      theme scans the scene live each toggle + on `refreshMovers()` (car swap / crowd rebuild), flipping
+      MeshStandardMaterials to wireframe+emissive (white car, amber bots). Covers traffic, buses, motos,
+      cyclists, pedestrians, trains, boats, livestock. STILL TODO: birds, aircraft, arcade car-pickups.
 - [ ] **Bigger map ×2, adaptive** — see note below. Brainstorm.
 - [ ] **Relation-buildings (Boston)** — parse multipolygon `relation["building"]`. NOTE: adding it to
       the Overpass query changes the cache-key hash and evicts every cached city — hold until the
@@ -94,10 +95,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Cancel button on the "загружаю карту OSM" overlay** — add a localized **Отмена/Cancel**
       button to the loading plate that aborts the in-flight load (fetchOsm now takes an AbortSignal —
       wire an AbortController from loadCity to it) and returns to the menu / stays on the current map.
-- [ ] **BUG — neon mode skips the car and bots** — in neon view the player car, bot cars and
-      pedestrians are NOT drawn as neon wireframe lines like the rest of the world; they render solid.
-      Bring them into the neon material flip (they're not in `theme.collectNeonMats`, and the car/bot
-      models are built separately). 
+- [x] **BUG — neon mode skips the car and bots** — ✅ v0.113.1 (see above): car + all ground/water/rail
+      movers now flip to neon wireframe via the `userData.neonMover` scan in theme.ts. Birds/aircraft/
+      arcade car-pickups still to do.
 - [ ] **BUG — collisions ignore height (flying / bridges / slopes)** — obstacle circles (`solidAt`)
       are 2D, so the car collides with a bot even when it's ~10m ABOVE it: flying over a pedestrian on
       a slope, or driving a bridge deck over traffic on the road beneath. Give each obstacle a y

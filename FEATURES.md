@@ -124,7 +124,9 @@ Built from the real map around you:
 - **Day/night cycle** with a gradient sky, sun disc, **stars and a moon** at night.
 - **Weather** — clear, rain, snow, fog — on a menu toggle or auto-cycling, with matching cloud
   cover and clouds you can toggle.
-- **Neon mode** (V) — the whole city turns to glowing wireframe over a dark world.
+- **Neon mode** (V) — the whole city turns to glowing wireframe over a dark world — buildings,
+  roads, greenery, and everything that moves too: your car glows white, the bots (traffic, buses,
+  bikes, cyclists, pedestrians, trains, boats, livestock) glow amber.
 - **Shadows** (sun shadow map, follows the car) and **street lights** with light pools at night.
 - Low-poly, flat-shaded style throughout; **low / normal / high** rendering tiers.
 

@@ -10,7 +10,19 @@ const BUILDING_EDGE = 0x38f5ff
 const ROAD_EDGE = 0xff5bd0
 const NEON_TREE = 0x1dd85f // greenery glows green in neon
 const NEON_DETAIL = 0xffb13b // lamps/signs glow amber in neon
+const NEON_HERO = 0xffffff // the player car glows white — it's you, and it stands out
+const NEON_BOT = 0xff8a3d // every other mover (traffic, buses, bikes, walkers, trains…) glows warm amber
 const EDGE_ANGLE = 20 // degrees: keep only significant edges (box corners, outlines)
+
+/** How a mover flags itself so neon finds and flips it — `group.userData.neonMover = 'bot'`. */
+export type NeonMover = 'hero' | 'bot'
+
+/** A material's day values, stashed so neon can be undone even after the mover is rebuilt. */
+interface MoverDay {
+  wire: boolean
+  emissive: number
+  emissiveI: number
+}
 
 export interface WorldRefs {
   ground: THREE.Mesh
@@ -44,6 +56,12 @@ export class ThemeController {
   private edgesBuilt = false
   private neonMats: NeonMat[] = []
   private readonly dayGroundColor = new THREE.Color()
+  // Movers (the player car and every bot) are rebuilt as you swap vehicle or
+  // change city, so we can't cache their materials the way we do the static
+  // world. Instead we find them fresh each toggle by their userData flag and
+  // stash each material's day values here, keyed weakly so a disposed mover's
+  // entry falls away with it.
+  private readonly moverDay = new WeakMap<THREE.MeshStandardMaterial, MoverDay>()
 
   /** Called after every mode change so the UI can reflect the current view. */
   onChange: ((mode: ViewMode) => void) | null = null
@@ -94,6 +112,57 @@ export class ThemeController {
     collect(world.roadDetail, NEON_DETAIL)
     collect(world.streetFurniture, NEON_DETAIL)
     collect(world.poiMarkers, NEON_DETAIL)
+  }
+
+  /**
+   * Flip the dynamic movers — the player car and every bot (traffic, buses,
+   * bikes, cyclists, pedestrians, trains, boats, livestock) — to match the
+   * current view. They aren't in `WorldRefs` because they're rebuilt as you
+   * swap vehicle or change city; each flags itself with `userData.neonMover`
+   * and we find it by scanning the scene's top-level children live. In neon
+   * their materials go glowing wireframe (like the instanced world furniture);
+   * off neon their stashed day values are restored.
+   */
+  private styleMovers(neon: boolean): void {
+    for (const root of this.stage.scene.children) {
+      const tag = root.userData.neonMover as NeonMover | undefined
+      if (!tag) continue
+      const color = tag === 'hero' ? NEON_HERO : NEON_BOT
+      const seen = new Set<THREE.Material>()
+      root.traverse((o) => {
+        const m = (o as THREE.Mesh).material
+        if (!m) return
+        for (const mat of Array.isArray(m) ? m : [m]) {
+          if (!(mat instanceof THREE.MeshStandardMaterial) || seen.has(mat)) continue
+          seen.add(mat)
+          if (neon) {
+            if (!this.moverDay.has(mat)) {
+              this.moverDay.set(mat, { wire: mat.wireframe, emissive: mat.emissive.getHex(), emissiveI: mat.emissiveIntensity })
+            }
+            mat.wireframe = true
+            mat.emissive.setHex(color)
+            mat.emissiveIntensity = 1
+          } else {
+            const day = this.moverDay.get(mat)
+            if (day) {
+              mat.wireframe = day.wire
+              mat.emissive.setHex(day.emissive)
+              mat.emissiveIntensity = day.emissiveI
+              this.moverDay.delete(mat)
+            }
+          }
+        }
+      })
+    }
+  }
+
+  /**
+   * Re-flip the movers to the current mode. Call after a car swap or a crowd
+   * rebuild puts fresh, day-styled movers in the scene while neon is on — they'd
+   * otherwise stay solid until the next toggle.
+   */
+  refreshMovers(): void {
+    this.styleMovers(this.mode === 'neon')
   }
 
   toggle(): void {
@@ -163,6 +232,7 @@ export class ThemeController {
         e.mat.emissiveIntensity = e.emissiveI
       }
     }
+    this.styleMovers(neon)
 
     this.onChange?.(this.mode)
   }

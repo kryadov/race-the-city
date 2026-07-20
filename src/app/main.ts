@@ -267,9 +267,11 @@ trialHud.setVisible(false)
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
 function showVehicle(type: VehicleType): void {
   const mesh = buildVehicleMesh(type)
+  mesh.userData.neonMover = 'hero' // the player car flips to neon wireframe like the bots
   flame.attachTo(mesh) // before setVehicleMesh: the bbox is model-space only while untransformed
   driftFx.setPrint(wheelPrint(mesh)) // marks as wide as the tyres that lay them
   setVehicleMesh(stage, mesh)
+  theme.refreshMovers() // a fresh mesh comes in day-styled; re-flip it if we're in neon
 }
 /**
  * How far below a roof still counts as landing on it, in metres. A frame at
@@ -631,6 +633,7 @@ async function loadCity(query: string): Promise<void> {
     cyclists = createCyclists(stage.scene, world.roads, provider, Math.random, countFor(density, 4))
     herds?.dispose()
     herds = createLivestock(stage.scene, world.fields, provider)
+    theme.refreshMovers() // the fresh crowd/traffic is day-styled — re-flip it if we're in neon
     lastRoads = world.roads
     lastParkedCars = parkedCarList
     lastBusStops = world.busStops
@@ -1147,6 +1150,7 @@ const menu = createMenu(
       motorcycles = createMotorcycles(stage.scene, lastRoads, provider, Math.random, countFor(density, 4))
       cyclists?.dispose()
       cyclists = createCyclists(stage.scene, lastRoads, provider, Math.random, countFor(density, 4))
+      theme.refreshMovers() // density rebuild puts fresh, day-styled movers in — re-flip if neon
       birds.dispose()
       birds = makeBirds()
     },

@@ -58,6 +58,7 @@ export function createLivestock(
 ): Livestock {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the animals to wireframe like everything that moves
   const rng = makeRng(0xfa2b17)
   const kinds = Object.keys(SHAPES) as Beast[]
   const herds: { kind: Beast; animals: Animal[]; meshes: THREE.Group[] }[] = []

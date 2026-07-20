@@ -210,6 +210,7 @@ export function createTraffic(
 ): Traffic {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // so the theme flips the bot cars to neon wireframe like the world
   const graph: RoadGraph = buildRoadGraph(roads)
   const rng = makeRng(0xc0ffee)
   const agents: Agent[] = []

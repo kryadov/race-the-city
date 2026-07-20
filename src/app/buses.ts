@@ -293,6 +293,7 @@ export function createBuses(
 ): Buses {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips buses to wireframe like the rest of the traffic
   const graph: RoadGraph = buildRoadGraph(roads)
   const nodes = graph.nodes
   // A private stream for routing choices, kept off `rand`, so the wander of a

@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.113.1 — neon now flips the car and every bot, not just the world
+- In neon view the buildings, roads and greenery went to glowing wireframe, but the **player car,
+  bot traffic and pedestrians stayed solid** — daylit objects sitting in the dark neon world. Now
+  every mover flips too: the **player car glows white**, and the **bots** (traffic, buses,
+  motorcycles, cyclists, pedestrians, trains, boats, livestock) **glow amber wireframe**. A mover
+  flags itself with `userData.neonMover`; the theme finds them live in the scene each toggle and
+  re-flips after a vehicle swap or a crowd rebuild, so a car you swap into or a city you load while
+  in neon comes up neon too. (Birds, aircraft and the arcade car-pickups aren't flipped yet.)
+- 👀 Press **V** for neon while driving — your car is a white wireframe, the traffic/buses/bikes/
+  pedestrians/trains around you glow amber; swap vehicle (arcade) or change city in neon and it stays neon.
+
 ## v0.113.0 — colour-coded nitro
 - Nitro bottles used to be one blue kind with one fixed boost. They now come in three colours,
   and the colour is the boost: **blue** is the balanced standard you already knew (×10 top speed,
