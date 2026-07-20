@@ -61,6 +61,7 @@ import { createTrafficLights, type TrafficLights } from '../world/trafficLights'
 import { createMotorcycles, type Motorcycles } from './motorcycles'
 import { createCyclists, type Cyclists } from './cyclists'
 import { createLivestock, type Livestock } from './livestock'
+import { createCrops, type Crops } from './crops'
 import {
   getDefaultCity,
   setDefaultCity,
@@ -267,6 +268,11 @@ let trafficLights: TrafficLights | null = null
 let motorcycles: Motorcycles | null = null
 let cyclists: Cyclists | null = null
 let herds: Livestock | null = null
+// Standing crop over the farmland, mown by the combine. Static world (neon via
+// WorldRefs, not the mover tag), but recreated per city like the movers so the mown
+// state resets with the field. Declared here, above loadCity, to stay clear of the
+// module-scope temporal dead zone.
+let crops: Crops | null = null
 const autopilot = createAutopilot()
 autopilot.setEnabled(getDemo())
 const trial = createTimeTrial(stage.scene)
@@ -589,7 +595,13 @@ async function loadCity(query: string): Promise<void> {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
-    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh })
+    // Standing crop over the farmland fields — mown to stubble where the combine
+    // drives. Built before setWorld so its materials are registered for the neon
+    // flip (it is static world, not a tagged mover). Disposed + rebuilt per city so
+    // the mown strips reset with the field.
+    crops?.dispose()
+    crops = createCrops(stage.scene, world.surfaces, provider)
+    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh, crops: crops.object })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
     // index buildings (with heights) so the camera can tell when one blocks the car
@@ -978,6 +990,7 @@ async function loadCity(query: string): Promise<void> {
         motorcycles?.update(dt, night > 0)
         cyclists?.update(dt, night > 0)
         herds?.update(dt)
+        crops?.update(dt, car.x, car.z, vehicle) // mows a strip only while you're in the combine
         // Bubbles stream off the car when it's sunk under water above its roof.
         const CAR_ROOF = 1.5 // metres from the car's floor to its roof
         let surfaceY = -Infinity

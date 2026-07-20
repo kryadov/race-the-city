@@ -85,8 +85,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 ### ⏳ Still open / bigger — need design or a review pass
 - [x] **Menu refactor + arcade "find a car"** — ✅ v0.112.0 (menu, Esc-reachable modes) + v0.113.0/113.2
       (find-a-car: drive into a pickable car to swap type; v0.113.2 stops it offering your current type).
-- [ ] **Combine harvester mows fields** — drive a combine over tall grass/wheat → mown stubble, hay
-      bales form behind. Fields need a mown state + the harvester in its wake. Design-level.
+- [x] **Combine harvester mows fields** — ✅ v0.124.0: `src/app/crops.ts` — capped instanced crop over
+      farmland surfaces on a coarse mown grid; driving the combine shrinks a cell's stalks to stubble
+      (idempotent) + drops the odd hay bale (capped), update early-returns unless vehicle==='combine';
+      neon via WorldRefs.crops. Tested in `crops.test.ts`.
 - [x] **Neon mode skips the car & bots** — ✅ v0.113.1: movers flag `userData.neonMover` ('hero'|'bot');
       theme scans the scene live each toggle + on `refreshMovers()` (car swap / crowd rebuild), flipping
       MeshStandardMaterials to wireframe+emissive (white car, amber bots). v0.113.2 completed coverage:
@@ -130,10 +132,8 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       menu with the single-select mode picker, arcade (🕹 Find-a-car) among them.
 - [x] **Arcade mode: "find a car"** — ✅ v0.113.0/113.2: `carPickups.ts` scatters pickable cars of
       varied type; drive into one to become it. v0.113.2 excludes your current type + neon-flips them.
-- [ ] **Combine harvester mows fields** — drive a combine onto a field of tall grass/wheat: the
-      sectors you pass over turn to **mown stubble**, and a few sectors behind, **haystacks / hay
-      bales** form in the harvested strip. Field sectors track a mown state; harvester lays bales in
-      its wake.
+- [x] **Combine harvester mows fields** — ✅ v0.124.0 (see above; `crops.ts`): mown-grid stubble under
+      the combine + capped hay bales in the cut strip.
 - [ ] **Doors — natural colour + varied handles** — the door brown looks unnatural; replace it with
       a more natural palette (a few wood/painted tones) and add **a couple of different handle types**
       (knob, lever/bar) so doors read properly. (Door geometry lives with the building facades /

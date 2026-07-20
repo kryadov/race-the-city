@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.124.0 — the combine mows the fields
+- Drive the **🌾 combine harvester** over a **farmland** field and it now cuts a swathe: the standing
+  gold crop shrinks to **stubble** where you pass, and every so often a **hay bale** is left behind in
+  the cut strip. Any other vehicle leaves the crop standing — the mowing update costs nothing unless
+  you're actually in the combine. The crop is a capped, field-clipped scatter of stalks over a coarse
+  mown grid; bales are capped too; it resets with each new city and glows in neon like the rest of the world.
+- 👀 Pick the **🌾 combine**, find a farmland field, and drive across it — a cut strip of stubble follows
+  you, with the odd round bale.
+
 ## v0.123.0 — people get in and out of the parking cars
 - The living car-park cars (v0.122.0) now have someone getting in and out: when a car has just
   arrived and parked, a figure steps out and walks off toward the kerb; before a car leaves, a figure

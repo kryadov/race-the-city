@@ -120,7 +120,9 @@ Built from the real map around you:
 - **Parking** tarmac with painted bays, filled with parked cars — and a few of them **come alive**:
   they pull out of a bay and drive off, others arrive and park (all within the lot), and **someone
   gets in and out** — a figure boards a car before it leaves and steps out when one arrives.
-  **Manhole covers** dotted down the streets; **benches**
+  Drive the **🌾 combine** across a **farmland field** and it **mows** a swathe — standing crop turns
+  to stubble in your wake, with the odd **hay bale** left behind. **Manhole covers** dotted down the
+  streets; **benches**
   (some with someone sat on them), **bus stops**, and **café / fuel signposts** at those spots.
   **Landmarks** (museums, monuments, memorials, castles, viewpoints) get their own signpost.
 - **Railways** with **trains** — freight, intercity, commuter — running the real lines out of
