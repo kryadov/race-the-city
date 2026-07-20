@@ -6,6 +6,8 @@ import {
   cyclePosition,
   cycleOpacity,
   exitPoint,
+  kerbPoint,
+  walkerState,
   type Cycle,
 } from '../../src/app/livingParking'
 import { pointInPolygon } from '../../src/physics/collide'
@@ -133,15 +135,98 @@ describe('cyclePosition', () => {
   })
 })
 
+describe('kerbPoint', () => {
+  const bay = v(60, 40)
+  const mid = { x: 34, z: 24 } // the lot's centroid
+
+  it('sits inside the lot, a few metres in toward the interior', () => {
+    const k = kerbPoint(bay, lot)
+    expect(k).not.toBeNull()
+    expect(pointInPolygon(k!.x, k!.z, lot)).toBe(true)
+    // It walked inward: nearer the centroid than the bay is.
+    expect(Math.hypot(k!.x - mid.x, k!.z - mid.z)).toBeLessThan(Math.hypot(bay.x - mid.x, bay.z - mid.z))
+    // ...but not far — a stride of a few metres, not a march across the lot.
+    expect(Math.hypot(k!.x - bay.x, k!.z - bay.z)).toBeLessThan(4)
+  })
+
+  it('is a fixed per-bay point (no randomness)', () => {
+    expect(kerbPoint(bay, lot)).toEqual(kerbPoint(bay, lot))
+  })
+})
+
+describe('walkerState', () => {
+  // Windows: ALIGHT_T = 2.5s at the start of PARKED, BOARD_T = 2.5s at the end.
+  const bay = v(60, 40)
+  const kerb = kerbPoint(bay, lot)!
+  const c: Cycle = { phase: 'parked', clock: 0, dwell: 12, travel: 5, gap: 4 }
+  const near = (a: Vec2, b: Vec2): number => Math.hypot(a.x - b.x, a.z - b.z)
+
+  it('is hidden outside the PARKED phase', () => {
+    for (const phase of ['leaving', 'empty', 'arriving'] as const) {
+      expect(walkerState({ ...c, phase, clock: 1 }, bay, kerb).visible).toBe(false)
+    }
+  })
+
+  it('is hidden in the dead time between the two windows', () => {
+    expect(walkerState({ ...c, clock: 6 }, bay, kerb).visible).toBe(false) // mid-dwell
+  })
+
+  it('alights bay → kerb, fading out as it arrives', () => {
+    const start = walkerState({ ...c, clock: 0 }, bay, kerb)
+    expect(start.visible).toBe(true)
+    expect(near(start.pos, bay)).toBeCloseTo(0) // steps out at the car
+    expect(start.opacity).toBeCloseTo(1)
+    const end = walkerState({ ...c, clock: 2.49 }, bay, kerb)
+    expect(end.visible).toBe(true)
+    expect(near(end.pos, kerb)).toBeLessThan(0.05) // reached the kerb
+    expect(end.opacity).toBeLessThan(0.2) // and has all but faded out
+  })
+
+  it('boards kerb → bay, fading in at the kerb', () => {
+    const start = walkerState({ ...c, clock: c.dwell - 2.49 }, bay, kerb)
+    expect(start.visible).toBe(true)
+    expect(near(start.pos, kerb)).toBeLessThan(0.05) // appears at the kerb
+    expect(start.opacity).toBeLessThan(0.2) // faint at first
+    const end = walkerState({ ...c, clock: c.dwell - 0.01 }, bay, kerb)
+    expect(end.visible).toBe(true)
+    expect(near(end.pos, bay)).toBeLessThan(0.05) // back at the car (getting in)
+    expect(end.opacity).toBeCloseTo(1)
+  })
+
+  it('never leaves the lot while it is on show', () => {
+    let cyc: Cycle = { phase: 'parked', clock: 0, dwell: 12, travel: 6, gap: 5 }
+    for (let i = 0; i < 400; i++) {
+      cyc = advanceCycle(cyc, 0.1)
+      const w = walkerState(cyc, bay, kerb)
+      if (w.visible) expect(pointInPolygon(w.pos.x, w.pos.z, lot), `${w.pos.x},${w.pos.z}`).toBe(true)
+    }
+  })
+})
+
 describe('createLivingParking', () => {
   const scene = (): THREE.Scene => new THREE.Scene()
+  /** Just the animated cars in the mover group (walkers share it, tagged apart). */
+  const carsOf = (g: THREE.Group): THREE.Object3D[] =>
+    g.children.filter((o) => o.userData.livingKind === 'car')
 
   it('brings a lot to life with a small, capped pool', () => {
     const s = scene()
     const lp = createLivingParking(s, [lot], flat, testRng(1))
     const group = s.children[0] as THREE.Group
-    expect(group.children.length).toBeGreaterThan(0)
-    expect(group.children.length).toBeLessThanOrEqual(2) // per-lot cap
+    expect(carsOf(group).length).toBeGreaterThan(0)
+    expect(carsOf(group).length).toBeLessThanOrEqual(2) // per-lot cap
+    lp.dispose()
+  })
+
+  it('gives its cars a walker figure to get in and out', () => {
+    const s = scene()
+    const lp = createLivingParking(s, [lot], flat, testRng(20))
+    const group = s.children[0] as THREE.Group
+    let heads = 0
+    group.traverse((o) => {
+      if ((o as THREE.Mesh).geometry instanceof THREE.SphereGeometry) heads++ // a walker's head
+    })
+    expect(heads).toBeGreaterThan(0)
     lp.dispose()
   })
 
@@ -150,8 +235,8 @@ describe('createLivingParking', () => {
     const lots = Array.from({ length: 20 }, (_, i) => square(120, i * 200, 0))
     const lp = createLivingParking(s, lots, flat, testRng(2))
     const group = s.children[0] as THREE.Group
-    expect(group.children.length).toBeGreaterThan(0)
-    expect(group.children.length).toBeLessThanOrEqual(12)
+    expect(carsOf(group).length).toBeGreaterThan(0)
+    expect(carsOf(group).length).toBeLessThanOrEqual(12)
     lp.dispose()
   })
 
@@ -167,22 +252,23 @@ describe('createLivingParking', () => {
     const b = scene()
     createLivingParking(a, [lot], flat, testRng(4))
     createLivingParking(b, [lot], flat, testRng(4))
-    const ga = a.children[0] as THREE.Group
-    const gb = b.children[0] as THREE.Group
-    expect(ga.children.length).toBe(gb.children.length)
-    expect(ga.children[0].position.x).toBeCloseTo(gb.children[0].position.x)
-    expect(ga.children[0].position.z).toBeCloseTo(gb.children[0].position.z)
+    const ga = carsOf(a.children[0] as THREE.Group)
+    const gb = carsOf(b.children[0] as THREE.Group)
+    expect(ga.length).toBe(gb.length)
+    expect(ga[0].position.x).toBeCloseTo(gb[0].position.x)
+    expect(ga[0].position.z).toBeCloseTo(gb[0].position.z)
   })
 
-  it('keeps every animated car inside its lot for the whole run', () => {
+  it('keeps every car AND its walker inside the lot for the whole run', () => {
     const s = scene()
     const lp = createLivingParking(s, [lot], flat, testRng(5))
     const group = s.children[0] as THREE.Group
     expect(group.children.length).toBeGreaterThan(0)
     for (let i = 0; i < 800; i++) {
       lp.update(0.1) // ~80s: several full cycles per car
-      for (const car of group.children) {
-        expect(pointInPolygon(car.position.x, car.position.z, lot), `${car.position.x},${car.position.z}`).toBe(true)
+      // Every child — car or walker — must stay on the tarmac, always.
+      for (const o of group.children) {
+        expect(pointInPolygon(o.position.x, o.position.z, lot), `${o.userData.livingKind} ${o.position.x},${o.position.z}`).toBe(true)
       }
     }
     lp.dispose()

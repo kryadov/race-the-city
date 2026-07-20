@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.123.0 — people get in and out of the parking cars
+- The living car-park cars (v0.122.0) now have someone getting in and out: when a car has just
+  arrived and parked, a figure steps out and walks off toward the kerb; before a car leaves, a figure
+  walks up from the kerb and boards, and the car pulls away occupied. The walker stays on a short
+  straight path between the bay and a point inside the lot, so it never clips a building. Bounded to
+  the same handful of animated cars, neon-aware.
+- 👀 Watch a car in a lot: someone walks up and gets in before it drives off, and steps out when one arrives.
+
 ## v0.122.0 — living car parks
 - Car parks aren't frozen showrooms any more: a few cars in each lot come alive — they sit parked,
   pull slowly out of their bay and fade away at the lot's mouth, and after a beat a car fades back in

@@ -36,6 +36,17 @@ const BAY_CLEAR = 2.5
 const EXIT_INSET = 2
 /** Least bay→exit distance worth animating, in metres — closer than this reads as a twitch. */
 const MIN_TRAVEL_DIST = 4
+/** Seconds at the START of PARKED a figure spends getting out and walking off. */
+const ALIGHT_T = 2.5
+/** Seconds at the END of PARKED a figure spends walking up and getting in. */
+const BOARD_T = 2.5
+/** Least dead time between the alight and board windows — a walker is only built
+ *  if the dwell is comfortably longer than both windows plus this gap. */
+const WALKER_GAP = 1
+/** How far from the bay, toward the lot interior, the figure walks — metres. */
+const KERB_DIST = 3
+/** Clothes for the little figures — a plain enough spread. */
+const CLOTH = [0x3a6ea5, 0x8f4a4a, 0x4a6b4a, 0x6b5a7a, 0x555b62, 0xb0b6bd]
 /** Body colours a car park is full of — silver, white, grey, black, the odd colour. */
 const PALETTE = [
   0x2c3e50, 0xb0b6bd, 0xe8eef2, 0x1c1f26, 0x8a1c1c,
@@ -168,6 +179,67 @@ export function cycleOpacity(c: Cycle): number {
   }
 }
 
+/** A walker figure's pose this instant: whether it's on show, where, and how solid. */
+export interface Walk {
+  visible: boolean
+  pos: Vec2
+  opacity: number
+}
+
+/**
+ * The figure that gets in and out of an animated car (pure). It only appears in
+ * two short windows of the PARKED phase, and is hidden otherwise:
+ *
+ * - ALIGHTING — the first `ALIGHT_T` seconds: someone steps out at the car (bay)
+ *   and walks to the kerb point, fading out as they arrive (they've gone).
+ * - BOARDING — the last `BOARD_T` seconds (clock > dwell − BOARD_T): someone
+ *   fades in at the kerb and walks to the car (bay), where they board — so the
+ *   car pulls away occupied when LEAVING begins.
+ *
+ * The figure stays on the straight bay↔kerb segment, which is inside the lot, so
+ * it can never clip a building. Hidden entirely during leaving/empty/arriving.
+ */
+export function walkerState(c: Cycle, bay: Vec2, kerb: Vec2): Walk {
+  if (c.phase === 'parked') {
+    if (c.clock < ALIGHT_T) {
+      const t = clamp01(c.clock / ALIGHT_T)
+      return {
+        visible: true,
+        pos: { x: bay.x + (kerb.x - bay.x) * t, z: bay.z + (kerb.z - bay.z) * t },
+        opacity: t < 0.6 ? 1 : Math.max(0, 1 - (t - 0.6) / 0.4), // fades out as it reaches the kerb
+      }
+    }
+    if (c.clock > c.dwell - BOARD_T) {
+      const u = clamp01((c.clock - (c.dwell - BOARD_T)) / BOARD_T)
+      return {
+        visible: true,
+        pos: { x: kerb.x + (bay.x - kerb.x) * u, z: kerb.z + (bay.z - kerb.z) * u },
+        opacity: u < 0.4 ? u / 0.4 : 1, // fades in at the kerb, solid by the car
+      }
+    }
+  }
+  return { visible: false, pos: { x: bay.x, z: bay.z }, opacity: 0 }
+}
+
+/**
+ * A fixed kerb point for a bay: a few metres from the bay toward the lot's
+ * interior (its centroid), where the figure alights to / boards from. Clamped so
+ * it can't overshoot the centroid, and verified INSIDE the polygon — returns null
+ * if no safe point is found (a gnarly lot shape) or the walk would be too short
+ * to read, in which case the caller simply gives that car no walker.
+ */
+export function kerbPoint(bay: Vec2, ring: Vec2[]): Vec2 | null {
+  const c = centroid(ring)
+  const dx = c.x - bay.x
+  const dz = c.z - bay.z
+  const len = Math.hypot(dx, dz)
+  if (len < 1e-3) return null
+  const step = Math.min(KERB_DIST, len * 0.8) // don't walk past the middle of the lot
+  if (step < 1.5) return null // too short a stroll to bother with
+  const k = { x: bay.x + (dx / len) * step, z: bay.z + (dz / len) * step }
+  return pointInPolygon(k.x, k.z, ring) ? k : null
+}
+
 /** Nearest point on segment ab to the origin. */
 function closestToOrigin(a: Vec2, b: Vec2): Vec2 {
   const abx = b.x - a.x
@@ -236,6 +308,11 @@ interface AnimCar {
   parkYaw: number
   /** rotation.y pointing bay→exit (the way it pulls out); arriving faces the reverse. */
   outYaw: number
+  /** The figure that gets in/out, and where it walks to — null when the lot shape
+   *  left no safe kerb point, in which case this car simply has no walker. */
+  walker: THREE.Group | null
+  walkerMats: THREE.Material[]
+  kerb: Vec2 | null
 }
 
 const mat = (c: number): THREE.MeshStandardMaterial =>
@@ -292,6 +369,33 @@ function buildCar(tint: number): { group: THREE.Group; mats: THREE.Material[] } 
 }
 
 /**
+ * A little low-poly figure (~1.6m) — two legs, a torso, two arms and a head, cut
+ * from the same cloth as the pedestrians (see pedestrians.ts). Authored with the
+ * feet at y = 0 so a position drop stands it on the ground, facing +z. Every
+ * material is collected so it can be faded in and out with the walk.
+ */
+function buildWalker(cloth: number): { group: THREE.Group; mats: THREE.Material[] } {
+  const group = new THREE.Group()
+  const mats: THREE.Material[] = []
+  const clothMat = mat(cloth)
+  const legMat = mat(0x33363d) // dark trousers
+  const skinMat = mat(0xe0ac69)
+  mats.push(clothMat, legMat, skinMat)
+  const add = (geo: THREE.BufferGeometry, m: THREE.MeshStandardMaterial): void => {
+    const mesh = new THREE.Mesh(geo, m)
+    mesh.frustumCulled = false // it moves; an off-screen bounding box must not cull it
+    group.add(mesh)
+  }
+  for (const sx of [-1, 1]) {
+    add(new THREE.BoxGeometry(0.16, 0.75, 0.18).translate(sx * 0.11, 0.375, 0), legMat)
+    add(new THREE.BoxGeometry(0.11, 0.5, 0.12).translate(sx * 0.28, 1.05, 0), clothMat)
+  }
+  add(new THREE.BoxGeometry(0.42, 0.6, 0.26).translate(0, 1.05, 0), clothMat) // torso
+  add(new THREE.SphereGeometry(0.15, 6, 5).translate(0, 1.5, 0), skinMat) // head
+  return { group, mats }
+}
+
+/**
  * A handful of parking lots come alive: cars drive in, park, dwell and drive out
  * again, so a car park reads as active rather than frozen. All motion is a slow
  * straight lerp between a bay and the lot's fixed exit point, both inside the lot
@@ -340,6 +444,7 @@ export function createLivingParking(
       if (cars.length >= GLOBAL_CAP || inLot >= PER_LOT_CAP) break
       inLot++
       const { group: carMesh, mats } = buildCar(PALETTE[Math.floor(rng() * PALETTE.length)])
+      carMesh.userData.livingKind = 'car'
       const dist = Math.hypot(bay.x - exit.x, bay.z - exit.z)
       const travel = Math.max(TRAVEL_MIN, Math.min(TRAVEL_MAX, dist / SPEED))
       // A random starting phase and offset, so the cars aren't all in lock-step.
@@ -354,7 +459,20 @@ export function createLivingParking(
       cycle.clock = rng() * phaseDuration(cycle) // start part-way through that phase
       const outYaw = Math.atan2(exit.x - bay.x, exit.z - bay.z)
       group.add(carMesh)
-      cars.push({ mesh: carMesh, mats, bay, exit, cycle, parkYaw, outYaw })
+      // A figure gets in/out during PARKED — but only if the dwell is comfortably
+      // longer than the two windows AND the lot shape yields a safe in-lot kerb
+      // point. Either failing simply means this car has no walker (still a valid car).
+      const kerb = cycle.dwell > ALIGHT_T + BOARD_T + WALKER_GAP ? kerbPoint(bay, ring) : null
+      let walker: THREE.Group | null = null
+      let walkerMats: THREE.Material[] = []
+      if (kerb) {
+        const built = buildWalker(CLOTH[Math.floor(rng() * CLOTH.length)])
+        walker = built.group
+        walker.userData.livingKind = 'walker'
+        walkerMats = built.mats
+        group.add(walker)
+      }
+      cars.push({ mesh: carMesh, mats, bay, exit, cycle, parkYaw, outYaw, walker, walkerMats, kerb })
     }
   }
 
@@ -370,6 +488,21 @@ export function createLivingParking(
       c.cycle.phase === 'leaving' ? c.outYaw
       : c.cycle.phase === 'arriving' ? c.outYaw + Math.PI
       : c.parkYaw
+    // The figure getting in/out, on the bay↔kerb line inside the lot. Its position
+    // is always kept on that (in-lot) segment even while hidden, so it can never be
+    // caught sitting outside the polygon.
+    if (c.walker && c.kerb) {
+      const w = walkerState(c.cycle, c.bay, c.kerb)
+      c.walker.visible = w.visible && w.opacity > 0.001
+      for (const m of c.walkerMats) m.opacity = w.opacity
+      c.walker.position.set(w.pos.x, provider.heightAt(w.pos.x, w.pos.z), w.pos.z)
+      // Face the way it's walking: out to the kerb while alighting, back to the
+      // car while boarding (the last window of PARKED).
+      const boarding = c.cycle.clock > c.cycle.dwell - BOARD_T
+      const from = boarding ? c.kerb : c.bay
+      const to = boarding ? c.bay : c.kerb
+      c.walker.rotation.y = Math.atan2(to.x - from.x, to.z - from.z)
+    }
   }
   for (const c of cars) seat(c)
 

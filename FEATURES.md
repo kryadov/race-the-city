@@ -118,8 +118,9 @@ Built from the real map around you:
 - **Greenery** — parks, woods and grass, with **trees whose kind follows latitude** (palms in
   the Mediterranean band, firs up north), plus fountains, statues and flowerbeds.
 - **Parking** tarmac with painted bays, filled with parked cars — and a few of them **come alive**:
-  they pull out of a bay, drive off, and others arrive and park (all within the lot). **Manhole covers**
-  dotted down the streets; **benches**
+  they pull out of a bay and drive off, others arrive and park (all within the lot), and **someone
+  gets in and out** — a figure boards a car before it leaves and steps out when one arrives.
+  **Manhole covers** dotted down the streets; **benches**
   (some with someone sat on them), **bus stops**, and **café / fuel signposts** at those spots.
   **Landmarks** (museums, monuments, memorials, castles, viewpoints) get their own signpost.
 - **Railways** with **trains** — freight, intercity, commuter — running the real lines out of

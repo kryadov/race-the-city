@@ -247,9 +247,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       `covered`/`tunnel`, or a building with an arch) and **render the building bridged over the way
       with an open passage** — so it reads right AND the **player can drive through** it too (bots can
       now, the player can't). Applies to both roads and rail lines.
-- [ ] **People get in and out of cars** — a pedestrian can walk up to a (parked) car, get in and the
-      car drives off; and an arriving car can drop one off. Pairs with living parking lots and the
-      taxi passenger figures already in `taxi.ts`.
+- [x] **People get in and out of cars** — ✅ v0.123.0: the living-parking cars (v0.122.0) now board/alight
+      a walker — `walkerState` + `kerbPoint` in `livingParking.ts` overlay the PARKED phase (alight bay→kerb
+      fading out at the start, board kerb→bay fading in before LEAVING), on a straight in-lot segment (never
+      clips a building). Bounded to the animated cars, neon-covered. Tested in `livingParking.test.ts`.
 - [ ] **Arcade mode: Police / Robber (tag)** — a mode where you're **either the police (goal: touch
       the runner) or the runner (goal: avoid being touched)**. AI drives the other role on the road
       graph; win/lose on contact or a timer. Slots into the start-menu mode list + `applyTrial`/
