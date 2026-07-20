@@ -134,10 +134,50 @@ function withCorridor(scatter: Vec2[], chain: Vec2[]): Vec2[] {
   return [...chain, ...clear]
 }
 
-/** A glowing NOS-style bottle used as a speed-boost pickup. */
-function bottleMesh(): THREE.Group {
+/**
+ * A kind of nitrous bottle. The colour is the tell; the numbers are the point.
+ *
+ * `mult` is the top-speed multiplier at full boost, `accel` the acceleration
+ * bonus factor, `time` the seconds the window lasts. A player learns to read the
+ * colour: red is a short hard punch, green a long gentle push, blue the balanced
+ * standard they already know.
+ */
+export interface NitroType {
+  id: 'standard' | 'punch' | 'surge'
+  /** Bottle body colour. */
+  color: number
+  /** Top-speed multiplier at full boost (the old fixed BOOST_MULT). */
+  mult: number
+  /** Acceleration bonus factor at full boost (the old fixed `2`). */
+  accel: number
+  /** How long the boost window lasts, in seconds. */
+  time: number
+}
+
+/**
+ * The nitro roster. Blue is the original feel (×10 top speed, 2.5s) so nothing a
+ * player knew changed; red trades duration for a harder, faster hit; green trades
+ * the hit for a long steady pull. Kept short so the field reads as three clear
+ * colours, not a rainbow.
+ */
+export const NITRO_TYPES: readonly NitroType[] = [
+  { id: 'standard', color: 0x39c6ff, mult: 10, accel: 2.0, time: 2.5 },
+  { id: 'punch', color: 0xff4d3a, mult: 15, accel: 3.4, time: 1.3 },
+  { id: 'surge', color: 0x49e06a, mult: 7, accel: 1.2, time: 4.6 },
+]
+
+/**
+ * Which nitro type bottle `i` in the field is. A plain cycle so the handful of
+ * bottles out at once always shows every colour — deterministic, no reshuffle.
+ */
+export const nitroTypeFor = (i: number): NitroType =>
+  NITRO_TYPES[((i % NITRO_TYPES.length) + NITRO_TYPES.length) % NITRO_TYPES.length]
+
+/** A glowing NOS-style bottle used as a speed-boost pickup, tinted for its type. */
+function bottleMesh(type: NitroType): THREE.Group {
   const g = new THREE.Group()
-  const mat = new THREE.MeshStandardMaterial({ color: 0x39c6ff, emissive: 0x1e7fff, emissiveIntensity: 0.7, flatShading: true })
+  const emissive = new THREE.Color(type.color).multiplyScalar(0.5)
+  const mat = new THREE.MeshStandardMaterial({ color: type.color, emissive, emissiveIntensity: 0.7, flatShading: true })
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.1, 10), mat)
   body.position.y = 0.55
   const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.32, 0.35, 10), mat)
@@ -156,13 +196,13 @@ function bottleMesh(): THREE.Group {
  * it lays a spaced chain along each long straight arterial, so an arterial you
  * find becomes a corridor you can boost the whole way across.
  */
-export interface Nitro extends Pickups {
+export interface Nitro extends Pickups<NitroType> {
   setSpots(spots: Vec2[], provider: ElevationProvider, carX?: number, carZ?: number, roads?: Road[]): void
 }
 
-/** Build the nitro field. */
+/** Build the nitro field — a spread of colour-coded bottles, each reporting its own boost. */
 export function createNitro(scene: THREE.Scene): Nitro {
-  const base = createPickups(scene, bottleMesh)
+  const base = createPickups<NitroType>(scene, (i) => bottleMesh(nitroTypeFor(i)), undefined, nitroTypeFor)
   return {
     ...base,
     setSpots(spots, provider, carX = 0, carZ = 0, roads) {

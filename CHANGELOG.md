@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.113.0 — colour-coded nitro
+- Nitro bottles used to be one blue kind with one fixed boost. They now come in three colours,
+  and the colour is the boost: **blue** is the balanced standard you already knew (×10 top speed,
+  2.5s), **red** is a short hard punch (×15, harder acceleration, but only 1.3s), **green** a long
+  gentle push (×7, 4.6s). The whole field shows every colour at once, so you can pick your hit.
+  (Under the hood the pickup engine now carries a per-bottle payload, so the bottle you grab
+  reports its own type instead of a bare "collected".)
+- 👀 Drive through the scattered nitro — bottles in blue/red/green; grab a **red** for a brief
+  savage kick, a **green** to hold a boost a long way across the map, **blue** for the old feel.
+
 ## v0.112.0 — one unified menu, plus three world fixes
 The start splash and the in-game ⚙ side menu are now **one menu**. It opens the same way at the start
 and on **Esc**, keeps the branded main-screen look (city, car, a **single-select mode picker** —

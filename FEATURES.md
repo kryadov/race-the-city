@@ -90,7 +90,9 @@ drive along it**, and clear a bungalow, fountain or statue mid-jump.
 - **Demo / autopilot** — a menu toggle drives the car for you around the road network (also the
   attract-mode backdrop).
 - **Pickups** — **nitro** speed boosts and **petrol cans** scattered on the roads; run low on
-  fuel and the car slows until you grab a can.
+  fuel and the car slows until you grab a can. Nitro comes **colour-coded**: **blue** is the
+  balanced standard, **red** a short hard punch (faster, but brief), **green** a long gentle
+  push — the colour tells you what kind of boost you're grabbing.
 - **Record & replay** — a **REC** button (bottom-centre, in-game) records your drive; **Replay**
   retraces it with the camera following. Changing city clears the recording.
 

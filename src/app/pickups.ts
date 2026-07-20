@@ -33,21 +33,23 @@ export const APART_MIN = 14
 /** How many spots to try at each gap before settling for less. */
 const TRIES = 30
 
-export interface Pickups {
+export interface Pickups<T = boolean> {
   /** Scatter the pickups over a set of candidate points (road vertices) around the car. */
   setSpots(spots: Vec2[], provider: ElevationProvider, carX?: number, carZ?: number): void
-  /** Spin/bob them and test pickup; returns true if one was collected. */
-  update(carX: number, carZ: number, dt: number): boolean
+  /** Spin/bob them and test pickup; returns the collected bottle's payload, else null. */
+  update(carX: number, carZ: number, dt: number): T | null
   setEnabled(on: boolean): void
   reset(): void
 }
 
-interface Bottle {
+interface Bottle<T> {
   mesh: THREE.Group
   x: number
   z: number
   active: boolean
   respawn: number
+  /** What this bottle hands back when collected — a boost type, a fuel flag, whatever the caller assigned. */
+  payload: T
 }
 
 /**
@@ -59,17 +61,24 @@ interface Bottle {
  * want every word of that and differ only in the model, so they get it from
  * here rather than from a copy of it.
  *
- * @param build the model, standing on the ground at its own origin
+ * @param build the model for bottle `i`, standing on the ground at its own origin
+ * @param payloadOf what bottle `i` reports when collected (defaults to `true`, so a
+ *   caller that only cares THAT one was taken keeps a truthy/`null` result)
  */
-export function createPickups(scene: THREE.Scene, build: () => THREE.Group, count = DEFAULT_COUNT): Pickups {
+export function createPickups<T = boolean>(
+  scene: THREE.Scene,
+  build: (i: number) => THREE.Group,
+  count = DEFAULT_COUNT,
+  payloadOf: (i: number) => T = (() => true) as unknown as (i: number) => T,
+): Pickups<T> {
   const group = new THREE.Group()
   scene.add(group)
-  const bottles: Bottle[] = []
+  const bottles: Bottle<T>[] = []
   for (let i = 0; i < count; i++) {
-    const mesh = build()
+    const mesh = build(i)
     mesh.visible = false
     group.add(mesh)
-    bottles.push({ mesh, x: 0, z: 0, active: false, respawn: 0 })
+    bottles.push({ mesh, x: 0, z: 0, active: false, respawn: 0, payload: payloadOf(i) })
   }
 
   let spots: Vec2[] = []
@@ -98,11 +107,11 @@ export function createPickups(scene: THREE.Scene, build: () => THREE.Group, coun
   }
 
   /** Is this spot at least `gap` from every other bottle that is out? */
-  const clearOfOthers = (s: Vec2, self: Bottle, gap: number): boolean =>
+  const clearOfOthers = (s: Vec2, self: Bottle<T>, gap: number): boolean =>
     bottles.every((o) => o === self || !o.active || Math.hypot(o.x - s.x, o.z - s.z) >= gap)
 
   /** How far the nearest other bottle is from a spot. */
-  const lonelinessOf = (s: Vec2, self: Bottle): number => {
+  const lonelinessOf = (s: Vec2, self: Bottle<T>): number => {
     let near = Infinity
     for (const o of bottles) {
       if (o === self || !o.active) continue
@@ -112,7 +121,7 @@ export function createPickups(scene: THREE.Scene, build: () => THREE.Group, coun
   }
 
   /** A spot away from the other bottles: nicely so if it can, as far as it can if not. */
-  const pickApart = (b: Bottle): Vec2 | null => {
+  const pickApart = (b: Bottle<T>): Vec2 | null => {
     let best: Vec2 | null = null
     let bestGap = -1
     for (const gap of [APART, APART_MIN]) {
@@ -135,7 +144,7 @@ export function createPickups(scene: THREE.Scene, build: () => THREE.Group, coun
     return best
   }
 
-  const place = (b: Bottle): void => {
+  const place = (b: Bottle<T>): void => {
     const s = provider ? pickApart(b) : null
     if (!s || !provider) {
       b.active = false
@@ -161,11 +170,11 @@ export function createPickups(scene: THREE.Scene, build: () => THREE.Group, coun
       }
     },
     update(cx, cz, dt) {
-      if (!enabled) return false
+      if (!enabled) return null
       carX = cx
       carZ = cz
       spin += dt
-      let picked = false
+      let picked: T | null = null
       for (const b of bottles) {
         if (b.active) {
           // the car has driven away from this one — bring it back into the ring
@@ -181,7 +190,7 @@ export function createPickups(scene: THREE.Scene, build: () => THREE.Group, coun
             b.active = false
             b.mesh.visible = false
             b.respawn = RESPAWN
-            picked = true
+            if (picked === null) picked = b.payload // first bottle reached this frame is the one reported
           }
         } else if (b.respawn > 0) {
           b.respawn -= dt

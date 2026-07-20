@@ -226,10 +226,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       keep them findable). Needs a straight-run detector over the road graph in the pickup scatter
       (pickups.ts + the road structure) — design first: identify long low-curvature runs, drop
       bottles along them at ~boost-window spacing.
-- [ ] **Colour-coded nitro** — nitro bottles come in **different colours**, and the colour sets the
-      boost: a **different acceleration effect and/or a different duration** per colour (e.g. a short
-      hard punch vs a long gentle push). Needs a small table of nitro types (colour → boost strength
-      → duration), the pickup mesh tinted per type, and `car`/boost logic reading the type it grabbed.
+- [x] **Colour-coded nitro** — ✅ v0.113.0: `NITRO_TYPES` table (blue standard / red short-hard /
+      green long-gentle) → colour, top-speed mult, accel bonus, duration; `createPickups<T>` now
+      carries a per-bottle payload so `nitro.update` reports the collected type, and main.ts sets
+      `boostTimer/boostMult/boostAccel` from it. Tests in `test/app/nitro.test.ts` + `pickups.test.ts`.
 - [ ] **Living parking lots** — parking areas should hold **a few parked cars of varied type and
       colour** (not packed — enough to read as a car park), and cars should **drive in, park, sit,
       then drive out** again. Reuse `world.parking` polygons + the vehicle roster; a small occupancy

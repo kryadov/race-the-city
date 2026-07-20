@@ -9,6 +9,8 @@ import {
   NEAR_MAX,
   FAR,
   APART,
+  NITRO_TYPES,
+  nitroTypeFor,
 } from '../../src/app/nitro'
 import type { Road, Vec2 } from '../../src/geo/types'
 
@@ -68,9 +70,11 @@ describe('nitro', () => {
     const nitro = createNitro(scene)
     nitro.setSpots(citySpots(), flat, 0, 0)
 
-    // drive onto the nearest bottle to collect it
+    // drive onto the nearest bottle to collect it — update now reports its nitro type
     const target = bottles(scene).find((b) => b.visible)!
-    expect(nitro.update(target.position.x, target.position.z, 0.016)).toBe(true)
+    const got = nitro.update(target.position.x, target.position.z, 0.016)
+    expect(got).not.toBeNull()
+    expect(NITRO_TYPES).toContain(got!)
     expect(target.visible).toBe(false)
 
     // wait out the respawn timer while the car sits at a new spot
@@ -149,6 +153,43 @@ describe('bottles keep their distance', () => {
     n.setSpots([{ x: 60, z: 0 }, { x: 65, z: 0 }], flat, 0, 0)
     const out = (scene.children[0] as THREE.Group).children.filter((c) => c.visible)
     expect(out.length).toBeGreaterThan(0)
+  })
+})
+
+describe('colour-coded nitro', () => {
+  it('offers at least three distinctly-coloured bottles, each a real boost', () => {
+    expect(NITRO_TYPES.length).toBeGreaterThanOrEqual(3)
+    const colours = new Set(NITRO_TYPES.map((t) => t.color))
+    expect(colours.size, 'two types share a colour').toBe(NITRO_TYPES.length)
+    for (const t of NITRO_TYPES) {
+      expect(t.mult, `${t.id} does not raise top speed`).toBeGreaterThan(1)
+      expect(t.accel).toBeGreaterThan(0)
+      expect(t.time).toBeGreaterThan(0)
+    }
+  })
+
+  it('has a short hard punch and a long gentle push — the whole point of the colours', () => {
+    const shortest = NITRO_TYPES.reduce((a, b) => (b.time < a.time ? b : a))
+    const longest = NITRO_TYPES.reduce((a, b) => (b.time > a.time ? b : a))
+    expect(shortest.time).toBeLessThan(longest.time)
+    // the short one hits harder up top than the long one
+    expect(shortest.mult).toBeGreaterThan(longest.mult)
+  })
+
+  it('spreads every type across the bottle field', () => {
+    const seen = new Set<string>()
+    for (let i = 0; i < NITRO_TYPES.length * 4; i++) seen.add(nitroTypeFor(i).id)
+    expect(seen.size, 'a colour never appears in the field').toBe(NITRO_TYPES.length)
+  })
+
+  it('collecting a bottle reports the type standing there, tinted to match', () => {
+    const scene = new THREE.Scene()
+    const nitro = createNitro(scene)
+    nitro.setSpots(citySpots(), flat, 0, 0)
+    const target = bottles(scene).find((b) => b.visible)!
+    const got = nitro.update(target.position.x, target.position.z, 0.016)
+    expect(got).not.toBeNull()
+    expect(NITRO_TYPES).toContain(got!)
   })
 })
 

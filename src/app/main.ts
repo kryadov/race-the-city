@@ -296,9 +296,13 @@ let camBlocked = false
 /** How lively a shunt is: enough to stop you, not enough to launch you. */
 const HIT_BOUNCE = 0.3
 const HIT_BLEED = 0.55
-const BOOST_TIME = 2.5 // seconds of nitro boost per pickup
-const BOOST_MULT = 10 // top-speed multiplier at full boost
+const BOOST_MULT = 10 // default top-speed multiplier at full boost (the standard blue bottle)
+const BOOST_ACCEL = 2 // default acceleration bonus factor at full boost (standard blue bottle)
 let boostTimer = 0
+// Colour-coded nitro: the collected bottle's type sets how hard and how long the
+// boost pulls. These start on the standard values and are overwritten on pickup.
+let boostMult = BOOST_MULT
+let boostAccel = BOOST_ACCEL
 // Boost winds in and out rather than snapping: 10x arriving in one frame threw
 // the car, and losing it as abruptly felt like hitting a wall. Spooling up is
 // quicker than spooling down, the way a turbo behaves.
@@ -682,8 +686,14 @@ async function loadCity(query: string): Promise<void> {
           brake: kb.brake || tc.brake,
         }
         const handsOn = input.throttle !== 0 || input.steer !== 0 || input.brake
-        // nitro: collecting a bottle boosts the top speed for a short window
-        if (nitro.update(car.x, car.z, dt)) boostTimer = BOOST_TIME
+        // nitro: collecting a bottle boosts the top speed for a short window. The
+        // bottle's colour-coded type sets how hard (mult/accel) and how long (time).
+        const boosted = nitro.update(car.x, car.z, dt)
+        if (boosted) {
+          boostTimer = boosted.time
+          boostMult = boosted.mult
+          boostAccel = boosted.accel
+        }
         // Arcade "find a car": drive into a pickable car to become that type.
         const picked = carPickups.update(car.x, car.z, dt)
         if (picked) {
@@ -713,8 +723,8 @@ async function loadCity(query: string): Promise<void> {
           boost > 0
             ? {
                 ...spec,
-                maxSpeed: spec.maxSpeed * (1 + (BOOST_MULT - 1) * boost) * dry,
-                accel: spec.accel * (1 + 2 * boost) * dry,
+                maxSpeed: spec.maxSpeed * (1 + (boostMult - 1) * boost) * dry,
+                accel: spec.accel * (1 + boostAccel * boost) * dry,
               }
             : dry < 1
               ? { ...spec, maxSpeed: spec.maxSpeed * dry, accel: spec.accel * dry }
