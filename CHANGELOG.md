@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.121.0 — Excursion mode: tour the city's sights
+- A new game mode (**🗺** on the menu's mode picker): drive to each of the city's **landmarks**
+  (museums, monuments, memorials, castles, viewpoints) before the clock runs out, then on to the
+  next-nearest — your count of sights climbs with every one reached. A single tall **gold beam**
+  stands over the CURRENT sight (the minimap arrow points at it too), so there's exactly one beacon
+  to chase — the beacon idea from v0.118.0 done right, one at a time rather than a pillar over every
+  landmark. Targets stay on the map (same reach-bound as taxi fares). Reuses the taxi structure.
+- 👀 Menu → pick **🗺 Excursion** → Play. Follow the gold beam / minimap arrow to each sight before the timer.
+
 ## v0.120.0 — About & Support on the main menu
 - The **About** section is now a top-level entry on the main menu screen — an **ℹ️ About** button
   beside ⚙ Options — instead of being buried inside Options. It opens its own panel: a short note on

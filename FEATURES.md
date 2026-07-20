@@ -86,6 +86,9 @@ drive along it**, and clear a bungalow, fountain or statue mid-jump.
 - **Taxi** — pick a passenger up at the glowing green marker, deliver them to the amber marker
   before the meter runs out, then on to the next fare — a chaining shift, your score climbing with
   every drop-off. Fares and score show under the minimap.
+- **Excursion** (🗺) — tour the city's **landmarks** (museums, monuments, memorials, castles,
+  viewpoints): drive to each before the clock runs out, chasing a single **gold beam of light** over
+  the current sight (and the minimap arrow), your count of sights seen climbing as you go.
 - **Time trial** — gates, a lap clock, and your best lap kept between sessions. A checkpoint
   chime marks each gate; **fireworks** when you finish a lap.
 - **Races with rivals** — three AI cars run the gate course on A\* routes over the road graph,

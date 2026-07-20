@@ -13,17 +13,18 @@ import { UNITS, type Units } from './hud'
  * side-menu's independent arcade/trial/race toggles into a single source of
  * truth: exactly one is ever active. `arcade` is the "find-a-car" pickup mode.
  */
-export type Mode = 'free' | 'trial' | 'race' | 'taxi' | 'arcade'
+export type Mode = 'free' | 'trial' | 'race' | 'taxi' | 'arcade' | 'excursion'
 
-const MODES: Mode[] = ['free', 'trial', 'race', 'taxi', 'arcade']
-// Each mode's main-screen label. Reuses existing i18n keys — `arcade` has no
-// short key of its own, so it shows a joystick with a tooltip (see paintText).
+const MODES: Mode[] = ['free', 'trial', 'race', 'taxi', 'arcade', 'excursion']
+// Each mode's main-screen label. Reuses existing i18n keys — `arcade` and
+// `excursion` have no short label, so they show an emoji + a tooltip (see paintText).
 const MODE_KEY: Record<Mode, string> = {
   free: 'start.modeFree',
   trial: 'start.modeTrial',
   race: 'start.modeRace',
   taxi: 'start.modeTaxi',
   arcade: 'menu.arcade',
+  excursion: 'menu.excursion',
 }
 
 export interface MenuCallbacks {
@@ -758,9 +759,16 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
     moreBtn.textContent = t('start.more')
     modeLabel.textContent = t('start.mode')
     for (const [m, b] of modeBtns) {
-      // `arcade` has no short label — show a joystick, name it via the tooltip.
-      b.textContent = m === 'arcade' ? '🕹' : t(MODE_KEY[m])
-      if (m === 'arcade') b.title = t('menu.arcade')
+      // `arcade` and `excursion` have no short label — show an emoji + a tooltip.
+      if (m === 'arcade') {
+        b.textContent = '🕹'
+        b.title = t('menu.arcade')
+      } else if (m === 'excursion') {
+        b.textContent = '🗺'
+        b.title = t('menu.excursion')
+      } else {
+        b.textContent = t(MODE_KEY[m])
+      }
     }
     optionsBtn.textContent = '⚙ ' + t('menu.title')
     aboutBtn.textContent = 'ℹ️ ' + t('about.title')

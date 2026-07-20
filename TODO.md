@@ -275,12 +275,13 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Sports grounds** — place **pitches with goals (football) / courts with hoops (basketball)**
       via the same OSM-prop pattern as fountains/benches (`leisure=pitch`), with a few **figures
       playing with a ball** on them. Instanced figures + a simple ball-and-players loop, capped.
-- [ ] **Glowing landmark markers** — ⚠️ v0.118.0 shipped a pillar over EVERY landmark → REVERTED in
-      v0.119.1 (a forest of columns, some through monuments). REDO as a MODE feature: a single beam over
-      the ACTIVE target only (like the taxi beam), inside Excursion mode — not a permanent all-landmark pillar.
-- [ ] **Arcade mode: Excursion / Tour** — **visit the `tourism`/`historic` markers within a time
-      limit**, using the **same beacon + minimap-arrow mechanism as Taxi**, just over a different set
-      of points. Reuses `taxi.ts`/`taxiHud.ts` structure; a mode on the start menu.
+- [x] **Glowing landmark markers** — ✅ v0.121.0 (done right): NOT a permanent pillar over every
+      landmark (that was v0.118.0, reverted v0.119.1) — instead a single gold beam over the ACTIVE
+      target inside the new Excursion mode (`excursion.ts`).
+- [x] **Arcade mode: Excursion / Tour** — ✅ v0.121.0: new 🗺 mode — drive to each tourism/historic
+      landmark before the timer, next-nearest each time, one gold beam + minimap arrow over the current
+      one, score = sights seen. `excursion.ts` + `excursionHud.ts`, mode wired in menu/main, targets
+      REACH_BOUND-clamped. Tested in `excursion.test.ts`.
 - [ ] **Day-only / night-only drive** — a setting (or mode) to **lock the time of day**: the sky
       still breathes a little but never crosses into the other half — perpetual day, or perpetual
       night, looping. Add to the existing time-of-day setting (cycle / day / night) — clamp/loop

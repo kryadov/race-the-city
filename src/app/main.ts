@@ -43,6 +43,8 @@ import { createRivals } from './rivals'
 import { createTrialHud } from '../ui/trialHud'
 import { createTaxi } from './taxi'
 import { createTaxiHud } from '../ui/taxiHud'
+import { createExcursion } from './excursion'
+import { createExcursionHud } from '../ui/excursionHud'
 import { createReplay } from './replay'
 import { createReplayControls } from '../ui/replayControls'
 import { createAircraft } from './aircraft'
@@ -272,6 +274,8 @@ const bubbles = createBubbles(stage.scene)
 const trialHud = createTrialHud(ui)
 const taxi = createTaxi(stage.scene)
 const taxiHud = createTaxiHud(ui)
+const excursion = createExcursion(stage.scene)
+const excursionHud = createExcursionHud(ui)
 const replay = createReplay()
 const replayControls = createReplayControls(ui, {
   onRecordToggle: () => (replay.recording() ? replay.stopRec() : replay.startRec()),
@@ -280,6 +284,8 @@ const replayControls = createReplayControls(ui, {
 })
 trial.setEnabled(false) // mode starts 'free' (attract); a mode pick applies via applyMode
 trialHud.setVisible(false)
+excursion.setEnabled(false)
+excursionHud.setVisible(false)
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
 function showVehicle(type: VehicleType): void {
   const mesh = buildVehicleMesh(type)
@@ -418,6 +424,7 @@ let mode: Mode = 'free'
 let errorDismiss: ReturnType<typeof setTimeout> | undefined // clears a load-failed notice after a few seconds
 let currentCity = '' // the loaded city query, for session save/restore
 let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
+let lastLandmarks: import('../geo/types').Vec2[] = [] // on-map tourism/historic points, for the excursion tour
 let lastParkedCars: ReturnType<typeof collectParkedCars> = [] // parked-car set, so a density change re-feeds traffic
 let lastRailways: import('../geo/types').Railway[] = []
 let lastWater: import('../geo/types').Vec2[][] = []
@@ -688,6 +695,12 @@ async function loadCity(query: string): Promise<void> {
     trial.reset(world.roads, provider, car, REACH_BOUND) // gates within reach, not past the edge
     rivals.reset(world.roads, grid, provider, car, trial.course())
     taxi.reset(world.roads, provider, car, REACH_BOUND) // a fresh fare in the new city, on the map
+    // Excursion targets: the tourism/historic landmark POIs, kept on the map (must-reach markers).
+    lastLandmarks = world.pois
+      .filter((p) => p.kind === 'landmark')
+      .map((p) => ({ x: p.x, z: p.z }))
+      .filter((p) => Math.abs(p.x) <= REACH_BOUND && Math.abs(p.z) <= REACH_BOUND)
+    excursion.reset(lastLandmarks, provider, car)
     currentCity = query
     driftFx.reset()
 
@@ -791,6 +804,16 @@ async function loadCity(query: string): Promise<void> {
             for (const b of FINISH_BURSTS) fireworks.fire(car.x + b.x, car.y + b.y, car.z + b.z)
           } else if (ts.justFailed) {
             audio.thud() // meter ran out
+          }
+        }
+        if (excursion.enabled()) {
+          const es = excursion.update(dt, car.x, car.z)
+          excursionHud.set(es)
+          if (es.justVisited) {
+            audio.chime(true) // a sight reached rings out
+            for (const b of FINISH_BURSTS) fireworks.fire(car.x + b.x, car.y + b.y, car.z + b.z)
+          } else if (es.justFailed) {
+            audio.thud() // ran out of time for that sight
           }
         }
         // Everything solid that moves: traffic, people, trains — but only those at
@@ -1003,7 +1026,7 @@ async function loadCity(query: string): Promise<void> {
         clouds.update(stage.camera.position, dt, car.y) // clouds ride above the land, not above sea level
         minimap.update(
           car,
-          taxi.enabled() ? taxi.target() : trial.nextGate(),
+          taxi.enabled() ? taxi.target() : excursion.enabled() ? excursion.target() : trial.nextGate(),
           taxi.enabled() ? (taxi.state().phase === 'toPickup' ? '#39e07a' : '#ffb020') : undefined,
         )
         roadLabels.update(stage.camera, car.x, car.z)
@@ -1083,6 +1106,10 @@ function applyMode(m: Mode): void {
   taxi.setEnabled(m === 'taxi')
   taxiHud.setVisible(m === 'taxi')
   if (m === 'taxi' && car) taxi.reset(lastRoads, provider, car, REACH_BOUND)
+  // Excursion / tour of the city sights.
+  excursion.setEnabled(m === 'excursion')
+  excursionHud.setVisible(m === 'excursion')
+  if (m === 'excursion' && car) excursion.reset(lastLandmarks, provider, car)
   // Arcade "find a car" pickups.
   carPickups.setEnabled(m === 'arcade')
 }

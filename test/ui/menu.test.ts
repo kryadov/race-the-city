@@ -158,7 +158,7 @@ describe('createMenu', () => {
     const onMode = vi.fn()
     const { root } = mount(stubCallbacks({ onMode }))
     const modeBtns = findAll(root, (e) => !!e.dataset.mode)
-    expect(modeBtns.map((b) => b.dataset.mode)).toEqual(['free', 'trial', 'race', 'taxi', 'arcade'])
+    expect(modeBtns.map((b) => b.dataset.mode)).toEqual(['free', 'trial', 'race', 'taxi', 'arcade', 'excursion'])
 
     const race = modeBtns.find((b) => b.dataset.mode === 'race')!
     race.click()
