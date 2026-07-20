@@ -189,6 +189,29 @@ describe('createMenu', () => {
     expect(options.style.display).toBe('none')
   })
 
+  it('ℹ️ About opens a top-level panel with a Support link, ← Back returns', () => {
+    const { root } = mount(stubCallbacks())
+    const main = find(root, (e) => e.dataset.screen === 'main')
+    const about = find(root, (e) => e.dataset.screen === 'about')
+    expect(main.style.display).not.toBe('none')
+    expect(about.style.display).toBe('none')
+
+    // The About entry is a top-level main-screen button, not buried in Options.
+    byRole(root, 'about').click()
+    expect(main.style.display).toBe('none')
+    expect(about.style.display).not.toBe('none')
+
+    // ❤️ Support opens GitHub Sponsors in a new tab.
+    const support = find(about, (e) => e.tagName === 'A' && e.href.includes('sponsors'))
+    expect(support.href).toBe('https://github.com/sponsors/kryadov')
+    expect(support.target).toBe('_blank')
+    expect(support.rel).toBe('noopener')
+
+    byRole(root, 'aboutBack').click()
+    expect(main.style.display).not.toBe('none')
+    expect(about.style.display).toBe('none')
+  })
+
   it('setSessionLive flips PLAY↔Resume and hides Continue', () => {
     const { root, handle } = mount(stubCallbacks(), { ...INIT, hasSession: true })
     const play = byRole(root, 'play')

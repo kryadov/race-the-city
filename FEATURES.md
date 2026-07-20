@@ -32,7 +32,8 @@ keyboard layout (Cyrillic, AZERTY, …), not just QWERTY.
 **View & UI**
 - **V** — toggle the neon / wireframe look
 - **+ / =** — zoom in · **- / _** — zoom out (or the camera slider in the menu)
-- **Esc** — pause (or the ⏸ button); **⚙** — settings; **?** — controls help overlay
+- **Esc** — pause (or the ⏸ button); **⚙** — settings; **ℹ️ About** (with a ❤️ Support link);
+  **?** — controls help overlay
 
 **Touch** — on-screen steering + pedals appear on touch devices.
 

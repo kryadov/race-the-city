@@ -140,11 +140,12 @@ const IDLE = '#26303f'
 
 /**
  * The one central menu. A branded splash over a live city (attract at start, the
- * paused game in-session), with two screens:
+ * paused game in-session), with three screens:
  *  - MAIN: city search, vehicle strip, a single-select mode picker, Play/Continue,
- *    a language quick-toggle and a ⚙ Options button.
+ *    a language quick-toggle, a ⚙ Options and an ℹ️ About button.
  *  - OPTIONS: every setting the old side menu held (view, audio, map & density,
- *    location, language, about, autopilot) behind a ← Back.
+ *    location, language, autopilot) behind a ← Back.
+ *  - ABOUT: what the game is, the developer, and a ❤ Support link, behind a ← Back.
  * It opens at start and on Esc; only PLAY→Resume and Continue's presence differ.
  */
 export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuInit): MenuHandle {
@@ -193,14 +194,17 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
     'background:rgba(12,18,30,.82);backdrop-filter:blur(6px);box-shadow:0 18px 60px rgba(0,0,0,.5);color:#fff;'
   overlay.appendChild(panel)
 
-  // The two screens live inside the one card; only one is ever displayed.
+  // The three screens live inside the one card; only one is ever displayed.
   const mainScreen = document.createElement('div')
   mainScreen.dataset.screen = 'main'
   mainScreen.style.cssText = 'display:flex;flex-direction:column;gap:14px;'
   const optionsScreen = document.createElement('div')
   optionsScreen.dataset.screen = 'options'
   optionsScreen.style.cssText = 'display:none;flex-direction:column;gap:2px;max-height:calc(100vh - 150px);overflow-y:auto;'
-  panel.append(mainScreen, optionsScreen)
+  const aboutScreen = document.createElement('div')
+  aboutScreen.dataset.screen = 'about'
+  aboutScreen.style.cssText = 'display:none;flex-direction:column;gap:2px;max-height:calc(100vh - 150px);overflow-y:auto;'
+  panel.append(mainScreen, optionsScreen, aboutScreen)
 
   // Text that changes with the language is filled in paintText(); labels[] collects
   // the Options-screen elements that just show a translated key.
@@ -314,7 +318,13 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
   optionsBtn.style.cssText += 'background:#1c2636;'
   optionsBtn.addEventListener('click', () => showOptions())
 
-  mainScreen.append(cityRow, randomBtn, carLabel, strip, grid, modeLabel, modeRow, playBtn, continueBtn, optionsBtn, langRow)
+  // Top-level About: game blurb, the developer, and a Support link (was buried in Options).
+  const aboutBtn = mkBtn('')
+  aboutBtn.dataset.role = 'about'
+  aboutBtn.style.cssText += 'background:#1c2636;'
+  aboutBtn.addEventListener('click', () => showAbout())
+
+  mainScreen.append(cityRow, randomBtn, carLabel, strip, grid, modeLabel, modeRow, playBtn, continueBtn, optionsBtn, aboutBtn, langRow)
 
   // ======================================================================== //
   //  OPTIONS screen
@@ -688,18 +698,28 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
   resetBtn.addEventListener('click', () => cb.onReset())
   locSec.append(defBtn, shareBtn, resetLocBtn, resetBtn)
 
-  // --- About ---
-  const aboutSec = section('about.title')
+  // ======================================================================== //
+  //  ABOUT screen (top-level: what the game is, the developer, and Support)
+  // ======================================================================== //
+  const aboutBackRow = document.createElement('div')
+  aboutBackRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;'
+  const aboutBackBtn = mkBtn('←')
+  aboutBackBtn.dataset.role = 'aboutBack'
+  aboutBackBtn.addEventListener('click', () => showMain())
+  const aboutScreenTitle = document.createElement('div')
+  aboutScreenTitle.style.cssText = 'font-size:15px;font-weight:700;opacity:.85'
+  labels.push({ el: aboutScreenTitle, key: 'about.title' })
+  aboutBackRow.append(aboutBackBtn, aboutScreenTitle)
   const aboutDesc = document.createElement('div')
-  aboutDesc.style.cssText = 'font-size:12px;color:rgba(255,255,255,.72);line-height:1.5;margin-bottom:4px'
+  aboutDesc.style.cssText = 'font-size:13px;color:rgba(255,255,255,.8);line-height:1.55;margin:4px 2px 8px'
   labels.push({ el: aboutDesc, key: 'about.description' })
   const aboutLink = (href: string, key: string): HTMLAnchorElement => {
     const a = document.createElement('a')
     a.href = href
     a.target = '_blank'
-    a.rel = 'noopener noreferrer'
+    a.rel = 'noopener'
     a.style.cssText =
-      'display:block;padding:8px 11px;margin-top:6px;border-radius:6px;color:#fff;text-decoration:none;' +
+      'display:block;padding:9px 11px;margin-top:6px;border-radius:6px;color:#fff;text-decoration:none;' +
       `font-size:14px;background:${IDLE};text-align:center`
     labels.push({ el: a, key })
     return a
@@ -707,8 +727,9 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
   const aboutVersion = document.createElement('div')
   aboutVersion.textContent = `v${__APP_VERSION__}`
   aboutVersion.title = 'Race the City version'
-  aboutVersion.style.cssText = 'font-size:11px;color:rgba(255,255,255,.45);text-align:center;margin-top:8px'
-  aboutSec.append(
+  aboutVersion.style.cssText = 'font-size:11px;color:rgba(255,255,255,.45);text-align:center;margin-top:10px'
+  aboutScreen.append(
+    aboutBackRow,
     aboutDesc,
     aboutLink('https://github.com/kryadov', 'about.developer'),
     aboutLink('https://github.com/sponsors/kryadov', 'about.support'),
@@ -742,8 +763,9 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
       if (m === 'arcade') b.title = t('menu.arcade')
     }
     optionsBtn.textContent = '⚙ ' + t('menu.title')
+    aboutBtn.textContent = 'ℹ️ ' + t('about.title')
     paintSession()
-    // Options screen
+    // Options + About screens
     aboutDesc.textContent = t('about.description')
     defBtn.textContent = '★ ' + t('menu.setDefault')
     shareBtn.textContent = '🔗 ' + t('menu.share')
@@ -789,10 +811,17 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
   const showMain = (): void => {
     mainScreen.style.display = 'flex'
     optionsScreen.style.display = 'none'
+    aboutScreen.style.display = 'none'
   }
   const showOptions = (): void => {
     mainScreen.style.display = 'none'
     optionsScreen.style.display = 'flex'
+    aboutScreen.style.display = 'none'
+  }
+  const showAbout = (): void => {
+    mainScreen.style.display = 'none'
+    optionsScreen.style.display = 'none'
+    aboutScreen.style.display = 'flex'
   }
   showMain() // start on the main screen (normalises the display props set in cssText)
 

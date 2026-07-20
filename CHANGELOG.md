@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.120.0 — About & Support on the main menu
+- The **About** section is now a top-level entry on the main menu screen — an **ℹ️ About** button
+  beside ⚙ Options — instead of being buried inside Options. It opens its own panel: a short note on
+  what the game is and who makes it, plus a **❤️ Support** link to GitHub Sponsors.
+- 👀 Open the menu → **ℹ️ About** on the main screen → a panel with the **❤️ Support** button.
+
 ## v0.119.1 — two fixes: no beacon spam, and fares stay on the map
 - **Removed the landmark beacons** (v0.118.0). A gold light-pillar over *every* tourist/historic POI
   turned dense cities into a forest of columns, some standing right through a monument. Landmarks keep
