@@ -49,6 +49,23 @@ describe('taxi mode', () => {
     expect(taxi.target()).not.toBeNull()
   })
 
+  it('never sets a fare beyond the drivable bound', () => {
+    // The normal on-map grid plus a spur running far off the map.
+    const offMap: Road[] = [...roads(), { points: [{ x: 3000, z: 0 }, { x: 0, z: 3000 }, { x: -3000, z: -3000 }], kind: 'residential' }]
+    const bound = 900
+    const taxi = createTaxi(new THREE.Scene(), makeRand(3))
+    taxi.setEnabled(true)
+    taxi.reset(offMap, provider, { x: 0, z: 0 }, bound)
+    // chase several fares in a row — none may sit past the map edge
+    for (let i = 0; i < 10; i++) {
+      const t = taxi.target()
+      expect(t, 'no fare was offered').not.toBeNull()
+      expect(Math.abs(t!.x), 'a fare sat past the map edge').toBeLessThanOrEqual(bound)
+      expect(Math.abs(t!.z), 'a fare sat past the map edge').toBeLessThanOrEqual(bound)
+      taxi.update(0.1, t!.x, t!.z) // reach it, advancing to the next
+    }
+  })
+
   it('fails a fare when the meter runs out, then offers another', () => {
     const taxi = createTaxi(new THREE.Scene(), makeRand(7))
     taxi.setEnabled(true)

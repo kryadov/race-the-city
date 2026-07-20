@@ -44,7 +44,7 @@ export interface Taxi {
   enabled(): boolean
   /** The current marker, for the minimap. Null when off. */
   target(): Vec2 | null
-  reset(roads: Road[], provider: ElevationProvider, car: { x: number; z: number }): void
+  reset(roads: Road[], provider: ElevationProvider, car: { x: number; z: number }, bound?: number): void
   update(dt: number, carX: number, carZ: number): TaxiState
   state(): TaxiState
   dispose(): void
@@ -194,11 +194,15 @@ export function createTaxi(scene: THREE.Scene, rand: () => number = Math.random)
       on = v
       group.visible = v
     },
-    reset(roads, prov, car) {
+    reset(roads, prov, car, bound = Infinity) {
       provider = prov
+      // On-map spots only: some OSM roads run past the ±RADIUS ground, and a fare
+      // out there is a pickup you can never reach (you brake at the world edge first).
+      // `bound` is a drivable half-extent, kept inside that edge.
       spots = roads
         .filter((r) => r.kind !== 'path')
         .flatMap((r) => r.points.map((p) => ({ x: p.x, z: p.z, name: r.name })))
+        .filter((p) => Math.abs(p.x) <= bound && Math.abs(p.z) <= bound)
       fares = 0
       earnings = 0
       justDelivered = false

@@ -26,8 +26,8 @@ export interface TimeTrial {
   nextGate(): Vec2 | null
   /** Every gate, in order — what the rivals race round. Empty until `reset`. */
   course(): Vec2[]
-  /** Lay out a fresh course. */
-  reset(roads: Road[], provider: ElevationProvider, car: { x: number; z: number }): void
+  /** Lay out a fresh course. `bound` is a drivable half-extent — gates stay within it. */
+  reset(roads: Road[], provider: ElevationProvider, car: { x: number; z: number }, bound?: number): void
   update(dt: number, carX: number, carZ: number): TrialState
   state(): TrialState
   dispose(): void
@@ -66,8 +66,14 @@ export function formatLap(seconds: number): string {
  * and spaced apart — two checkpoints ten metres apart are one checkpoint, and a
  * lap of them would be a formality rather than a drive.
  */
-export function pickCourse(roads: Road[], start: Vec2, count = COUNT, rand: () => number = Math.random): Vec2[] {
-  const spots = roads.filter((r) => r.kind !== 'path').flatMap((r) => r.points)
+export function pickCourse(roads: Road[], start: Vec2, count = COUNT, rand: () => number = Math.random, bound = Infinity): Vec2[] {
+  // Only vertices you can actually drive to: some OSM roads run past the ±RADIUS
+  // ground, and a gate out there is a checkpoint you can never reach (you brake at
+  // the world edge well before it). `bound` is a drivable half-extent, inside that edge.
+  const spots = roads
+    .filter((r) => r.kind !== 'path')
+    .flatMap((r) => r.points)
+    .filter((p) => Math.abs(p.x) <= bound && Math.abs(p.z) <= bound)
   if (spots.length < 2) return []
   const course: Vec2[] = []
   let guard = 0
@@ -137,9 +143,9 @@ export function createTimeTrial(scene: THREE.Scene): TimeTrial {
       group.visible = v
       if (!v) elapsed = null
     },
-    reset(roads, provider, car) {
+    reset(roads, provider, car, bound = Infinity) {
       clear()
-      course = pickCourse(roads, car)
+      course = pickCourse(roads, car, COUNT, Math.random, bound)
       taken = 0
       elapsed = course.length ? 0 : null
       justFinished = false

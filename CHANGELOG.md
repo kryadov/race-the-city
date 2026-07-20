@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.119.1 — two fixes: no beacon spam, and fares stay on the map
+- **Removed the landmark beacons** (v0.118.0). A gold light-pillar over *every* tourist/historic POI
+  turned dense cities into a forest of columns, some standing right through a monument. Landmarks keep
+  their signpost; the beam belongs to a future tour/excursion mode (one over the *active* target, like
+  the taxi beam) — not a permanent pillar over all of them.
+- **Taxi fares and time-trial gates no longer spawn past the map edge.** They were drawn from all road
+  vertices, some of which run off the ±RADIUS ground, so a pickup or gate could sit out where you brake
+  at the world edge and can never reach it. Both now filter to a drivable half-extent well inside the
+  edge (taxi `reset` + `pickCourse` take a `bound`); the other must-reach spawners were audited too.
+- 👀 No gold pillars littering the city; every taxi fare and time-trial gate is reachable.
+
 ## v0.119.0 — a fuel burn-rate control
 - The **⚙ Options** fuel button is now a cycle: **Off → ×0.5 (eco) → ×1 (normal) → ×1.6 (thirsty)**.
   It scales the per-vehicle burn from v0.116.0, so you can make a tank last a long cruise or run it

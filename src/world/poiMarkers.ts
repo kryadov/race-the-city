@@ -47,10 +47,6 @@ const GLYPH_Z = PANEL_CZ + PANEL_T / 2 + GLYPH_T / 2
 /** A budget cap: POIs are sparse, but a huge dense city shouldn't run away. */
 const MAX_MARKERS = 400
 
-/** A soft light-pillar over each landmark, tall enough to spot a sight from across the rooftops. */
-const BEACON_H = 30
-const BEACON_R = 1.2
-
 // A landmark POI sits on the very node that also raises the statue prop, so a
 // marker planted at the point grows straight up through the monument. Step the
 // plaque a fixed distance to one side so it reads as standing *beside* the
@@ -157,37 +153,8 @@ export function buildPoiMarkers(pois: PoiMarker[], provider: ElevationProvider):
     group.add(panels, glyphs)
   }
 
-  // A tall, soft light-pillar over each landmark, so a sight reads from across the
-  // city (and the base for a future tour/excursion mode). It stands over the POI
-  // point itself — the monument — not the plaque's stepped-aside spot.
-  const landmarks = buckets.landmark
-  if (landmarks.length) {
-    const beacons = new THREE.InstancedMesh(beaconGeo(), beaconMat(), landmarks.length)
-    landmarks.forEach((p, i) => {
-      pos.set(p.x, provider.heightAt(p.x, p.z) + BEACON_H / 2, p.z)
-      beacons.setMatrixAt(i, m.compose(pos, noRot, one))
-    })
-    beacons.instanceMatrix.needsUpdate = true
-    beacons.frustumCulled = false
-    beacons.name = 'poi-landmark-beacon'
-    group.add(beacons)
-  }
-
   return group
 }
-
-/** A hollow, translucent cylinder of light. Basic (not Standard) so it reads as a
- * glow — the neon theme leaves it be, which is right for a beam of light. */
-const beaconGeo = (): THREE.BufferGeometry => new THREE.CylinderGeometry(BEACON_R, BEACON_R, BEACON_H, 8, 1, true)
-const beaconMat = (): THREE.MeshBasicMaterial =>
-  new THREE.MeshBasicMaterial({
-    color: STYLES.landmark.glyphEmissive, // the same warm gold as the landmark glyph
-    transparent: true,
-    opacity: 0.26,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-    fog: false, // a distant beacon must show over the fog, not fade into it
-  })
 
 /** Fresh materials per build, so a city teardown can dispose them cleanly
  * (the parent traverses the group and disposes geometry + material) without a

@@ -17,6 +17,12 @@ colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfron
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
 ### 🔧 Bugs in shipped features (fix next)
+- [x] **Out-of-bounds must-reach markers** — ✅ v0.119.1: taxi fares + time-trial gates were drawn from
+      ALL road vertices, incl. those past ±RADIUS → unreachable pickups/gates. Both now filter to a
+      drivable half-extent (`REACH_BOUND` = soft edge − 20). AUDIT of other spawners: nitro/cans/car-
+      pickups already RADIUS-clamped ✅; rivals follow the (now-bounded) trial gates ✅; boats/trains sit
+      on water/rail within the map ✅; autopilot + traffic/pedestrians/buses walk the road graph and can
+      touch off-map segments but are confined/recycled near the player (low visibility) — left as-is.
 - [ ] **Start position must not face/abut a building or have the view blocked** — the player must not
       spawn staring into a wall or with a house (or other obstacle) blocking the chase-camera view.
       DIAGNOSED: `src/world/start.ts` `startPose()` picks the road vertex nearest the map centre and a
@@ -269,8 +275,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Sports grounds** — place **pitches with goals (football) / courts with hoops (basketball)**
       via the same OSM-prop pattern as fountains/benches (`leisure=pitch`), with a few **figures
       playing with a ball** on them. Instanced figures + a simple ball-and-players loop, capped.
-- [x] **Glowing landmark markers** — ✅ v0.118.0: a tall translucent gold light-pillar over every
-      landmark POI (`buildPoiMarkers`, instanced, over the monument point). Base for the Excursion mode.
+- [ ] **Glowing landmark markers** — ⚠️ v0.118.0 shipped a pillar over EVERY landmark → REVERTED in
+      v0.119.1 (a forest of columns, some through monuments). REDO as a MODE feature: a single beam over
+      the ACTIVE target only (like the taxi beam), inside Excursion mode — not a permanent all-landmark pillar.
 - [ ] **Arcade mode: Excursion / Tour** — **visit the `tourism`/`historic` markers within a time
       limit**, using the **same beacon + minimap-arrow mechanism as Taxi**, just over a different set
       of points. Reuses `taxi.ts`/`taxiHud.ts` structure; a mode on the start menu.

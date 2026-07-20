@@ -46,6 +46,18 @@ describe('pickCourse', () => {
     }
   })
 
+  it('keeps every gate within the drivable bound, dropping off-map vertices', () => {
+    // The grid reaches ±1000; a 900 bound must exclude those outermost vertices so
+    // no gate lands past the world edge, where you could never reach it.
+    const bound = 900
+    const course = pickCourse(grid, v(0, 0), 6, Math.random, bound)
+    expect(course.length, 'the bound left no gates').toBeGreaterThan(0)
+    for (const c of course) {
+      expect(Math.abs(c.x), 'a gate sat past the map edge').toBeLessThanOrEqual(bound)
+      expect(Math.abs(c.z), 'a gate sat past the map edge').toBeLessThanOrEqual(bound)
+    }
+  })
+
   it('gives up quietly on a city with no roads', () => {
     expect(pickCourse([], v(0, 0))).toEqual([])
     expect(pickCourse([{ points: [v(0, 0), v(1, 0)], kind: 'path' }], v(0, 0))).toEqual([])

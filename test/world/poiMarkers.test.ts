@@ -159,25 +159,6 @@ describe('poi markers', () => {
     expect(Math.hypot(a.x - 12, a.z + 7)).toBeGreaterThan(1)
   })
 
-  it('raises a light-beacon over each landmark, and none over café/fuel', () => {
-    const g = buildPoiMarkers([poi(0, 0, 'landmark'), poi(10, 0, 'landmark'), poi(20, 0, 'cafe')], flat)
-    expect(countInstances(g, (n) => n === 'poi-landmark-beacon')).toBe(2)
-    const none = buildPoiMarkers([poi(0, 0, 'cafe'), poi(5, 0, 'fuel')], flat)
-    expect(findMesh(none, 'poi-landmark-beacon'), 'no landmarks, no beacons').toBeNull()
-  })
-
-  it('stands the beacon over the monument itself, tall — not at the stepped-aside plaque', () => {
-    const g = buildPoiMarkers([poi(0, 0, 'landmark')], flat)
-    const beacon = findMesh(g, 'poi-landmark-beacon')!
-    const m = new THREE.Matrix4()
-    beacon.getMatrixAt(0, m)
-    const p = new THREE.Vector3().setFromMatrixPosition(m)
-    // over the POI point (0,0), unlike the plaque which steps ~2.6m aside
-    expect(Math.hypot(p.x, p.z), 'beacon sits over the monument, not the plaque').toBeLessThan(0.5)
-    // and it reaches up over the rooftops
-    expect(new THREE.Box3().setFromObject(beacon).max.y, 'a tall pillar of light').toBeGreaterThan(20)
-  })
-
   it('draws a fixed number of meshes however many markers there are', () => {
     // Instancing: the mesh count depends on the kinds present, not the marker
     // count. Both builds have both kinds, so both are posts + 2×(panel+glyph).

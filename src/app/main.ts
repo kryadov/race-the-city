@@ -156,6 +156,9 @@ const RADIUS = 1000
 const EDGE_SOFT = 965
 const EDGE_HARD = 990
 const bounds = rectBounds(EDGE_SOFT, EDGE_HARD)
+// Must-reach markers (taxi fares, time-trial gates) live within this half-extent —
+// comfortably inside the soft edge, so a target is never out past where you brake.
+const REACH_BOUND = EDGE_SOFT - 20
 // The ground mesh's resolution. Everything that sits on the ground is sampled
 // through griddedProvider at this same figure, so the surface the car drives on
 // is the surface on screen — keep the two together or the car sinks again.
@@ -682,9 +685,9 @@ async function loadCity(query: string): Promise<void> {
     const party = celebration(new Date())
     partyTimer = party?.firework ? makeFireworkTimer(Math.random) : null
     autopilot.reset(world.roads, car)
-    trial.reset(world.roads, provider, car)
+    trial.reset(world.roads, provider, car, REACH_BOUND) // gates within reach, not past the edge
     rivals.reset(world.roads, grid, provider, car, trial.course())
-    taxi.reset(world.roads, provider, car) // a fresh fare in the new city
+    taxi.reset(world.roads, provider, car, REACH_BOUND) // a fresh fare in the new city, on the map
     currentCity = query
     driftFx.reset()
 
@@ -1073,13 +1076,13 @@ function applyMode(m: Mode): void {
   // Trial / race gates + HUD + rivals.
   trial.setEnabled(wantsTrial)
   trialHud.setVisible(wantsTrial)
-  if (wantsTrial && car) trial.reset(lastRoads, provider, car)
+  if (wantsTrial && car) trial.reset(lastRoads, provider, car, REACH_BOUND)
   rivals.setEnabled(wantsRace)
   if (wantsRace && car) rivals.reset(lastRoads, grid, provider, car, trial.course())
   // Taxi shift.
   taxi.setEnabled(m === 'taxi')
   taxiHud.setVisible(m === 'taxi')
-  if (m === 'taxi' && car) taxi.reset(lastRoads, provider, car)
+  if (m === 'taxi' && car) taxi.reset(lastRoads, provider, car, REACH_BOUND)
   // Arcade "find a car" pickups.
   carPickups.setEnabled(m === 'arcade')
 }
@@ -1260,7 +1263,7 @@ const menu = createMenu(
       cans.setSpots(spots, provider, car.x, car.z)
       autopilot.reset(lastRoads, car)
       if (trial.enabled()) {
-        trial.reset(lastRoads, provider, car)
+        trial.reset(lastRoads, provider, car, REACH_BOUND)
         rivals.reset(lastRoads, grid, provider, car, trial.course()) // back on the start line with you
       }
     },
