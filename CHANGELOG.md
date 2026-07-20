@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.114.0 — the city's real weather
+- On the **Auto** weather setting, a city now starts with **its actual current weather**: the game
+  asks Open-Meteo (keyless, no backend of ours) what it's doing at the city's coordinates and, if
+  it's raining / snowing / foggy there, so is the game — then the usual slow cycle drifts on from
+  there. Fully async and best-effort: it never blocks the load or a frame, and if the request fails,
+  is slow, or you change city mid-flight, the normal auto cycle just carries on. A **fixed** weather
+  choice (clear/rain/snow/fog) is left exactly as you set it.
+- 👀 Set weather to **Auto** and load a city whose weather you know (or a rainy one) — it should come
+  up matching real life.
+
 ## v0.113.3 — keys work on any keyboard layout (WASD, horn, neon, zoom)
 - The driving keys and hotkeys were matched on the **character** the key produces (`event.key`),
   so on a **Cyrillic (or AZERTY) layout WASD did nothing** — the W position yields `ц`, not `w` —

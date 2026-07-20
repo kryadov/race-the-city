@@ -124,7 +124,8 @@ Built from the real map around you:
 
 - **Day/night cycle** with a gradient sky, sun disc, **stars and a moon** at night.
 - **Weather** — clear, rain, snow, fog — on a menu toggle or auto-cycling, with matching cloud
-  cover and clouds you can toggle.
+  cover and clouds you can toggle. On **Auto**, a city starts with its **real current weather**
+  (fetched live from Open-Meteo), then drifts through the cycle from there.
 - **Neon mode** (V) — the whole city turns to glowing wireframe over a dark world — buildings,
   roads, greenery, and everything that moves too: your car glows white, the bots (traffic, buses,
   bikes, cyclists, pedestrians, trains, boats, livestock, birds, aircraft) glow amber.

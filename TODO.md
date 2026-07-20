@@ -278,11 +278,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       still breathes a little but never crosses into the other half — perpetual day, or perpetual
       night, looping. Add to the existing time-of-day setting (cycle / day / night) — clamp/loop
       `timeOfDay` within the chosen half instead of the full 0..1 cycle.
-- [ ] **Real weather for the city** — pull the **current weather at the loaded city's lat/lon from a
-      free, keyless service** (Open-Meteo is CORS-friendly, no API key) and if it's raining there,
-      rain in-game. Hard constraints: **fully async, never blocks the load or a frame**, and **falls
-      back to the default** weather if the fetch fails or is slow. We already have lat/lon from
-      geocode and a rain weather state; just gate the initial weather on the fetch result.
+- [x] **Real weather for the city** — ✅ v0.114.0: `src/app/liveWeather.ts` (`weatherFromCode` WMO→
+      Weather + `fetchCityWeather` async, keyless Open-Meteo, aborts on city-load cancel, times out at
+      6s, returns null on any failure). On 'auto' the loaded city starts on its real weather via
+      `startAutoAt`, guarded by a `cityGeneration` counter against a stale resolve. Tests in `liveWeather.test.ts`.
 - [ ] **Fuel-consumption setting + per-vehicle thirst** — a settings-menu **slider for fuel burn
       rate (in litres)**, and each vehicle type has its **own base consumption** (a lorry drinks more
       than a sports car). The slider scales the base. Wire into the existing fuel/HUD (`fuel`,

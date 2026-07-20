@@ -14,7 +14,8 @@ import { startLoop } from './loop'
 import { ThemeController } from './theme'
 import { applyDayNight, sampleDayNight, sunElevation, DAY_TIME, NIGHT_TIME, type TimeMode } from './daynight'
 import { createDriftFx } from './driftfx'
-import { createWeather, WEATHERS, type WeatherSetting } from './weather'
+import { createWeather, WEATHERS, type Weather, type WeatherSetting } from './weather'
+import { fetchCityWeather } from './liveWeather'
 import { createClouds } from './clouds'
 import { createSky } from './sky'
 import { burn, speedFactor, CAN_WORTH } from '../vehicle/fuel'
@@ -193,6 +194,9 @@ const AUTO_WEATHER_PERIOD = 150 // seconds each weather holds before auto-cyclin
 let autoWeather = false
 let autoWeatherTimer = 0
 let autoWeatherIdx = 0
+// Bumped on every city load, so a live-weather fetch that resolves after the player
+// has moved on to another city knows it's stale and drops its result.
+let cityGeneration = 0
 /** How much cloud each sort of weather brings with it. */
 const CLOUD_COVER: Record<string, number> = { clear: 0, rain: 1, snow: 0.85, fog: 0.6 }
 
@@ -212,6 +216,12 @@ function applyWeatherSetting(s: WeatherSetting): void {
     autoWeather = false
     showWeather(s) // not 'auto' here: that is the branch above
   }
+}
+/** Begin the auto cycle on a specific weather (the city's real one), holding it a full period first. */
+function startAutoAt(w: Weather): void {
+  autoWeatherIdx = Math.max(0, WEATHERS.indexOf(w))
+  autoWeatherTimer = 0
+  showWeather(w)
 }
 const clouds = createClouds(stage.scene)
 clouds.setEnabled(getClouds())
@@ -407,6 +417,7 @@ async function loadCity(query: string): Promise<void> {
     return
   }
   loading_ = true
+  const gen = ++cityGeneration // this load's id, to spot a stale live-weather result later
   if (errorDismiss) {
     clearTimeout(errorDismiss) // a fresh load supersedes any lingering failure notice
     errorDismiss = undefined
@@ -423,6 +434,14 @@ async function loadCity(query: string): Promise<void> {
       () => geocode(query),
       (n) => loading.show(`${t('loading.geocoding')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.05),
     )
+    // Live weather: on 'auto', start the cycle on what this city is actually doing
+    // now. Best-effort and fully async — it never blocks the load or a frame, and a
+    // failure or a city-switch mid-flight just leaves the normal auto cycle running.
+    if (autoWeather) {
+      void fetchCityWeather(center.lat, center.lon, loadAbort.signal).then((w) => {
+        if (w && autoWeather && gen === cityGeneration) startAutoAt(w)
+      })
+    }
     // reflect the loaded city in the address bar so the URL is shareable
     const u = new URL(location.href)
     u.searchParams.set('city', query)
