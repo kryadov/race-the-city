@@ -132,6 +132,13 @@ export interface Traffic {
    * the metres of offset applied (clamped to MAX_KNOCK).
    */
   shove(x: number, z: number, dirX: number, dirZ: number, strength: number): void
+  /**
+   * Scatter every car within `radius` of (x, z) straight AWAY from it — the horn
+   * clearing a path. Same eased knockback as {@link shove}, but each car's push is
+   * radial (outward from the source), not one shared direction. Parked cars aren't
+   * traffic agents, so they're untouched by construction.
+   */
+  scatter(x: number, z: number, radius: number, strength: number): void
   setEnabled(on: boolean): void
   dispose(): void
 }
@@ -480,6 +487,25 @@ export function createTraffic(
         a.tz += uz * strength
         // Cap the target so even a full-speed shunt only shoves a car aside, not
         // clean across the road.
+        const k = Math.hypot(a.tx, a.tz)
+        if (k > MAX_KNOCK) {
+          a.tx *= MAX_KNOCK / k
+          a.tz *= MAX_KNOCK / k
+        }
+      }
+    },
+    scatter(x, z, radius, strength) {
+      if (!Number.isFinite(strength) || radius <= 0) return
+      for (const a of agents) {
+        const p = place(a)
+        const dx = p.x + a.kx - x
+        const dz = p.z + a.kz - z
+        const d2 = dx * dx + dz * dz
+        if (d2 > radius * radius || d2 < 1e-6) continue // out of earshot, or right on the car
+        const d = Math.sqrt(d2)
+        // Push straight away from the source, easing toward the target like a shove.
+        a.tx += (dx / d) * strength
+        a.tz += (dz / d) * strength
         const k = Math.hypot(a.tx, a.tz)
         if (k > MAX_KNOCK) {
           a.tx *= MAX_KNOCK / k

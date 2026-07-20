@@ -334,8 +334,17 @@ const resumeAudio = (): void => audio.resume()
 window.addEventListener('pointerdown', resumeAudio, { once: true })
 window.addEventListener('keydown', resumeAudio, { once: true })
 // Horn on H (by physical key, so it fires on any keyboard layout), while it's held.
+const HORN_SCATTER_R = 22 // metres a honk reaches to make the crowd step aside
+const HORN_SCATTER_PUSH = 3 // target sidestep, eased and clamped per agent (MAX_KNOCK)
 window.addEventListener('keydown', (e) => {
-  if (hotkeyFor(e.code) === 'horn') audio.horn(true)
+  if (hotkeyFor(e.code) !== 'horn') return
+  audio.horn(true)
+  // A honk clears a path: nearby bot cars and walkers step aside — once per press,
+  // not on every auto-repeat while it's held. Parked cars aren't traffic agents.
+  if (!e.repeat && car) {
+    traffic?.scatter(car.x, car.z, HORN_SCATTER_R, HORN_SCATTER_PUSH)
+    people?.scatter(car.x, car.z, HORN_SCATTER_R, HORN_SCATTER_PUSH)
+  }
 })
 window.addEventListener('keyup', (e) => {
   if (hotkeyFor(e.code) === 'horn') audio.horn(false)

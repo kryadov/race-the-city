@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.115.0 — the horn clears a path
+- Honking now makes the crowd react: bot cars and pedestrians within earshot **step aside**, away
+  from you, then ease back — a real use for the horn beyond the noise. It fires **once per press**
+  (holding it down doesn't keep shoving), reaches ~22 m, and each agent is nudged **straight away
+  from your car** (clamped, so it's a step aside, not a launch). Parked cars aren't traffic agents,
+  so they stay put.
+- 👀 Drive into a knot of traffic or a crowd and tap **H** — they part around you.
+
 ## v0.114.0 — the city's real weather
 - On the **Auto** weather setting, a city now starts with **its actual current weather**: the game
   asks Open-Meteo (keyless, no backend of ours) what it's doing at the city's coordinates and, if

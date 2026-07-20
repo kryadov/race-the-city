@@ -326,9 +326,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       of merging. Keep it O(cars) (spatial bucket or per-edge ordering), no frame-rate hit. bot cars currently **snap 90° at intersections**; make them **turn
       smoothly** (ease the heading toward the next edge / a short arc through the junction) in
       `traffic.ts`, instead of an instant rotation.
-- [ ] **Crowd reacts to the horn** — honking makes **nearby pedestrians and cars veer away** from the
-      player — but **not parked ones**. A brief repulsion impulse on `people`/`traffic` agents within
-      a radius when the horn fires; parked/stationary cars ignore it.
+- [x] **Crowd reacts to the horn** — ✅ v0.115.0: `traffic.scatter()`/`pedestrians.scatter()` push every
+      agent within ~22m radially away from the car (eased target tx/tz, clamped to MAX_KNOCK); wired to
+      the horn keydown in main.ts (once per press, guarded by `car`). Parked cars aren't traffic agents.
+      Tested in `traffic.test.ts` (scatters near, spares far, pushes AWAY from the source).
 - [ ] **Bike lanes + cyclists** — paint a **cycle-lane stripe as a texture on the existing road
       ribbon** (no new mesh — same draw call as the road markings), and add **cyclists** riding it
       (instanced, reuse the pedestrian/traffic graph on `cycleway`/pavement). Keep it cheap.

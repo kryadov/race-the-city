@@ -545,6 +545,75 @@ describe('ramming knockback', () => {
   })
 })
 
+describe('horn scatters the traffic', () => {
+  const mk = (): { a: ReturnType<typeof createTraffic>; b: ReturnType<typeof createTraffic>; ba: THREE.InstancedMesh; bb: THREE.InstancedMesh } => {
+    const sa = new THREE.Scene()
+    const sb = new THREE.Scene()
+    const a = createTraffic(sa, grid, flat, () => 0.5)
+    const b = createTraffic(sb, grid, flat, () => 0.5)
+    const ba = (sa.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    const bb = (sb.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    return { a, b, ba, bb }
+  }
+  const spread = (ba: THREE.InstancedMesh, bb: THREE.InstancedMesh): number => {
+    const pa = positions(ba)
+    const pb = positions(bb)
+    return Math.max(0, ...pa.map((p, i) => p.distanceTo(pb[i])))
+  }
+
+  it('makes nearby cars step aside on a honk', () => {
+    const { a, b, ba, bb } = mk()
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    const [car] = a.obstacles()
+    a.scatter(car.x - 3, car.z, 30, 3) // just beside the car, so there's an outward direction
+    for (let f = 0; f < 15; f++) {
+      a.update(1 / 60, 0, 0, 0)
+      b.update(1 / 60, 0, 0, 0)
+    }
+    expect(spread(ba, bb), 'the horn moved nobody').toBeGreaterThan(1)
+  })
+
+  it('leaves cars beyond the horn radius alone', () => {
+    const { a, b, ba, bb } = mk()
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    a.scatter(5000, 5000, 30, 3) // a honk miles from any car
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    expect(spread(ba, bb)).toBeLessThan(1e-6)
+  })
+
+  it('pushes the scattered car AWAY from the horn, not toward it', () => {
+    const { a, b, ba, bb } = mk()
+    a.update(1 / 60, 0, 0, 0)
+    b.update(1 / 60, 0, 0, 0)
+    const [car] = a.obstacles()
+    const sx = car.x - 20 // honk 20m to one side, so "outward" is unambiguously +x
+    const sz = car.z
+    a.scatter(sx, sz, 40, 3)
+    for (let f = 0; f < 15; f++) {
+      a.update(1 / 60, 0, 0, 0)
+      b.update(1 / 60, 0, 0, 0)
+    }
+    const pa = positions(ba)
+    const pb = positions(bb)
+    let mi = 0
+    let best = -1
+    for (let i = 0; i < pa.length; i++) {
+      const d = pa[i].distanceTo(pb[i])
+      if (d > best) {
+        best = d
+        mi = i
+      }
+    }
+    expect(best, 'nothing was scattered').toBeGreaterThan(0.5)
+    const dA = Math.hypot(pa[mi].x - sx, pa[mi].z - sz) // scattered car → source
+    const dB = Math.hypot(pb[mi].x - sx, pb[mi].z - sz) // its untouched twin → source
+    expect(dA, 'the car moved toward the horn, not away from it').toBeGreaterThan(dB)
+  })
+})
+
 describe('pedestrians shoved aside', () => {
   const twins = (): {
     a: ReturnType<typeof createPedestrians>
@@ -609,6 +678,27 @@ describe('pedestrians shoved aside', () => {
     const settled = spread(ba, bb)
     expect(shoved, 'nobody was knocked aside to begin with').toBeGreaterThan(1)
     expect(settled, 'the stagger never eased off').toBeLessThan(0.05)
+  })
+
+  it('a honk scatters nearby walkers but not distant ones', () => {
+    const near = twins()
+    near.a.update(1 / 60, 0, 0)
+    near.b.update(1 / 60, 0, 0)
+    const [person] = near.a.obstacles()
+    near.a.scatter(person.x - 3, person.z, 30, 2.5) // just beside them, so there's an outward direction
+    for (let f = 0; f < 15; f++) {
+      near.a.update(1 / 60, 0, 0)
+      near.b.update(1 / 60, 0, 0)
+    }
+    expect(spread(near.ba, near.bb), 'the horn moved nobody').toBeGreaterThan(1)
+
+    const far = twins()
+    far.a.update(1 / 60, 0, 0)
+    far.b.update(1 / 60, 0, 0)
+    far.a.scatter(5000, 5000, 30, 2.5)
+    far.a.update(1 / 60, 0, 0)
+    far.b.update(1 / 60, 0, 0)
+    expect(spread(far.ba, far.bb), 'a bystander far off still moved').toBeLessThan(1e-6)
   })
 })
 

@@ -106,6 +106,12 @@ export interface Pedestrians {
    * metres of offset applied (clamped to MAX_KNOCK).
    */
   shove(x: number, z: number, dirX: number, dirZ: number, strength: number): void
+  /**
+   * Scatter everyone within `radius` of (x, z) AWAY from it — the horn making the
+   * crowd step back. Same eased knockback as {@link shove}, but each walker's push
+   * is radial (outward from the source), not one shared direction.
+   */
+  scatter(x: number, z: number, radius: number, strength: number): void
   setEnabled(on: boolean): void
   dispose(): void
 }
@@ -379,6 +385,30 @@ export function createPedestrians(
         w.tx += ux * strength
         w.tz += uz * strength
         // Cap the target so a hard clip still only shoves them clear of the car.
+        const k = Math.hypot(w.tx, w.tz)
+        if (k > MAX_KNOCK) {
+          w.tx *= MAX_KNOCK / k
+          w.tz *= MAX_KNOCK / k
+        }
+      }
+    },
+    scatter(x, z, radius, strength) {
+      if (!Number.isFinite(strength) || radius <= 0) return
+      for (const w of walkers) {
+        const A = graph.nodes[w.at]
+        const B = graph.nodes[w.to]
+        const l = Math.hypot(B.x - A.x, B.z - A.z) || 1
+        const f = Math.min(1, w.s / l)
+        const angle = Math.atan2(B.z - A.z, B.x - A.x)
+        const wx = A.x + (B.x - A.x) * f + Math.sin(angle) * KERB * w.side + w.kx
+        const wz = A.z + (B.z - A.z) * f - Math.cos(angle) * KERB * w.side + w.kz
+        const dx = wx - x
+        const dz = wz - z
+        const d2 = dx * dx + dz * dz
+        if (d2 > radius * radius || d2 < 1e-6) continue // out of earshot, or right on the car
+        const d = Math.sqrt(d2)
+        w.tx += (dx / d) * strength
+        w.tz += (dz / d) * strength
         const k = Math.hypot(w.tx, w.tz)
         if (k > MAX_KNOCK) {
           w.tx *= MAX_KNOCK / k
