@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { buildBridges, deckDepth } from '../../src/world/bridgeMesh'
+import { buildBridges, deckDepth, pierFootprints, PIER_COLLIDER_R, type PierCollider } from '../../src/world/bridgeMesh'
 import { buildDecks, MAX_ARCH } from '../../src/world/bridge'
+import { SpatialGrid } from '../../src/physics/grid'
+import { resolveCircle } from '../../src/physics/collide'
 import type { Road, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
@@ -144,5 +146,38 @@ describe('a bridge over a wide river', () => {
     const silly = buildDecks([river(40)], wideRiver)
     const peak = Math.max(...heights(buildBridges(silly, wideRiver)))
     expect(peak - BANK).toBeLessThanOrEqual(MAX_ARCH + 1.5) // + railing headroom
+  })
+})
+
+describe('bridge piers are solid to the road below, not the deck above', () => {
+  it('stashes the raised piers on the group for the collider', () => {
+    const decks = buildDecks([river()], wideRiver)
+    const piers = buildBridges(decks, wideRiver).userData.piers as PierCollider[]
+    expect(Array.isArray(piers)).toBe(true)
+    expect(piers.length, 'a wide viaduct raised no piers').toBeGreaterThan(2)
+    for (const p of piers) expect(p.top, 'a pier that does not stand up').toBeGreaterThan(p.ground)
+  })
+
+  it('builds a square footprint per pier, capped at the deck underside', () => {
+    const { footprints, tops } = pierFootprints([{ x: 10, z: -4, top: 8, ground: 0 }])
+    expect(footprints).toHaveLength(1)
+    expect(tops).toEqual([8]) // the collider top is the deck underside, not the pier's full height
+    const fp = footprints[0]
+    expect(fp).toHaveLength(4)
+    for (const c of fp) {
+      expect(Math.abs(Math.abs(c.x - 10) - PIER_COLLIDER_R)).toBeLessThan(1e-9)
+      expect(Math.abs(Math.abs(c.z + 4) - PIER_COLLIDER_R)).toBeLessThan(1e-9)
+    }
+  })
+
+  it('stops a car on the road below but lets one on the deck pass over', () => {
+    const { footprints, tops } = pierFootprints([{ x: 0, z: 0, top: 10, ground: 0 }])
+    const grid = new SpatialGrid(footprints, 25, tops)
+    // a car down on the ground (y=0), sitting on the pier — shoved clear of it
+    const below = resolveCircle(0, 0, 1.3, grid, 0)
+    expect(Math.hypot(below.x, below.z), 'the pier let a car drive through it').toBeGreaterThan(0.5)
+    // the same car up on the deck (above the underside) — passes untouched
+    const above = resolveCircle(0, 0, 1.3, grid, 12)
+    expect(above).toEqual({ x: 0, z: 0 })
   })
 })

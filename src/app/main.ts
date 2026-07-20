@@ -113,7 +113,7 @@ import { startPose } from '../world/start'
 import { buildBuildings } from '../world/buildings'
 import { buildRoads, buildRailways, roadWidth } from '../world/roads'
 import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../world/bridge'
-import { buildBridges } from '../world/bridgeMesh'
+import { buildBridges, pierFootprints, type PierCollider } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildManholes } from '../world/manholes'
 import { buildWater, waterLevel } from '../world/water'
@@ -603,10 +603,13 @@ async function loadCity(query: string): Promise<void> {
     // the grid — it walled off whole riverbanks and bridge approaches (invisible
     // walls). See TODO: it needs road-crossing gaps + to match the drawn rail
     // before it goes back in. Driving into open water stays allowed for now.
+    // Bridge piers are solid to a car on the road BELOW, but not to one on the deck
+    // above — pierFootprints caps each at the deck underside and the grid height-gates it.
+    const piers = pierFootprints((bridgesMesh.userData.piers ?? []) as PierCollider[])
     grid = new SpatialGrid(
-      footprints.concat(propFootprints(world.props)),
+      footprints.concat(propFootprints(world.props), piers.footprints),
       25,
-      tops.concat(propTops(world.props, provider)),
+      tops.concat(propTops(world.props, provider), piers.tops),
     )
     // On the nearest road, not on the spot the geocoder named: a geocoder names
     // a place, and Tokyo's is a building — you started inside it, against a wall.

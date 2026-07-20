@@ -226,12 +226,49 @@ function emitPiers(
   }
 }
 
+/** A pier's collidable stump: its centre, the deck underside it rises to, and the ground it stands on. */
+export interface PierCollider {
+  x: number
+  z: number
+  top: number
+  ground: number
+}
+
+/** Square collision-footprint half-width for a pier — its base radius (~0.7m) plus a little slack. */
+export const PIER_COLLIDER_R = 0.8
+
+/**
+ * Collision footprints for a set of piers, each capped at its deck underside.
+ *
+ * A pier is solid to a car on the road BELOW the bridge but not to one ON the deck:
+ * the footprint's `top` is the deck underside, and `resolveCircle` skips any footprint
+ * the car is at or above (`y >= topOf`). So the deck stays drivable while the pillars
+ * beneath it stop you driving through them.
+ */
+export function pierFootprints(piers: PierCollider[]): { footprints: Vec2[][]; tops: number[] } {
+  const footprints: Vec2[][] = []
+  const tops: number[] = []
+  const r = PIER_COLLIDER_R
+  for (const p of piers) {
+    footprints.push([
+      { x: p.x - r, z: p.z - r },
+      { x: p.x + r, z: p.z - r },
+      { x: p.x + r, z: p.z + r },
+      { x: p.x - r, z: p.z + r },
+    ])
+    tops.push(p.top)
+  }
+  return { footprints, tops }
+}
+
 /**
  * A bridge: its deck at the profiled height, a railing down each side, and piers
  * where it stands clear of the ground.
  *
  * The deck's height comes from the profile rather than a fixed lift, so it meets
- * the approach roads at both ends and can actually be driven onto.
+ * the approach roads at both ends and can actually be driven onto. The piers it
+ * raises are stashed on `group.userData.piers` ({@link PierCollider}[]) so the
+ * caller can make them solid via {@link pierFootprints}.
  */
 export function buildBridges(decks: Deck[], provider: ElevationProvider): THREE.Object3D {
   const group = new THREE.Group()
@@ -307,5 +344,6 @@ export function buildBridges(decks: Deck[], provider: ElevationProvider): THREE.
     mesh.instanceMatrix.needsUpdate = true
     group.add(mesh)
   }
+  group.userData.piers = piers // so the caller can add solid footprints (pierFootprints)
   return group
 }

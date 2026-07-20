@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.117.1 — bridge pillars are solid now
+- Bridge support piers were drawn but had no collision, so a car (or bot) on the road **under** a
+  bridge drove straight through the pillars. Each pier is now a solid footprint in the collision grid,
+  **capped at the deck underside** — it stops you on the road below, but a car **on the deck** above
+  passes over it freely (height-gated, same trick the buildings use). Piers still sit on the deck
+  centreline; nudging them clear of a road that runs underneath is a separate follow-up.
+- 👀 Drive the ground road beneath a viaduct — you now bump the pillars instead of ghosting through them.
+
 ## v0.117.0 — every vehicle has its own horn
 - The horn was one 440/554 beep for everything. Now it sounds the vehicle: a **lorry / bus / tanker**
   blasts a deep sawtooth **air-horn**, a **sports car** parps higher and sharper, a **motorbike**

@@ -340,10 +340,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       a **solid-colour wall**; make them read as real railings — **posts at intervals + a top rail (and
       maybe a mid rail), with gaps between**, not a filled parapet. Instanced/merged posts+rails in
       `bridgeMesh.ts`, keep it cheap.
-- [ ] **Bridge pillars: off the road + solid** — don't plant **bridge support pillars on the
-      carriageway**, and make pillars **collidable** so the player, cars and pedestrians can't pass
-      through them. Offset pillar placement clear of road polygons; add their footprints to the
-      collision grid.
+- [~] **Bridge pillars: off the road + solid** — collidable ✅ v0.117.1: `pierFootprints` (bridgeMesh.ts)
+      + piers stashed on `group.userData.piers`; main.ts adds them to the collision grid capped at the
+      deck underside (height-gated: solid to the road below, drivable on the deck above). STILL TODO:
+      **offset piers off the carriageway** of a road running underneath (the visual/placement half).
 - [ ] **Landmark plaque + statue placement** — the landmark **sign should sit BESIDE the monument,
       not inside it** (offset the poiMarker from the statue prop), and the **monument must not stand
       inside a tree** (place statues clear of greenery — a small placement collision check against
