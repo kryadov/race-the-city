@@ -272,6 +272,7 @@ function showVehicle(type: VehicleType): void {
   driftFx.setPrint(wheelPrint(mesh)) // marks as wide as the tyres that lay them
   setVehicleMesh(stage, mesh)
   theme.refreshMovers() // a fresh mesh comes in day-styled; re-flip it if we're in neon
+  carPickups.setAvoid(type) // arcade: never offer a pickup of the car you're already driving
 }
 /**
  * How far below a roof still counts as landing on it, in metres. A frame at

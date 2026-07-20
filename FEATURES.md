@@ -126,7 +126,7 @@ Built from the real map around you:
   cover and clouds you can toggle.
 - **Neon mode** (V) — the whole city turns to glowing wireframe over a dark world — buildings,
   roads, greenery, and everything that moves too: your car glows white, the bots (traffic, buses,
-  bikes, cyclists, pedestrians, trains, boats, livestock) glow amber.
+  bikes, cyclists, pedestrians, trains, boats, livestock, birds, aircraft) glow amber.
 - **Shadows** (sun shadow map, follows the car) and **street lights** with light pools at night.
 - Low-poly, flat-shaded style throughout; **low / normal / high** rendering tiers.
 

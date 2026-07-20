@@ -50,10 +50,8 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       carto) shows at least: pale-cream **farmland**, light-green **meadow/grass**, dotted-green
       **orchard/scrub**, grey **residential** landuse, tan buildings — support farmland/meadow/orchard/
       residential as distinct ground tints as the first cut.
-- [ ] **Menu — comprehensive rework** (brainstorm 2026-07-19, in progress) — user wants the whole menu
-      reworked coherently, not piecemeal. Folds in the existing scattered menu items (modes reachable via
-      Esc, single-select mutually-exclusive modes free/trial/race/taxi/arcade, taxi in the ⚙ menu). See
-      the brainstorm/design doc once written.
+- [x] **Menu — comprehensive rework** — ✅ v0.112.0: one unified menu (start + Esc), branded main screen,
+      single-select mode picker (Free · Time-trial · Race · Taxi · 🕹 Find-a-car), settings behind ⚙ Options.
 - [x] **Some birds perch in mid-air on nothing** — ✅ v0.110.60: each tree hands the flock its real crown height. a few birds sit motionless in the air with nothing
       under them (regression of the earlier "sitting in the air" fix, or perch points chosen above a
       surface). Check `src/app/birds.ts` perch/idle placement — perches should sit on a roof/tree/ground.
@@ -79,14 +77,14 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       smooth rev model that eases and is scaled per `VEHICLES[type]`.
 
 ### ⏳ Still open / bigger — need design or a review pass
-- [ ] **Menu refactor + arcade "find a car"** — modes reachable via Esc; drive up to a car of another
-      type on the map and swap into it. (User: "оба — в план".) Design first.
+- [x] **Menu refactor + arcade "find a car"** — ✅ v0.112.0 (menu, Esc-reachable modes) + v0.113.0/113.2
+      (find-a-car: drive into a pickable car to swap type; v0.113.2 stops it offering your current type).
 - [ ] **Combine harvester mows fields** — drive a combine over tall grass/wheat → mown stubble, hay
       bales form behind. Fields need a mown state + the harvester in its wake. Design-level.
 - [x] **Neon mode skips the car & bots** — ✅ v0.113.1: movers flag `userData.neonMover` ('hero'|'bot');
       theme scans the scene live each toggle + on `refreshMovers()` (car swap / crowd rebuild), flipping
-      MeshStandardMaterials to wireframe+emissive (white car, amber bots). Covers traffic, buses, motos,
-      cyclists, pedestrians, trains, boats, livestock. STILL TODO: birds, aircraft, arcade car-pickups.
+      MeshStandardMaterials to wireframe+emissive (white car, amber bots). v0.113.2 completed coverage:
+      traffic, buses, motos, cyclists, pedestrians, trains, boats, livestock, birds, aircraft, arcade pickups.
 - [ ] **Bigger map ×2, adaptive** — see note below. Brainstorm.
 - [ ] **Relation-buildings (Boston)** — parse multipolygon `relation["building"]`. NOTE: adding it to
       the Overpass query changes the cache-key hash and evicts every cached city — hold until the
@@ -95,9 +93,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Cancel button on the "загружаю карту OSM" overlay** — add a localized **Отмена/Cancel**
       button to the loading plate that aborts the in-flight load (fetchOsm now takes an AbortSignal —
       wire an AbortController from loadCity to it) and returns to the menu / stays on the current map.
-- [x] **BUG — neon mode skips the car and bots** — ✅ v0.113.1 (see above): car + all ground/water/rail
-      movers now flip to neon wireframe via the `userData.neonMover` scan in theme.ts. Birds/aircraft/
-      arcade car-pickups still to do.
+- [x] **BUG — neon mode skips the car and bots** — ✅ v0.113.1/v0.113.2: car + every mover (traffic,
+      buses, motos, cyclists, pedestrians, trains, boats, livestock, birds, aircraft, arcade pickups)
+      now flips to neon wireframe via the `userData.neonMover` scan in theme.ts.
 - [ ] **BUG — collisions ignore height (flying / bridges / slopes)** — obstacle circles (`solidAt`)
       are 2D, so the car collides with a bot even when it's ~10m ABOVE it: flying over a pedestrian on
       a slope, or driving a bridge deck over traffic on the road beneath. Give each obstacle a y
@@ -122,13 +120,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       (or just below) the panel, or move the panel to the post's top so the pole doesn't stick out.
 - [x] **Manhole perpendicular stripes** — ✅ already shipped (ribs v0.110.38, bolts/ajar v0.110.19); regression tests added this session. draw perpendicular hatch stripes on the manhole cover
       (`src/world/manholes.ts`) for a more realistic ironwork look.
-- [ ] **Menu refactoring — modes reachable, arcade mode selectable** — the current flow makes it
-      impossible to pick the arcade mode via **Esc**, which "сильно мешает". Refactor the menu / pause
-      so game modes (incl. arcade) are selectable in-session (Esc → menu with mode choice). Design
-      before building.
-- [ ] **Arcade mode: "find a car"** — occasionally a drivable car of a *different* type sits on the
-      map; drive up to it and you swap into it (sedan → sports car → …). Pickable car-objects that
-      change the player's vehicle type on contact. (Pairs with the arcade-mode menu item.)
+- [x] **Menu refactoring — modes reachable, arcade mode selectable** — ✅ v0.112.0: Esc opens the unified
+      menu with the single-select mode picker, arcade (🕹 Find-a-car) among them.
+- [x] **Arcade mode: "find a car"** — ✅ v0.113.0/113.2: `carPickups.ts` scatters pickable cars of
+      varied type; drive into one to become it. v0.113.2 excludes your current type + neon-flips them.
 - [ ] **Combine harvester mows fields** — drive a combine onto a field of tall grass/wheat: the
       sectors you pass over turn to **mown stubble**, and a few sectors behind, **haystacks / hay
       bales** form in the harvested strip. Field sectors track a mown state; harvester lays bales in

@@ -61,6 +61,8 @@ export interface CarPickups {
   setSpots(spots: Vec2[], provider: ElevationProvider, carX: number, carZ: number): void
   /** Bob/spin them and test pickup; returns the type picked this frame, else null. */
   update(carX: number, carZ: number, dt: number): VehicleType | null
+  /** Don't spawn pickups of this type — the one the player is already driving (null = no exclusion). */
+  setAvoid(type: VehicleType | null): void
   setEnabled(on: boolean): void
   /** Pull the whole field out of the scene and free its geometry and materials. */
   dispose(): void
@@ -109,6 +111,7 @@ function glowRing(): THREE.Mesh {
 export function createCarPickups(scene: THREE.Scene, rand: () => number = mulberry32(0x51c2)): CarPickups {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the pickable cars to wireframe like the traffic
 
   const pickups: Pickup[] = []
   for (let i = 0; i < COUNT; i++) {
@@ -126,8 +129,15 @@ export function createCarPickups(scene: THREE.Scene, rand: () => number = mulber
   let enabled = true
   let carX = 0
   let carZ = 0
+  let avoid: VehicleType | null = null // the player's current type — never hand it back to them
 
-  const randType = (): VehicleType => VEHICLE_TYPES[Math.floor(rand() * VEHICLE_TYPES.length)]
+  const randType = (): VehicleType => {
+    let t = VEHICLE_TYPES[Math.floor(rand() * VEHICLE_TYPES.length)]
+    // driving up to a pickup only to get the car you're already in is a let-down;
+    // re-roll if it matches (capped, in case the roster is ever tiny).
+    for (let i = 0; avoid && t === avoid && i < 8; i++) t = VEHICLE_TYPES[Math.floor(rand() * VEHICLE_TYPES.length)]
+    return t
+  }
 
   /**
    * Pick a road vertex in the ring around the car, sampling uniformly in one pass
@@ -247,6 +257,9 @@ export function createCarPickups(scene: THREE.Scene, rand: () => number = mulber
         }
       }
       return picked
+    },
+    setAvoid(type) {
+      avoid = type
     },
     setEnabled(on) {
       enabled = on

@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.113.2 — neon covers birds/aircraft/arcade pickups too; arcade never offers your own car
+- Finishing v0.113.1: the last movers now flip to neon wireframe as well — the **bird flock**, the
+  **aircraft**, and the **arcade car-pickups**. Neon coverage is complete for everything that moves.
+- Arcade "find a car" no longer spawns a pickup of the **car you're already driving** — the roster
+  re-rolls so every pickup you go for is a genuine change of vehicle.
+- 👀 In neon, the flock and planes glow amber like the traffic; in arcade mode a pickup is never your
+  current car.
+
 ## v0.113.1 — neon now flips the car and every bot, not just the world
 - In neon view the buildings, roads and greenery went to glowing wireframe, but the **player car,
   bot traffic and pedestrians stayed solid** — daylit objects sitting in the dark neon world. Now

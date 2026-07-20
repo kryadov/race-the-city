@@ -101,6 +101,19 @@ describe('car pickups', () => {
     expect(VEHICLE_TYPES).toContain(typeOf(target))
   })
 
+  it('never spawns the type the player is already driving', () => {
+    const scene = new THREE.Scene()
+    const pk = createCarPickups(scene)
+    pk.setAvoid('car') // player is in a plain car
+    pk.setSpots(citySpots(), flat, 0, 0)
+    for (const c of active(scene)) expect(typeOf(c)).not.toBe('car')
+
+    // a respawn after a pickup avoids it too
+    const target = active(scene).find((c) => distTo(c, 0, 0) > 10)!
+    pk.update(target.position.x, target.position.z, 0.016)
+    for (const c of active(scene)) expect(typeOf(c)).not.toBe('car')
+  })
+
   it('returns null on frames where nothing is within reach', () => {
     const scene = new THREE.Scene()
     const pk = createCarPickups(scene)

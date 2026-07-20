@@ -250,6 +250,7 @@ export function createAircraft(
 ): Aircraft {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the aircraft to wireframe like the ground movers
   const kinds = Object.keys(PROFILES) as AircraftKind[]
   const frames = new Map<AircraftKind, THREE.Group>()
   for (const k of kinds) {

@@ -401,6 +401,7 @@ export function createBirds(
 ): Birds {
   const group = new THREE.Group()
   scene.add(group)
+  group.userData.neonMover = 'bot' // neon flips the flock to wireframe like everything that moves
 
   const mat = new THREE.MeshStandardMaterial({
     flatShading: true,
