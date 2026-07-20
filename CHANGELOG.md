@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.122.0 — living car parks
+- Car parks aren't frozen showrooms any more: a few cars in each lot come alive — they sit parked,
+  pull slowly out of their bay and fade away at the lot's mouth, and after a beat a car fades back in
+  and drives to a bay. All motion stays strictly **inside the lot polygon** (a straight run between a
+  bay and the lot's exit point, both verified inside), so a car can never drive into a building. The
+  bulk of each lot stays static; this is a small **capped** pool (≤12 across the map, ≤2 per lot) of
+  individual cars, neon-aware, coming and going on their own timers.
+- 👀 Drive through a car park and watch a while — a few cars pull out and drive off, others arrive and park.
+
 ## v0.121.0 — Excursion mode: tour the city's sights
 - A new game mode (**🗺** on the menu's mode picker): drive to each of the city's **landmarks**
   (museums, monuments, memorials, castles, viewpoints) before the clock runs out, then on to the

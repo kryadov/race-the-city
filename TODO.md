@@ -231,10 +231,12 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       green long-gentle) → colour, top-speed mult, accel bonus, duration; `createPickups<T>` now
       carries a per-bottle payload so `nitro.update` reports the collected type, and main.ts sets
       `boostTimer/boostMult/boostAccel` from it. Tests in `test/app/nitro.test.ts` + `pickups.test.ts`.
-- [ ] **Living parking lots** — parking areas should hold **a few parked cars of varied type and
-      colour** (not packed — enough to read as a car park), and cars should **drive in, park, sit,
-      then drive out** again. Reuse `world.parking` polygons + the vehicle roster; a small occupancy
-      state machine (arrive → parked dwell → depart) feeding off the traffic graph for approach/exit.
+- [x] **Living parking lots** — ✅ v0.122.0: `src/app/livingParking.ts` — a small capped pool (≤12
+      map-wide, ≤2/lot) of animated cars per lot cycle parked→leaving→empty→arriving via a pure
+      `advanceCycle`; motion is a straight lerp along a bay↔exit-point segment kept wholly INSIDE the
+      lot polygon (`pathInside` verify), so no car drives into a building — no road-graph routing.
+      Neon-flagged, fades via opacity, avoids the static parked cars. Tested in `livingParking.test.ts`.
+      (Note: cars fade at the lot mouth rather than routing onto real roads — the safe design.)
 - [ ] **Delivery cargo by vehicle type** — the deliver-a-fare/parcel mode should carry **different
       loads per vehicle**: a car carries a **person** (and a status/luxury car carries a smartly-
       dressed one to match), a truck/lorry carries **cargo — sand, gravel, fuel, milk** (pick a

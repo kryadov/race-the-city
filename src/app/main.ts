@@ -55,6 +55,7 @@ import { createTrains, type Trains } from './trains'
 import { createTraffic, type Traffic } from './traffic'
 import { createPedestrians, type Pedestrians } from './pedestrians'
 import { createBoats, type Boats } from './boats'
+import { createLivingParking, type LivingParking } from './livingParking'
 import { createBuses, type Buses } from './buses'
 import { createTrafficLights, type TrafficLights } from '../world/trafficLights'
 import { createMotorcycles, type Motorcycles } from './motorcycles'
@@ -260,6 +261,7 @@ let trains: Trains | null = null
 let traffic: Traffic | null = null
 let people: Pedestrians | null = null
 let boats: Boats | null = null
+let livingParking: LivingParking | null = null
 let buses: Buses | null = null
 let trafficLights: TrafficLights | null = null
 let motorcycles: Motorcycles | null = null
@@ -426,6 +428,7 @@ let currentCity = '' // the loaded city query, for session save/restore
 let lastRoads: import('../geo/types').Road[] = [] // kept so the demo can re-home on demand
 let lastLandmarks: import('../geo/types').Vec2[] = [] // on-map tourism/historic points, for the excursion tour
 let lastParkedCars: ReturnType<typeof collectParkedCars> = [] // parked-car set, so a density change re-feeds traffic
+let lastParking: Vec2[][] = [] // parking-lot rings, so a density rebuild re-animates the living lots
 let lastRailways: import('../geo/types').Railway[] = []
 let lastWater: import('../geo/types').Vec2[][] = []
 let lastLat = 0 // the loaded city's latitude, so a density rebuild dresses the crowd for its season
@@ -668,6 +671,10 @@ async function loadCity(query: string): Promise<void> {
     people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat, decks)
     boats?.dispose()
     boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4))
+    livingParking?.dispose()
+    // A few lots come alive: cars drive in/out of their bays, all motion kept
+    // inside the lot polygon (never onto a road), atop the static parked cars.
+    livingParking = createLivingParking(stage.scene, world.parking, provider, Math.random)
     buses?.dispose()
     buses = createBuses(stage.scene, world.roads, world.busStops, provider, Math.random, countFor(density, 4))
     trafficLights?.dispose()
@@ -681,6 +688,7 @@ async function loadCity(query: string): Promise<void> {
     theme.refreshMovers() // the fresh crowd/traffic is day-styled — re-flip it if we're in neon
     lastRoads = world.roads
     lastParkedCars = parkedCarList
+    lastParking = world.parking
     lastBusStops = world.busStops
     lastRailways = world.railways
     lastPerches = greenPerches
@@ -964,6 +972,7 @@ async function loadCity(query: string): Promise<void> {
         traffic?.update(dt, car.x, car.z, night, trains?.obstacles())
         people?.update(dt, car.x, car.z)
         boats?.update(dt)
+        livingParking?.update(dt)
         buses?.update(dt, night > 0)
         trafficLights?.update(dt)
         motorcycles?.update(dt, night > 0)
@@ -1207,6 +1216,8 @@ const menu = createMenu(
       people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat, decks)
       boats?.dispose()
       boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
+      livingParking?.dispose()
+      livingParking = createLivingParking(stage.scene, lastParking, provider, Math.random)
       buses?.dispose()
       buses = createBuses(stage.scene, lastRoads, lastBusStops, provider, Math.random, countFor(density, 4))
       trafficLights?.dispose()
