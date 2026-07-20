@@ -132,7 +132,7 @@ import { roofUnder } from '../physics/collide'
 import { pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard, hotkeyFor } from '../vehicle/input'
-import { VEHICLES, LEANS, HOVERS, HOVER_H, type VehicleType } from '../vehicle/vehicles'
+import { VEHICLES, LEANS, HOVERS, HOVER_H, thirstOf, type VehicleType } from '../vehicle/vehicles'
 import { BEACON_RED, BEACON_BLUE } from '../vehicle/models/parts'
 import {
   buildVehicleMesh,
@@ -740,7 +740,7 @@ async function loadCity(query: string): Promise<void> {
           fuel = Math.min(1, fuel + CAN_WORTH)
           audio.chime(false)
         }
-        if (fuelUse) fuel = burn(fuel, input.throttle, dt)
+        if (fuelUse) fuel = burn(fuel, input.throttle, dt, thirstOf(vehicle)) // heavy haulers drink harder
         else fuel = 1 // fuel use off: keep the tank full so the car never runs dry
         hud.setFuel(fuel)
         if (boostTimer > 0) boostTimer -= dt

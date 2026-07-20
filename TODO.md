@@ -282,10 +282,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       Weather + `fetchCityWeather` async, keyless Open-Meteo, aborts on city-load cancel, times out at
       6s, returns null on any failure). On 'auto' the loaded city starts on its real weather via
       `startAutoAt`, guarded by a `cityGeneration` counter against a stale resolve. Tests in `liveWeather.test.ts`.
-- [ ] **Fuel-consumption setting + per-vehicle thirst** — a settings-menu **slider for fuel burn
-      rate (in litres)**, and each vehicle type has its **own base consumption** (a lorry drinks more
-      than a sports car). The slider scales the base. Wire into the existing fuel/HUD (`fuel`,
-      `hud.ts` fuel bar) and the vehicle spec table; persist via prefs like the other settings.
+- [~] **Fuel-consumption setting + per-vehicle thirst** — per-vehicle thirst ✅ v0.116.0 (`THIRST`
+      table in vehicles.ts + `thirstOf`, scaling `burn`; lorry ~1.8×, EV ~0.5×). STILL TODO: the
+      **settings-menu burn-rate slider** (litres) that scales the base — needs a prefs number +
+      menu slider control + wiring, layered on top of the existing on/off toggle.
 - [ ] **Oncoming traffic reacts to you** — a car approaching head-on in the opposite lane can
       **flash its headlights and give a honk** as it passes (occasionally, not every time). Needs
       `traffic.ts` to spot a car closing on the player in the oncoming lane and fire a brief

@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.116.0 — every vehicle drinks at its own rate
+- Fuel now burns per vehicle. A plain car is the reference; a laden **lorry / tanker / fire engine**
+  drinks ~1.7–1.9× as fast, a **sports car** a bit more than a car, and an **EV or hover** sips
+  (~0.5–0.6×). So the gauge says something about what you're driving — a truck has you hunting petrol
+  cans sooner than a hatchback does. A per-vehicle `THIRST` table scales the existing burn; the
+  fuel-use on/off toggle is unchanged. (A user-facing burn-rate slider is still to come.)
+- 👀 With **fuel use on**, drive a lorry, then a car, the same distance — the lorry's gauge drops
+  noticeably faster.
+
 ## v0.115.0 — the horn clears a path
 - Honking now makes the crowd react: bot cars and pedestrians within earshot **step aside**, away
   from you, then ease back — a real use for the horn beyond the noise. It fires **once per press**

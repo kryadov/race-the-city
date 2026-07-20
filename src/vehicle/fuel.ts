@@ -18,10 +18,15 @@ export const LOW = 0.2
 /** The most a dry tank takes off the top speed: a limp, not a stop. */
 export const DRY_PENALTY = 0.55
 
-/** How much of the tank a frame at this throttle burns. */
-export function burn(fuel: number, throttle: number, dt: number): number {
+/**
+ * How much of the tank a frame at this throttle burns.
+ *
+ * @param thirst per-vehicle burn multiplier (a plain car = 1; a lorry drinks more,
+ *   an EV less — see `thirstOf`). Defaults to 1 so callers that don't care are unaffected.
+ */
+export function burn(fuel: number, throttle: number, dt: number, thirst = 1): number {
   // Idling costs nothing to speak of; what empties a tank is the right foot.
-  const used = (Math.abs(throttle) * dt) / TANK
+  const used = (Math.abs(throttle) * dt * thirst) / TANK
   return Math.max(0, fuel - used)
 }
 

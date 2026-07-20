@@ -51,6 +51,42 @@ export const HOVERS: Partial<Record<VehicleType, boolean>> = { hover: true }
 /** How high a hovering vehicle floats above the terrain, in metres. */
 export const HOVER_H = 1.0
 
+/**
+ * How thirsty each vehicle is, as a multiple of a plain car's fuel burn. Heavy
+ * haulers and big engines drink hard; an electric/hover sips. Anything not listed
+ * (the car itself, and the rest) burns at the reference rate of 1 — see {@link thirstOf}.
+ */
+export const THIRST: Partial<Record<VehicleType, number>> = {
+  truck: 1.7,
+  lorry: 1.8,
+  tanker: 1.9,
+  bus: 1.6,
+  firetruck: 1.9,
+  ambulance: 1.4,
+  tractor: 1.6,
+  crane: 1.8,
+  roller: 1.6,
+  combine: 1.7,
+  tiller: 1.4,
+  tracked: 1.8,
+  sports: 1.3,
+  racecar: 1.5,
+  cabrio: 1.1,
+  retro: 1.2,
+  minivan: 1.15,
+  jeep: 1.3,
+  pickup: 1.3,
+  police: 1.2,
+  motorbike: 0.55,
+  ev: 0.5,
+  hover: 0.6,
+}
+
+/** Fuel burn multiplier for a vehicle type; 1 (a plain car) for anything unlisted. */
+export function thirstOf(type: VehicleType): number {
+  return THIRST[type] ?? 1
+}
+
 export interface VehicleSpec {
   key: VehicleType
   accel: number // forward acceleration, m/s^2 at full throttle

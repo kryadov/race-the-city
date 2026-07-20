@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { burn, speedFactor, TANK, LOW, DRY_PENALTY, CAN_WORTH } from '../../src/vehicle/fuel'
+import { thirstOf, VEHICLE_TYPES } from '../../src/vehicle/vehicles'
 
 describe('burn', () => {
   it('empties a full tank in TANK seconds of full throttle', () => {
@@ -18,6 +19,30 @@ describe('burn', () => {
 
   it('never goes below empty, however long you sit on it', () => {
     expect(burn(0.01, 1, 9999)).toBe(0)
+  })
+
+  it('drinks faster the thirstier the vehicle', () => {
+    const light = burn(1, 1, 1, 1) // a plain car
+    const heavy = burn(1, 1, 1, 1.8) // a laden lorry
+    expect(1 - heavy).toBeCloseTo((1 - light) * 1.8, 6) // 1.8× the fuel gone
+    expect(heavy).toBeLessThan(light)
+  })
+
+  it('defaults thirst to a plain car when omitted', () => {
+    expect(burn(1, 1, 1)).toBe(burn(1, 1, 1, 1))
+  })
+})
+
+describe('per-vehicle thirst', () => {
+  it('is a positive multiple for every vehicle, defaulting a plain car to 1', () => {
+    expect(thirstOf('car')).toBe(1)
+    for (const t of VEHICLE_TYPES) expect(thirstOf(t)).toBeGreaterThan(0)
+  })
+
+  it('makes heavy haulers drink more than a car and an EV less', () => {
+    expect(thirstOf('lorry')).toBeGreaterThan(thirstOf('car'))
+    expect(thirstOf('truck')).toBeGreaterThan(thirstOf('sports'))
+    expect(thirstOf('ev')).toBeLessThan(thirstOf('car'))
   })
 })
 
