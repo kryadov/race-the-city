@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.119.0 — a fuel burn-rate control
+- The **⚙ Options** fuel button is now a cycle: **Off → ×0.5 (eco) → ×1 (normal) → ×1.6 (thirsty)**.
+  It scales the per-vehicle burn from v0.116.0, so you can make a tank last a long cruise or run it
+  down fast, and it's remembered between sessions. **Off** still means the tank never drains.
+- 👀 ⚙ Options → tap **Fuel** to cycle the rate (×0.5 / ×1 / ×1.6) — the gauge then drains at that pace.
+
 ## v0.118.2 — no more statues buried in a tree
 - A monument could stand inside a tree when OSM put a `natural=tree` point right on a landmark — the
   sight vanished into a canopy. Greenery now drops any tree (scatter or forest fill) within a few

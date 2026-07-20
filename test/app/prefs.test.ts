@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { getMinimapZoom, setMinimapZoom } from '../../src/app/prefs'
+import { getMinimapZoom, setMinimapZoom, getFuelRate, setFuelRate } from '../../src/app/prefs'
 
 // The test env is 'node' (no DOM), so stand up a tiny in-memory localStorage.
 beforeEach(() => {
@@ -28,5 +28,27 @@ describe('minimap zoom pref', () => {
     expect(getMinimapZoom()).toBe(2)
     localStorage.setItem('rtc.minimapZoom', '-1')
     expect(getMinimapZoom()).toBe(2)
+  })
+})
+
+describe('fuel-rate pref', () => {
+  it('defaults to 1 (the base burn) when nothing is saved', () => {
+    expect(getFuelRate()).toBe(1)
+  })
+
+  it('round-trips a saved multiplier', () => {
+    setFuelRate(0.5)
+    expect(getFuelRate()).toBe(0.5)
+    setFuelRate(1.6)
+    expect(getFuelRate()).toBe(1.6)
+  })
+
+  it('falls back to 1 on a bad or non-positive value', () => {
+    localStorage.setItem('rtc.fuelRate', 'nonsense')
+    expect(getFuelRate()).toBe(1)
+    localStorage.setItem('rtc.fuelRate', '0')
+    expect(getFuelRate()).toBe(1)
+    localStorage.setItem('rtc.fuelRate', '-2')
+    expect(getFuelRate()).toBe(1)
   })
 })

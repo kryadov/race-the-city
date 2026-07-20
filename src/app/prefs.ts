@@ -357,6 +357,27 @@ export function setZoom(v: number): void {
   }
 }
 
+const FUEL_RATE_KEY = 'rtc.fuelRate'
+
+/** Persisted fuel burn-rate multiplier (1 = default); scales the per-vehicle thirst. */
+export function getFuelRate(): number {
+  try {
+    const v = Number(localStorage.getItem(FUEL_RATE_KEY))
+    if (Number.isFinite(v) && v > 0) return v
+  } catch {
+    /* ignore */
+  }
+  return 1
+}
+
+export function setFuelRate(v: number): void {
+  try {
+    localStorage.setItem(FUEL_RATE_KEY, String(v))
+  } catch {
+    /* ignore */
+  }
+}
+
 const MINIMAP_ZOOM_KEY = 'rtc.minimapZoom'
 const DEFAULT_MINIMAP_ZOOM = 2 // middle step — the 260 m view the minimap shipped with
 

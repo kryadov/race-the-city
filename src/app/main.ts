@@ -81,6 +81,8 @@ import {
   setNitro,
   getFuelUse,
   setFuelUse,
+  getFuelRate,
+  setFuelRate,
   getDemo,
   setDemo,
   getDensity,
@@ -239,6 +241,7 @@ nitro.setEnabled(getNitro())
 const cans = createCans(stage.scene)
 let fuel = 1
 let fuelUse = getFuelUse() // when off, the tank never drains — no running dry
+let fuelRate = getFuelRate() // a menu multiplier on the per-vehicle burn (1 = default)
 const flame = createNitroFlame()
 let density: Density = getDensity()
 const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
@@ -743,7 +746,7 @@ async function loadCity(query: string): Promise<void> {
           fuel = Math.min(1, fuel + CAN_WORTH)
           audio.chime(false)
         }
-        if (fuelUse) fuel = burn(fuel, input.throttle, dt, thirstOf(vehicle)) // heavy haulers drink harder
+        if (fuelUse) fuel = burn(fuel, input.throttle, dt, thirstOf(vehicle) * fuelRate) // heavy haulers drink harder; menu scales it
         else fuel = 1 // fuel use off: keep the tank full so the car never runs dry
         hud.setFuel(fuel)
         if (boostTimer > 0) boostTimer -= dt
@@ -1204,6 +1207,10 @@ const menu = createMenu(
       setFuelUse(on)
       if (!on) fuel = 1 // switching it off tops the tank up at once
     },
+    onFuelRate: (v) => {
+      fuelRate = v
+      setFuelRate(v)
+    },
     onUnits: (u) => {
       setUnits(u)
       hud.setUnits(u)
@@ -1277,6 +1284,7 @@ const menu = createMenu(
     roadDetail: getRoadDetail(),
     nitro: getNitro(),
     fuel: getFuelUse(),
+    fuelRate: getFuelRate(),
     demo: getDemo(),
     quality: getQuality(),
     density,

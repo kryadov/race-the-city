@@ -93,7 +93,8 @@ drive along it**, and clear a bungalow, fountain or statue mid-jump.
   attract-mode backdrop).
 - **Pickups** — **nitro** speed boosts and **petrol cans** scattered on the roads; run low on
   fuel and the car slows until you grab a can — and **heavier vehicles drink faster** (a lorry
-  empties its tank well before a hatchback). Nitro comes **colour-coded**: **blue** is the
+  empties its tank well before a hatchback), with a **burn-rate cycle in ⚙ Options** (off / ×0.5 /
+  ×1 / ×1.6). Nitro comes **colour-coded**: **blue** is the
   balanced standard, **red** a short hard punch (faster, but brief), **green** a long gentle
   push — the colour tells you what kind of boost you're grabbing.
 - **Record & replay** — a **REC** button (bottom-centre, in-game) records your drive; **Replay**

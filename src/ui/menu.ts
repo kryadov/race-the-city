@@ -55,6 +55,8 @@ export interface MenuCallbacks {
   onRoadDetail: (on: boolean) => void
   onNitro: (on: boolean) => void
   onFuel: (on: boolean) => void
+  /** Fuel burn-rate multiplier (only fired when fuel use is on). */
+  onFuelRate: (v: number) => void
   /** Autopilot: a "watch it drive" toggle, not a play mode — lives in Options. */
   onDemo: (on: boolean) => void
   onQuality: (q: Quality) => void
@@ -83,6 +85,7 @@ export interface MenuInit {
   roadDetail: boolean
   nitro: boolean
   fuel: boolean
+  fuelRate: number
   demo: boolean
   quality: Quality
   density: Density
@@ -160,7 +163,10 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
   let clouds = initial.clouds
   let roadDetail = initial.roadDetail
   let nitro = initial.nitro
-  let fuel = initial.fuel
+  // Fuel is one cycling button: off, then three burn rates. Step 0 is off; 1..3 are the rates.
+  const FUEL_RATES = [1, 0.5, 1, 1.6]
+  const fuelStepOf = (on: boolean, rate: number): number => (!on ? 0 : rate <= 0.7 ? 1 : rate >= 1.4 ? 3 : 2)
+  let fuelStep = fuelStepOf(initial.fuel, initial.fuelRate)
   let demo = initial.demo
   let quality = initial.quality
   let density = initial.density
@@ -537,8 +543,9 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
   mapSec.appendChild(nitroBtn)
   const fuelBtn = toggleBtn()
   fuelBtn.addEventListener('click', () => {
-    fuel = !fuel
-    cb.onFuel(fuel)
+    fuelStep = (fuelStep + 1) % FUEL_RATES.length // off → eco → normal → thirsty → off
+    cb.onFuel(fuelStep > 0)
+    if (fuelStep > 0) cb.onFuelRate(FUEL_RATES[fuelStep])
     paintToggles()
   })
   mapSec.appendChild(fuelBtn)
@@ -558,7 +565,7 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
     cloudsBtn.textContent = `${clouds ? '☑' : '☐'} ${t('menu.clouds')}`
     roadDetailBtn.textContent = `${roadDetail ? '☑' : '☐'} ${t('menu.roadDetail')}`
     nitroBtn.textContent = `${nitro ? '☑' : '☐'} ${t('menu.nitro')}`
-    fuelBtn.textContent = `${fuel ? '☑' : '☐'} ${t('menu.fuel')}`
+    fuelBtn.textContent = `${fuelStep > 0 ? '☑' : '☐'} ${t('menu.fuel')}${fuelStep > 0 ? ' ×' + FUEL_RATES[fuelStep] : ''}`
     demoBtn.textContent = `${demo ? '☑' : '☐'} ${t('menu.demo')}`
   }
   // How busy the world is: cars, people, trains, boats and aircraft together.
