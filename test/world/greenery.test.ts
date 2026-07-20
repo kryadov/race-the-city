@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { variantsFor, frondGeo, collectForestSpots, FOREST_TREE_CAP, buildGreenery } from '../../src/world/greenery'
+import { variantsFor, frondGeo, collectForestSpots, FOREST_TREE_CAP, buildGreenery, clearOfProps, STATUE_CLEAR } from '../../src/world/greenery'
 import { pointInPolygon } from '../../src/physics/collide'
 import type { Vec2 } from '../../src/geo/types'
 
@@ -92,6 +92,30 @@ describe('collectForestSpots', () => {
 
   it('does nothing without woods', () => {
     expect(collectForestSpots([], testRng(5))).toEqual([])
+  })
+})
+
+describe('trees keep clear of statues', () => {
+  it('drops a spot within the clearance of a prop, keeps the far ones', () => {
+    const spots: Vec2[] = [{ x: 0, z: 0 }, { x: 3, z: 0 }, { x: 20, z: 0 }]
+    const kept = clearOfProps(spots, [{ x: 0, z: 0 }], STATUE_CLEAR)
+    expect(kept).toContainEqual({ x: 20, z: 0 }) // well clear → kept
+    expect(kept).not.toContainEqual({ x: 0, z: 0 }) // right on the prop → dropped
+    expect(kept).not.toContainEqual({ x: 3, z: 0 }) // within STATUE_CLEAR → dropped
+  })
+
+  it('is a no-op when there are no props', () => {
+    const spots: Vec2[] = [{ x: 0, z: 0 }, { x: 3, z: 0 }]
+    expect(clearOfProps(spots, [])).toEqual(spots)
+  })
+
+  it('does not plant a tree inside a statue', () => {
+    const provider = { heightAt: () => 0 }
+    const trees: Vec2[] = [{ x: 10, z: 0 }, { x: 0, z: 10 }, { x: -10, z: 0 }, { x: 0, z: -10 }]
+    const bare = buildGreenery([], trees, provider, 60)
+    // a statue planted on the (10,0) tree removes exactly that one
+    const withStatue = buildGreenery([], trees, provider, 60, [], [{ x: 10, z: 0 }])
+    expect(withStatue.perches.length, 'the tree on the statue was not removed').toBe(bare.perches.length - 1)
   })
 })
 

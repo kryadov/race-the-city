@@ -344,10 +344,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       + piers stashed on `group.userData.piers`; main.ts adds them to the collision grid capped at the
       deck underside (height-gated: solid to the road below, drivable on the deck above). STILL TODO:
       **offset piers off the carriageway** of a road running underneath (the visual/placement half).
-- [ ] **Landmark plaque + statue placement** — the landmark **sign should sit BESIDE the monument,
-      not inside it** (offset the poiMarker from the statue prop), and the **monument must not stand
-      inside a tree** (place statues clear of greenery — a small placement collision check against
-      trees/greenery). Touches poiMarkers offset + prop placement in the world build.
+- [x] **Landmark plaque + statue placement** — ✅ plaque-beside-monument (poiMarkers `markerPos`
+      SIGN_OFFSET_M, earlier) + ✅ v0.118.2 monument-not-in-tree (`clearOfProps` in greenery.ts drops any
+      tree within STATUE_CLEAR of a prop; main.ts passes `world.props` positions). Tested in `greenery.test.ts`.
 - [ ] **Manhole detail + open covers** — add **four small fixings around the rim** (like real cast
       covers), and make **some covers sit ajar / offset** as if not fully closed. Driving over an open
       one **drops the wheel in and tilts the car** — a physics dip at that spot (per-wheel height /

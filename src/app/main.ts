@@ -556,7 +556,7 @@ async function loadCity(query: string): Promise<void> {
     const propsMesh = buildProps(world.props, provider)
     const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
     const poiMesh = buildPoiMarkers(world.pois, provider)
-    const { object: greenMesh, perches: greenPerches } = buildGreenery(world.green, world.trees, provider, center.lat, world.forests)
+    const { object: greenMesh, perches: greenPerches } = buildGreenery(world.green, world.trees, provider, center.lat, world.forests, world.props.map((p) => p.at)) // keep trees off statues/fountains
     // Fill the bare ground between buildings with the odd bench and clump of trees.
     const infillMesh = buildInfill(world.buildings, world.roads, world.trees, world.water, provider, Math.random)
     const seaMesh = buildSea(world.coast, RADIUS, provider)

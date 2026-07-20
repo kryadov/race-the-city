@@ -51,12 +51,22 @@ function makeRng(seed: number): () => number {
  * lands at each tree's real crown height rather than a fixed guess that floated it
  * above the short trees.
  */
-export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number, forests: Vec2[][] = []): { object: THREE.Object3D; perches: TreePerch[] } {
+/** How far a tree keeps from a statue/fountain, so a monument isn't planted inside a canopy. */
+export const STATUE_CLEAR = 4
+
+/** Drop any spot within `clear` metres of a prop point — keeps trees off the monuments. */
+export function clearOfProps(spots: Vec2[], props: Vec2[], clear = STATUE_CLEAR): Vec2[] {
+  if (!props.length) return spots
+  const c2 = clear * clear
+  return spots.filter((s) => props.every((p) => (s.x - p.x) ** 2 + (s.z - p.z) ** 2 >= c2))
+}
+
+export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: ElevationProvider, lat: number, forests: Vec2[][] = [], props: Vec2[] = []): { object: THREE.Object3D; perches: TreePerch[] } {
   const group = new THREE.Group()
   const szn = season(new Date(), lat)
   const rng = makeRng(RNG_SEED)
   const perches: TreePerch[] = []
-  const spots = collectTreeSpots(green, trees, rng)
+  const spots = clearOfProps(collectTreeSpots(green, trees, rng), props)
   if (spots.length) {
     const t = buildTrees(spots, provider, rng, lat, szn)
     group.add(t.object)
@@ -68,7 +78,7 @@ export function buildGreenery(green: Vec2[][], trees: Vec2[], provider: Elevatio
   // big forest costs a few thousand instanced trees, never tens of thousands.
   if (forests.length) {
     const frng = makeRng(FOREST_SEED)
-    const fspots = collectForestSpots(forests, frng)
+    const fspots = clearOfProps(collectForestSpots(forests, frng), props)
     if (fspots.length) {
       const t = buildTrees(fspots, provider, frng, lat, szn)
       group.add(t.object)

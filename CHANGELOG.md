@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.118.2 — no more statues buried in a tree
+- A monument could stand inside a tree when OSM put a `natural=tree` point right on a landmark — the
+  sight vanished into a canopy. Greenery now drops any tree (scatter or forest fill) within a few
+  metres of a statue / fountain / prop, so monuments stand clear. (Its plaque already stepped aside
+  from the monument; this clears the greenery around it too.)
+- 👀 Find a monument under a landmark beacon — it stands in the open now, not poking out of a bush.
+
 ## v0.118.1 — drive up a low kerb instead of hitting a wall
 - A surface only a wheel-radius (0.35 m) higher than the car — a kerb, a low ledge, the next step of
   a terraced roof — used to be a hard wall that stopped you dead. The collision now lets you climb up
