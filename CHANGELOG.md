@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.117.0 — every vehicle has its own horn
+- The horn was one 440/554 beep for everything. Now it sounds the vehicle: a **lorry / bus / tanker**
+  blasts a deep sawtooth **air-horn**, a **sports car** parps higher and sharper, a **motorbike**
+  squeaks a thin beep, an **EV / hover** gives a soft synthetic tone, and **emergency** vehicles are
+  firm and insistent. Plain cars keep the classic two-tone. (A `HORNS` table keyed by vehicle,
+  mirroring the engine profiles; `setVehicle` swaps it in with the engine voice.)
+- 👀 Honk **H** in a lorry, then a sports car, then a bike — three different horns.
+
 ## v0.116.0 — every vehicle drinks at its own rate
 - Fuel now burns per vehicle. A plain car is the reference; a laden **lorry / tanker / fire engine**
   drinks ~1.7–1.9× as fast, a **sports car** a bit more than a car, and an **EV or hover** sips

@@ -99,6 +99,52 @@ export function engineFrequency(speedFraction: number, profile: EngineProfile = 
   return profile.base + f * profile.range
 }
 
+/** The two tones (and voice) of a vehicle's horn. */
+export interface HornProfile {
+  a: number // lower tone, Hz
+  b: number // upper tone, Hz
+  wave: OscillatorType
+  gain: number // peak loudness
+}
+
+const HORN_CAR: HornProfile = { a: 440, b: 554, wave: 'square', gain: 0.18 } // the classic two-tone beep
+const HORN_TRUCK: HornProfile = { a: 165, b: 220, wave: 'sawtooth', gain: 0.24 } // deep, loud air-horn
+const HORN_SPORTS: HornProfile = { a: 520, b: 660, wave: 'square', gain: 0.18 } // higher, sharper parp
+const HORN_BIKE: HornProfile = { a: 660, b: 880, wave: 'square', gain: 0.12 } // a thin little beep
+const HORN_EV: HornProfile = { a: 500, b: 750, wave: 'triangle', gain: 0.14 } // soft, synthetic
+const HORN_EMERGENCY: HornProfile = { a: 470, b: 590, wave: 'square', gain: 0.2 } // firm, insistent
+
+/**
+ * Horn character per vehicle, the same idea as {@link ENGINES}: a lorry should
+ * blast a deep air-horn where a hatchback beeps and a bike squeaks. Anything not
+ * listed sounds the classic car horn — see {@link hornProfile}.
+ */
+const HORNS: Partial<Record<VehicleType, HornProfile>> = {
+  truck: HORN_TRUCK,
+  lorry: HORN_TRUCK,
+  tanker: HORN_TRUCK,
+  bus: HORN_TRUCK,
+  firetruck: HORN_TRUCK,
+  crane: HORN_TRUCK,
+  tractor: HORN_TRUCK,
+  combine: HORN_TRUCK,
+  roller: HORN_TRUCK,
+  tracked: HORN_TRUCK,
+  tiller: HORN_BIKE,
+  sports: HORN_SPORTS,
+  racecar: HORN_SPORTS,
+  motorbike: HORN_BIKE,
+  ev: HORN_EV,
+  hover: HORN_EV,
+  ambulance: HORN_EMERGENCY,
+  police: HORN_EMERGENCY,
+}
+
+/** The horn voice for a vehicle; ordinary cars sound the classic two-tone. */
+export function hornProfile(type: VehicleType): HornProfile {
+  return HORNS[type] ?? HORN_CAR
+}
+
 /** Seconds parked before the engine starts fading out. */
 export const IDLE_MUTE_AFTER = 10
 const IDLE_FADE = 1.5 // seconds to fade to silence once past it
@@ -149,6 +195,7 @@ export class AudioEngine {
   private idleFor = 0 // seconds the car has sat still, for the idle fade
   private hornOsc: OscillatorNode | null = null
   private hornOsc2: OscillatorNode | null = null
+  private hornVoice: HornProfile = HORN_CAR // the current vehicle's horn character
   private state: AudioState = loadState()
   private musicEl: HTMLAudioElement | null = null
   private musicSrc: MediaElementAudioSourceNode | null = null
@@ -226,6 +273,7 @@ export class AudioEngine {
   /** Switch the engine's character. Call when the player picks a vehicle. */
   setVehicle(type: VehicleType): void {
     this.engine = engineProfile(type)
+    this.hornVoice = hornProfile(type)
     this.idleFor = 0
     if (this.engineOsc) this.engineOsc.type = this.engine.wave
   }
@@ -276,16 +324,17 @@ export class AudioEngine {
     if (this.hornOsc) return // already sounding; don't stack them
     const ctx = this.ctx
     const t = ctx.currentTime
+    const voice = this.hornVoice // per-vehicle: a lorry blasts where a bike beeps
     const g = ctx.createGain()
     g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.18, t + 0.02)
+    g.gain.exponentialRampToValueAtTime(voice.gain, t + 0.02)
     g.connect(this.sfxGain)
     const osc = ctx.createOscillator()
-    osc.type = 'square'
-    osc.frequency.value = 440
+    osc.type = voice.wave
+    osc.frequency.value = voice.a
     const osc2 = ctx.createOscillator()
-    osc2.type = 'square'
-    osc2.frequency.value = 554 // a third above: a car horn, not a test tone
+    osc2.type = voice.wave
+    osc2.frequency.value = voice.b // the upper tone: two-tone, not a test beep
     osc.connect(g)
     osc2.connect(g)
     osc.start(t)

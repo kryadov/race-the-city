@@ -6,6 +6,7 @@ import {
   pickTrack,
   MUSIC_DEFAULTS,
   engineProfile,
+  hornProfile,
   idleGain,
   IDLE_MUTE_AFTER,
 } from '../../src/audio/audio'
@@ -42,6 +43,30 @@ describe('engine character', () => {
       expect(engineFrequency(5, p), type).toBeCloseTo(engineFrequency(1, p))
       expect(engineFrequency(-5, p), type).toBeCloseTo(engineFrequency(0, p))
     }
+  })
+})
+
+describe('horn character', () => {
+  it('gives every vehicle a two-tone horn with positive gain', () => {
+    for (const type of VEHICLE_TYPES) {
+      const h = hornProfile(type)
+      expect(h.a, type).toBeGreaterThan(0)
+      expect(h.b, type).toBeGreaterThan(h.a) // the upper tone sits above the lower
+      expect(h.gain, type).toBeGreaterThan(0)
+    }
+  })
+
+  it('sounds a plain car the classic two-tone, unlisted vehicles included', () => {
+    const car = hornProfile('car')
+    expect(car.a).toBe(440)
+    expect(car.b).toBe(554)
+  })
+
+  it('blasts a deep lorry horn and squeaks a bike, either side of the car', () => {
+    expect(hornProfile('lorry').a).toBeLessThan(hornProfile('car').a) // deeper
+    expect(hornProfile('motorbike').a).toBeGreaterThan(hornProfile('car').a) // higher
+    // and the lorry is the louder of the two
+    expect(hornProfile('lorry').gain).toBeGreaterThan(hornProfile('motorbike').gain)
   })
 })
 

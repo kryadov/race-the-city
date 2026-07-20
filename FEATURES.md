@@ -26,7 +26,8 @@ keyboard layout (Cyrillic, AZERTY, …), not just QWERTY.
 - **W / ↑** — accelerate · **S / ↓** — brake / reverse
 - **A / ←** — steer left · **D / →** — steer right
 - **Space** — handbrake (slide it into a drift)
-- **H** — horn (hold) — nearby traffic and pedestrians step aside when you honk
+- **H** — horn (hold) — sounds different per vehicle (a lorry blasts, a bike squeaks); nearby
+  traffic and pedestrians step aside when you honk
 
 **View & UI**
 - **V** — toggle the neon / wireframe look

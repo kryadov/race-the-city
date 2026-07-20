@@ -303,9 +303,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Flashing police lightbar** — the police car's roof beacons should **flash red/blue while
       driving** (alternating), not glow steady. Animate the shared BEACON_RED/BLUE emissive intensity
       in the loop for emergency vehicles. (Doing this myself — main.ts + parts.ts.)
-- [ ] **Per-vehicle horn** — the klaxon should **sound different per vehicle** (a truck's air-horn vs
-      a car's beep vs a sports parp). A small horn-profile per vehicle type in `audio.ts`, keyed off
-      the current vehicle.
+- [x] **Per-vehicle horn** — ✅ v0.117.0: `HornProfile`/`HORNS` table + `hornProfile(type)` in audio.ts
+      (deep air-horn for haulers, sharp parp for sports, thin beep for bikes, soft EV tone, firm
+      emergency); `setVehicle` swaps it in and `horn()` plays it. Tested in `audio.test.ts`.
 - [ ] **Collision knocks the OTHER guy back too** — hitting a pedestrian or bot car currently only
       bounces the PLAYER; the person/car should also be shoved/knocked back (a reaction impulse on the
       struck agent), not stand there immovable. Add a knockback to `people`/`traffic` when the player
