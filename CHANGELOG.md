@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.133.1 — a bridge's name rides its deck
+- A bridge road's **street-name label** was placed at the terrain height under the deck, so the name
+  floated **down under the bridge** instead of on the carriageway you drive. It now rides the **deck**
+  (falling back to the ground only where no deck actually covers it). Ordinary roads are unchanged.
+- 👀 Turn on road labels and cross a named bridge — its name should sit up on the deck with you, not
+  hang in the air below.
+
 ## v0.133.0 — islands in the water read as land
 - A river or lake mapped as an OSM multipolygon carries **inner rings** — the islands sitting in it.
   Those used to be dropped, so the flat water surface **painted straight over the island**. Now each

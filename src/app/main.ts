@@ -636,7 +636,7 @@ async function loadCity(query: string): Promise<void> {
     crops = createCrops(stage.scene, world.surfaces, provider)
     theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh, crops: crops.object, pitches: pitchesMesh, archways: archways.object })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
-    roadLabels.setWorld(world.roads, provider)
+    roadLabels.setWorld(world.roads, provider, decks) // bridge names ride the deck, not the ground below
     // index buildings (with heights) so the camera can tell when one blocks the car
     occHeight.clear()
     for (const b of world.buildings) occHeight.set(b.footprint, b.height)

@@ -464,8 +464,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       piers; markings and lamps ride the deck — done in v0.69.0
 - [ ] **Name the rivers** — `roadLabels` only labels roads; a bridge is worth crossing when you
       can see what it crosses. Waiting on relation-mapped rivers arriving at all (above).
-- [ ] **Bridge road labels sit on the terrain** — `roadLabels.setWorld` still reads the ground
-      provider, so a bridge's name floats under its deck.
+- [x] **Bridge road labels sit on the terrain** — ✅ v0.133.1: `roadLabels.ts` `labelHeight(road, x, z,
+      provider, decks)` uses the bridge DECK height for a bridge road (falling back to ground where no
+      deck covers the point), so a bridge's name rides its carriageway instead of floating below. `setWorld`
+      now takes the `DeckIndex`; main.ts passes it. Tested in `roadLabels.test.ts`.
 - [x] **Manhole covers** on the roads — scattered procedurally along road centrelines (like the
       nitro spots), not from OSM's patchy `man_made=manhole` — one instanced draw, dark iron
       discs, deduped at junctions, skipping bridge/tunnel decks — v0.95.0

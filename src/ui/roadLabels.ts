@@ -1,9 +1,11 @@
 import * as THREE from 'three'
 import type { Road } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
+import type { DeckIndex } from '../world/bridge'
 
 const MAX_DIST = 220 // metres from the car to show a label
 const MAX_LABELS = 14 // cap concurrently drawn labels
+const LABEL_UP = 1 // metres above the surface the name floats
 
 interface Label {
   name: string
@@ -11,9 +13,26 @@ interface Label {
 }
 
 export interface RoadLabels {
-  setWorld(roads: Road[], provider: ElevationProvider): void
+  setWorld(roads: Road[], provider: ElevationProvider, decks?: DeckIndex): void
   setEnabled(on: boolean): void
   update(camera: THREE.Camera, carX: number, carZ: number): void
+}
+
+/**
+ * How high a road's name floats. A bridge road's name rides its DECK — the
+ * carriageway you actually drive — not the terrain far below it, which is where
+ * reading the ground provider left it (floating under the deck). Everything else
+ * sits on the terrain as before. Pure/testable.
+ */
+export function labelHeight(
+  road: Road,
+  x: number,
+  z: number,
+  provider: ElevationProvider,
+  decks?: DeckIndex,
+): number {
+  const deck = road.bridge ? decks?.heightAt(x, z) ?? null : null
+  return (deck ?? provider.heightAt(x, z)) + LABEL_UP
 }
 
 /** Transparent full-screen overlay drawing street names projected from the camera. */
@@ -35,14 +54,14 @@ export function createRoadLabels(root: HTMLElement): RoadLabels {
   const ndc = new THREE.Vector3()
 
   return {
-    setWorld(roads, provider) {
+    setWorld(roads, provider, decks) {
       const byName = new Map<string, Label>()
       for (const road of roads) {
         if (!road.name || road.points.length < 2 || byName.has(road.name)) continue
         const mid = road.points[Math.floor(road.points.length / 2)]
         byName.set(road.name, {
           name: road.name,
-          pos: new THREE.Vector3(mid.x, provider.heightAt(mid.x, mid.z) + 1, mid.z),
+          pos: new THREE.Vector3(mid.x, labelHeight(road, mid.x, mid.z, provider, decks), mid.z),
         })
       }
       labels = [...byName.values()]
