@@ -93,11 +93,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [x] **BUG — neon mode skips the car and bots** — ✅ v0.113.1/v0.113.2: car + every mover (traffic,
       buses, motos, cyclists, pedestrians, trains, boats, livestock, birds, aircraft, arcade pickups)
       now flips to neon wireframe via the `userData.neonMover` scan in theme.ts.
-- [ ] **BUG — collisions ignore height (flying / bridges / slopes)** — obstacle circles (`solidAt`)
-      are 2D, so the car collides with a bot even when it's ~10m ABOVE it: flying over a pedestrian on
-      a slope, or driving a bridge deck over traffic on the road beneath. Give each obstacle a y
-      (ground height) and skip the collision when |car.y − obstacle.y| exceeds a clearance. (main.ts
-      collision + traffic/pedestrians obstacle lists.)
+- [x] **BUG — collisions ignore height (flying / bridges / slopes)** — ✅ ALREADY DONE (verified
+      2026-07-21): main.ts filters the moving hazards (traffic + people + trains) by
+      `Math.abs(car.y − provider.heightAt(h.x,h.z)) < HAZARD_CLEAR` before resolving, so a bot ~10m below
+      (you flying over it, or up on a bridge deck above the road) is dropped from collision.
 - [ ] **RPM tachometer dial** — above the speedometer, an engine-RPM dial (same round-gauge style),
       driven from engine load/speed. (`src/ui/hud.ts` + a `hud.setRpm` wired in main.ts.)
 - [ ] **Pedestrians can walk the bridge decks** — let pedestrians route over bridge crossings/decks,
@@ -319,9 +318,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Underwater bubbles** — if the car sinks so the water is **above the roof**, emit **bubbles
       rising from the roof up to the surface** at the spot where you went under (they form there and
       drift up). A cheap particle stream (instanced points/quads) gated on car.y + roof < waterLevel.
-- [ ] **Fly over traffic & people when airborne** — when the player is **jumped/airborne above**
-      passing bot cars OR pedestrians, they shouldn't collide with them — the collision check must
-      respect height (only collide when vertically overlapping), so you pass freely overhead.
+- [x] **Fly over traffic & people when airborne** — ✅ ALREADY DONE (verified 2026-07-21): same
+      `HAZARD_CLEAR` height-gate in main.ts (see the collisions-ignore-height item) — a jump/airborne pass
+      above a bot or pedestrian drops it from the hazard list, so you sail over freely.
 - [x] **Step up onto a slightly higher surface** — ✅ v0.118.1: `resolveCircle` height-gate now skips a
       footprint the car is within `STEP_UP` (0.35m, a wheel-radius) below, so you climb a kerb/ledge/roof
       step instead of hitting a wall; the surface fn then raises the car (ROOF_SNAP). Tested in `collide.test.ts`.
@@ -359,10 +358,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       covers), and make **some covers sit ajar / offset** as if not fully closed. Driving over an open
       one **drops the wheel in and tilts the car** — a physics dip at that spot (per-wheel height /
       a brief suspension pothole), not just a visual. Keep it cheap (instanced covers already).
-- [ ] **BUG — lit windows sink into the ground** — building facade windows sometimes extend below the
-      terrain (glowing windows in the dirt). On sloping ground a building's facade grid is laid from a
-      fixed base; clamp/raise the lowest window row to stay above the ground under that wall (or seat
-      the facade on the max terrain height along the footprint). `facades.ts`/building facade build.
+- [x] **BUG — lit windows sink into the ground** — ✅ ALREADY DONE (verified 2026-07-21): `buildings.ts`
+      seats the ground floor at the MAX terrain under the footprint (`groundStats().max` → `splitPlinth(geo,
+      max)`) and fills the sloped gap below with a solid, windowless **plinth** — so windows start at the
+      high ground level and never bury into a hill; only the plinth sits in the slope.
 - [ ] **Signage text** — real **labels on building nameplates, monuments and signposts** (street
       names, POI names, monument names from OSM). Rendered text (canvas-texture atlas or SDF) on the
       existing sign/nameplate meshes; cap how many render at once and fade by distance for cost.
