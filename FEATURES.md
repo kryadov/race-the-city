@@ -150,7 +150,9 @@ Built from the real map around you:
 
 ## Visuals & atmosphere
 
-- **Day/night cycle** with a gradient sky, sun disc, **stars and a moon** at night.
+- **Day/night cycle** with a gradient sky, sun disc, **stars and a moon** at night. Lock it to
+  **perpetual day** or **perpetual night** in ⚙ Options — the sky still **breathes** gently (the sun
+  eases a little and back) but never crosses into the other half.
 - **Weather** — clear, rain, snow, fog — on a menu toggle or auto-cycling, with matching cloud
   cover and clouds you can toggle. On **Auto**, a city starts with its **real current weather**
   (fetched live from Open-Meteo), then drifts through the cycle from there.

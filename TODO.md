@@ -280,10 +280,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       landmark before the timer, next-nearest each time, one gold beam + minimap arrow over the current
       one, score = sights seen. `excursion.ts` + `excursionHud.ts`, mode wired in menu/main, targets
       REACH_BOUND-clamped. Tested in `excursion.test.ts`.
-- [ ] **Day-only / night-only drive** — a setting (or mode) to **lock the time of day**: the sky
-      still breathes a little but never crosses into the other half — perpetual day, or perpetual
-      night, looping. Add to the existing time-of-day setting (cycle / day / night) — clamp/loop
-      `timeOfDay` within the chosen half instead of the full 0..1 cycle.
+- [x] **Day-only / night-only drive** — ✅ v0.132.0: the existing 'day'/'night' locks no longer freeze —
+      `breatheTime(mode, phase)` in `daynight.ts` eases `timeOfDay` on a slow sine within a band around the
+      hold time (±0.16 day / ±0.13 night), kept well clear of the horizon so it never crosses into the
+      other half. Wired via a `breathePhase` accumulator in main.ts (advances by dt like the cycle does;
+      resets on a mode change). Tested in `daynight.test.ts` (stays-in-half + actually-breathes).
 - [x] **Real weather for the city** — ✅ v0.114.0: `src/app/liveWeather.ts` (`weatherFromCode` WMO→
       Weather + `fetchCityWeather` async, keyless Open-Meteo, aborts on city-load cancel, times out at
       6s, returns null on any failure). On 'auto' the loaded city starts on its real weather via

@@ -12,7 +12,7 @@ import {
 } from './scene'
 import { startLoop } from './loop'
 import { ThemeController } from './theme'
-import { applyDayNight, sampleDayNight, sunElevation, DAY_TIME, NIGHT_TIME, type TimeMode } from './daynight'
+import { applyDayNight, sampleDayNight, sunElevation, breatheTime, DAY_TIME, NIGHT_TIME, type TimeMode } from './daynight'
 import { createDriftFx } from './driftfx'
 import { createWeather, WEATHERS, type Weather, type WeatherSetting } from './weather'
 import { fetchCityWeather } from './liveWeather'
@@ -393,9 +393,11 @@ let blinkClock = 0 // free-running clock for the indicator blink
  * across a city without the sun setting on you.
  */
 const CYCLE_SECONDS = 480
-// The clock runs ('cycle'), or holds at noon / midnight for a fixed-light drive.
+// The clock runs ('cycle'), or holds near noon / midnight for a fixed-light drive
+// — a lock breathes gently within its half rather than freezing (see breatheTime).
 let timeMode: TimeMode = getTimeMode()
 let timeOfDay = timeMode === 'day' ? DAY_TIME : timeMode === 'night' ? NIGHT_TIME : 0.35
+let breathePhase = 0 // seconds into the day/night lock's gentle drift
 showVehicle(vehicle)
 audio.setVehicle(vehicle)
 // Pausing resets the engine's idle timer, so resuming doesn't start mid-fade.
@@ -1016,6 +1018,13 @@ async function loadCity(query: string): Promise<void> {
         prevForward = fwd
         driftFx.update(car, dt, provider)
         if (timeMode === 'cycle') timeOfDay = (timeOfDay + dt / CYCLE_SECONDS) % 1
+        else {
+          // A day/night lock still breathes: the sun eases a little either side of
+          // its hold time and back, never crossing into the other half. `dt` is 0
+          // while paused, so it holds still then, exactly as the cycle does.
+          breathePhase += dt
+          timeOfDay = breatheTime(timeMode, breathePhase)
+        }
         applyDayNight(stage, timeOfDay, theme.current === 'neon')
         mist.setColor((stage.scene.fog as THREE.Fog).color) // veil matches the fog
         // keep the sun's shadow frustum centred on the car
@@ -1349,6 +1358,7 @@ const menu = createMenu(
     onTimeMode: (m) => {
       timeMode = m
       setTimeMode(m)
+      breathePhase = 0 // start a fresh lock on its hold time, then breathe from there
       // Locking to day or night jumps the sky there at once; cycle picks up from here.
       if (m === 'day') timeOfDay = DAY_TIME
       else if (m === 'night') timeOfDay = NIGHT_TIME

@@ -33,6 +33,31 @@ export function sunElevation(t: number): number {
   return Math.sin((t - 0.25) * Math.PI * 2)
 }
 
+/**
+ * How far a day/night lock lets the time drift either side of its hold — a gentle
+ * breath, not a full traverse. Both bands stay well clear of the horizon (sunrise
+ * 0.25, sunset 0.75), so a 'day' lock never dips into dusk and a 'night' lock never
+ * creeps into dawn.
+ */
+export const DAY_BREATHE = 0.16 // ± around noon (0.5): sun stays high all "day"
+export const NIGHT_BREATHE = 0.13 // ± around midnight (0.0): stays deep "night"
+/** Seconds for one full ease-out-and-back — slow, so the sky only just breathes. */
+export const BREATHE_PERIOD = 120
+
+/**
+ * The time of day for a locked mode at breathing phase `phase` (seconds). Instead
+ * of holding stone-still, the sun eases a little to one side of the hold time and
+ * back on a slow sine, never approaching the horizon that would tip it into the
+ * other half. Pure — a function of the accumulated phase alone, so it's testable
+ * and deterministic. `phase = 0` sits exactly on the hold time.
+ */
+export function breatheTime(mode: 'day' | 'night', phase: number): number {
+  const center = mode === 'night' ? NIGHT_TIME : DAY_TIME
+  const amp = mode === 'night' ? NIGHT_BREATHE : DAY_BREATHE
+  const t = center + amp * Math.sin((phase / BREATHE_PERIOD) * Math.PI * 2)
+  return ((t % 1) + 1) % 1 // wrap: a night lock breathes across midnight (0)
+}
+
 const lerp = (a: number, b: number, x: number): number => a + (b - a) * x
 function lerpColor(a: number, b: number, x: number): number {
   const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255

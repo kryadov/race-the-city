@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.132.0 — a day/night lock now breathes instead of freezing
+- **Perpetual day** and **perpetual night** (⚙ Options → time of day) used to hold the sky stone-still.
+  Now the lock **breathes**: the sun eases gently to one side of its hold time and back on a slow
+  ~2-minute sine, so the light lives a little — but it stays **well clear of the horizon**, so a day
+  lock never dips toward dusk and a night lock never creeps toward dawn. Cycle mode is unchanged.
+- 👀 Set the time to Day (or Night) in Options and watch a while — the sun/shadows should drift subtly
+  and return, without the scene ever tipping into the other half.
+
 ## v0.131.0 — trees come in a real range of heights
 - Trees used to be scaled on a flat 0.7–1.4 band, so a stand read as one cloned model. Now the size
   follows a **shaped spread**: most stay mid-height, but a good few come out **markedly short**
