@@ -12,10 +12,14 @@ runs in the browser.
 ## Start screen
 
 On load you get a **start menu** — RACE THE CITY — over a real city driving itself on autopilot.
-Pick a **city** (search or 🎲 random — the backdrop reloads to it), a **car** (a quick strip, or
-"More…" for all 19), and a **mode** (Free roam / Time trial / Race), then **▶ Play** to take the
-wheel of the car you were watching. If you've played before, **Continue** resumes your saved
-session. A `?city=` share link pre-fills the city.
+That opening city is a **built-in demo (central Paris — the Île de la Cité, the Seine and its
+bridges)** baked into the app, so the very first screen appears **instantly and offline** — it never
+waits on a map server, and a flaky network can't leave you staring at a blank start. Pick a **city**
+(search or 🎲 random — the backdrop reloads to it), a **car** (a quick strip, or "More…" for all 19),
+and a **mode** (Free roam / Time trial / Race), then **▶ Play** to take the wheel of the car you were
+watching. If you've played before, **Continue** resumes your saved session. A `?city=` share link
+pre-fills the city. If loading a real city ever fails outright, the game drops you into the demo
+rather than a dead menu.
 
 ---
 

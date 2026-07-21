@@ -111,11 +111,13 @@ import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm, overpassQuery } from '../geo/overpass'
 import { bboxKey, cacheGet, cachePut, cacheGetStale } from '../geo/cache'
 import { parseOsm } from '../geo/parse'
+import type { OverpassResponse } from '../geo/parse'
+import { DEMO_CITY, fetchDemoCity } from '../geo/demoCity'
 import { Projector } from '../geo/project'
 import { loadTerrarium } from '../terrain/terrarium'
 import { FlatProvider } from '../terrain/flat'
 import { griddedProvider } from '../terrain/gridded'
-import type { Vec2 } from '../geo/types'
+import type { Vec2, LatLon } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { startPose } from '../world/start'
@@ -477,57 +479,80 @@ async function loadCity(query: string): Promise<void> {
   const loadAbort = new AbortController()
   loading.setCancel(t('loading.cancel'), () => loadAbort.abort())
   try {
-    loading.show(t('loading.geocoding'), 0.05)
-    const center = await withRetry(
-      () => geocode(query),
-      (n) => loading.show(`${t('loading.geocoding')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.05),
-    )
-    // Live weather: on 'auto', start the cycle on what this city is actually doing
-    // now. Best-effort and fully async — it never blocks the load or a frame, and a
-    // failure or a city-switch mid-flight just leaves the normal auto cycle running.
-    if (autoWeather) {
-      void fetchCityWeather(center.lat, center.lon, loadAbort.signal).then((w) => {
-        if (w && autoWeather && gen === cityGeneration) startAutoAt(w)
-      })
+    // The baked offline demo (DEMO_CITY) skips every third-party service — no
+    // geocoder, no Overpass, no terrain API — and takes its center, OSM and
+    // heights straight from one same-origin asset. It's the guaranteed first
+    // screen and the last-resort fallback, so a cold start never hangs on a
+    // service that's refusing every mirror.
+    const isDemo = query === DEMO_CITY
+    let center: LatLon
+    let osm!: OverpassResponse
+    let dem!: ElevationProvider
+    if (isDemo) {
+      loading.show(t('loading.build'), 0.2)
+      const demo = await fetchDemoCity()
+      center = demo.center
+      osm = demo.osm
+      dem = demo.provider
+      hud.setCity(demo.name) // a friendly label in place of the sentinel
+    } else {
+      loading.show(t('loading.geocoding'), 0.05)
+      center = await withRetry(
+        () => geocode(query),
+        (n) => loading.show(`${t('loading.geocoding')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.05),
+      )
+      // Live weather: on 'auto', start the cycle on what this city is actually doing
+      // now. Best-effort and fully async — it never blocks the load or a frame, and a
+      // failure or a city-switch mid-flight just leaves the normal auto cycle running.
+      if (autoWeather) {
+        void fetchCityWeather(center.lat, center.lon, loadAbort.signal).then((w) => {
+          if (w && autoWeather && gen === cityGeneration) startAutoAt(w)
+        })
+      }
+      // reflect the loaded city in the address bar so the URL is shareable (the
+      // demo sentinel is never pushed — it isn't a place you can link to)
+      const u = new URL(location.href)
+      u.searchParams.set('city', query)
+      history.replaceState(null, '', u)
     }
-    // reflect the loaded city in the address bar so the URL is shareable
-    const u = new URL(location.href)
-    u.searchParams.set('city', query)
-    history.replaceState(null, '', u)
     const projector = new Projector(center)
     const bbox = bboxAround(center, RADIUS)
 
-    loading.show(t('loading.osm'), 0.2)
-    const key = bboxKey(bbox, overpassQuery(bbox))
-    let osm = await cacheGet(key)
-    if (!osm) {
-      try {
-        osm = await withRetry(
-          () => fetchOsm(bbox, loadAbort.signal),
-          (n) => loading.show(`${t('loading.osm')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.2),
-        )
-        await cachePut(key, osm)
-      } catch (e) {
-        if (loadAbort.signal.aborted) throw e // a cancel is a cancel, not a cache miss
-        // Every mirror refused (a 429 storm) or timed out. If we've ever cached
-        // this bbox — even under an older query — drive that rather than fail.
-        const stale = await cacheGetStale(bbox)
-        if (!stale) throw e
-        osm = stale
+    if (!isDemo) {
+      loading.show(t('loading.osm'), 0.2)
+      const key = bboxKey(bbox, overpassQuery(bbox))
+      const hit = await cacheGet(key)
+      if (hit) osm = hit
+      else {
+        try {
+          osm = await withRetry(
+            () => fetchOsm(bbox, loadAbort.signal),
+            (n) => loading.show(`${t('loading.osm')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.2),
+          )
+          await cachePut(key, osm)
+        } catch (e) {
+          if (loadAbort.signal.aborted) throw e // a cancel is a cancel, not a cache miss
+          // Every mirror refused (a 429 storm) or timed out. If we've ever cached
+          // this bbox — even under an older query — drive that rather than fail.
+          const stale = await cacheGetStale(bbox)
+          if (!stale) throw e
+          osm = stale
+        }
       }
     }
     loading.show(t('loading.osm'), 0.5)
     const world = parseOsm(osm, projector)
 
-    loading.show(t('loading.terrain'), 0.65)
-    let dem: ElevationProvider
-    try {
-      dem = await withRetry(
-        () => loadTerrarium(center, bbox, projector),
-        (n) => loading.show(`${t('loading.terrain')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.65),
-      )
-    } catch {
-      dem = new FlatProvider() // graceful fallback: flat ground beats no city
+    if (!isDemo) {
+      loading.show(t('loading.terrain'), 0.65)
+      try {
+        dem = await withRetry(
+          () => loadTerrarium(center, bbox, projector),
+          (n) => loading.show(`${t('loading.terrain')} ${t('loading.retry')} ${n + 1}/${LOAD_ATTEMPTS}`, 0.65),
+        )
+      } catch {
+        dem = new FlatProvider() // graceful fallback: flat ground beats no city
+      }
     }
     // Snap the DEM to the ground mesh's grid, so the car and everything else
     // sit on the surface that is actually drawn rather than on the raw data.
@@ -1153,6 +1178,13 @@ async function loadCity(query: string): Promise<void> {
       }
       return
     }
+    // Nothing has ever loaded and this wasn't already the demo: fall back to the
+    // baked city rather than a dead menu, so the very first screen is never empty
+    // when a service refuses. The `finally` kicks the queued demo load off.
+    if (!currentCity && query !== DEMO_CITY) {
+      queued = DEMO_CITY
+      return
+    }
     const key = e instanceof Error && e.message === 'city not found' ? 'error.cityNotFound' : 'error.loadFailed'
     loading.error(t(key))
     // Don't leave the failure notice — and, on a menu-driven load, the loading
@@ -1550,7 +1582,10 @@ function startContinue(): void {
   void loadCity(sess.city) // loadCity resumes the saved pose when the city matches
 }
 
-void loadCity(linkCity || pickRandomCity())
+// Boot: a share link loads its real city; otherwise the baked demo city shows
+// instantly, with no network on the critical first-paint path. The player picks a
+// real city from the menu (or resumes via Continue) whenever they want one.
+void loadCity(linkCity || DEMO_CITY)
 
 // persist the session (city + car pose) so a reload resumes in place
 const saveSession = (): void => {

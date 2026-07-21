@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { griddedProvider } from '../../src/terrain/gridded'
+import { griddedProvider, gridProviderFromArray } from '../../src/terrain/gridded'
 
 const HALF = 1000
 const SEG = 160
@@ -52,5 +52,41 @@ describe('griddedProvider', () => {
     expect(g.heightAt(HALF + 500, 0)).toBeCloseTo(12)
     expect(g.heightAt(-HALF - 500, HALF + 900)).toBeCloseTo(12)
     expect(Number.isFinite(g.heightAt(1e9, -1e9))).toBe(true)
+  })
+})
+
+describe('gridProviderFromArray', () => {
+  it('reproduces what griddedProvider sampled from the same source', () => {
+    // The baked demo stores a pre-sampled grid; feeding that grid straight in must
+    // give the identical provider griddedProvider builds by sampling the source.
+    const src = { heightAt: (x: number, z: number) => Math.sin(x / 40) * 9 + Math.cos(z / 55) * 5 }
+    const seg = 40
+    const half = 1000
+    const step = (half * 2) / seg
+    const n = seg + 1
+    const h = new Float32Array(n * n)
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) h[j * n + i] = src.heightAt(-half + i * step, -half + j * step)
+    }
+    const fromArray = gridProviderFromArray(h, half, seg)
+    const sampled = griddedProvider(src, half, seg)
+    for (let i = 0; i < n; i += 7) {
+      const x = -half + i * step + 3.3
+      const z = -half + i * step - 8.1
+      expect(fromArray.heightAt(x, z)).toBeCloseTo(sampled.heightAt(x, z), 5)
+    }
+  })
+
+  it('interpolates a tiny known grid and clamps outside it', () => {
+    // 3×3 grid (segments = 2) over [-10,10]²; a corner ramp of heights.
+    // nodes at x,z ∈ {-10, 0, 10}. h[j*3 + i], i→x, j→z.
+    const h = [0, 1, 2, 10, 11, 12, 20, 21, 22]
+    const g = gridProviderFromArray(h, 10, 2)
+    expect(g.heightAt(-10, -10)).toBeCloseTo(0) // corner node
+    expect(g.heightAt(10, 10)).toBeCloseTo(22) // opposite corner node
+    expect(g.heightAt(0, 0)).toBeCloseTo(11) // centre node
+    expect(g.heightAt(-5, -10)).toBeCloseTo(0.5) // halfway between h=0 and h=1 along x
+    expect(g.heightAt(-10, -5)).toBeCloseTo(5) // halfway between h=0 and h=10 along z
+    expect(g.heightAt(1000, 1000)).toBeCloseTo(22) // clamped to the far corner
   })
 })
