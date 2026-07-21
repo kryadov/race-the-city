@@ -18,6 +18,7 @@ export const SURFACE_COLORS: Record<SurfaceKind, THREE.Color> = {
   meadow: new THREE.Color(0x83b25c),
   orchard: new THREE.Color(0x5c8a44),
   residential: new THREE.Color(0x8f877b),
+  paved: new THREE.Color(0xa8a49d), // a pale stone grey for pedestrian plazas
 }
 
 interface Box {

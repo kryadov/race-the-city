@@ -46,7 +46,7 @@ export interface Building { footprint: Vec2[]; height: number; kind: BuildingKin
  * a plain grass fill flattens: `farmland` warm cropland, `meadow` rough grass,
  * `orchard`/scrub tree-cover, `residential` (and commercial/industrial) built-up
  * ground. See classifySurface in parse.ts for the tag map. */
-export type SurfaceKind = 'farmland' | 'meadow' | 'orchard' | 'residential'
+export type SurfaceKind = 'farmland' | 'meadow' | 'orchard' | 'residential' | 'paved'
 export interface Surface { kind: SurfaceKind; ring: Vec2[] }
 export interface WorldData {
   roads: Road[]

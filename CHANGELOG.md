@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.135.0 — pedestrian plazas are paved
+- A `highway=pedestrian` **area** (a plaza — a closed way, or one tagged `area=yes`) now paves as
+  **stone-grey ground**, instead of being drawn as a thin path ribbon round its edge. A pedestrian
+  **street** (an open way) still reads as a walkable line as before. Rides the one ground mesh as a
+  vertex tint — no extra draw — alongside the farmland/meadow/orchard/built-up surfaces.
+- 👀 In a city centre with a pedestrian square, the plaza floor should read as paved stone now, not
+  grass with a line around it.
+
 ## v0.134.0 — the turn signal ticks
 - The turn indicator now **clicks** — a soft relay **tick-tock** on each flash (tick as the lamp
   lights, tock as it goes out), the way a real one sounds. Quiet by design, and only while you're

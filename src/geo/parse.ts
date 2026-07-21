@@ -154,6 +154,17 @@ export function classifySurface(tags: Record<string, string>): SurfaceKind | nul
   return SURFACE_LANDUSE[tags.landuse] ?? SURFACE_NATURAL[tags.natural] ?? null
 }
 
+/**
+ * A pedestrian PLAZA — a `highway=pedestrian` area to pave, not a pedestrian street
+ * to draw as a line. It's an area when tagged `area=yes`, or when the way closes on
+ * itself (a plaza is a ring); `area=no` forces the line reading. `closed` is whether
+ * the way's first and last node are the same. Pure/testable.
+ */
+export function isPedestrianArea(tags: Record<string, string>, closed: boolean): boolean {
+  if (tags.highway !== 'pedestrian' || tags.area === 'no') return false
+  return tags.area === 'yes' || closed
+}
+
 const HOUSE = new Set(['house', 'detached', 'semidetached_house', 'bungalow', 'terrace', 'hut', 'cabin'])
 const APARTMENTS = new Set(['apartments', 'residential', 'dormitory', 'hotel'])
 const RETAIL = new Set(['retail', 'supermarket', 'shop', 'kiosk', 'commercial', 'restaurant'])
@@ -288,6 +299,10 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     } else if (tags.building) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) buildings.push({ footprint: ring, height: buildingHeight(tags), kind: classifyBuilding(tags) })
+    } else if (isPedestrianArea(tags, el.nodes.length > 3 && el.nodes[0] === el.nodes[el.nodes.length - 1])) {
+      // A pedestrian plaza: paved ground, not a path line traced round its edge.
+      const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
+      if (ring.length >= 3) surfaces.push({ kind: 'paved', ring })
     } else if (tags.highway) {
       const road: Road = { points, kind: classifyRoad(tags.highway) }
       if (tags.name) road.name = tags.name

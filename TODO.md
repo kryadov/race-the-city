@@ -456,7 +456,11 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       shows its ground instead of being painted over. `water`/boats/peds/barriers untouched (holes ride
       apart). Tested in `parse.test.ts` (inner extracted + inside outer) + `water.test.ts` (island area cut).
 - [x] **Parking, marked out** — `amenity=parking` tarmac with painted bays — done in v0.68.0
-- [ ] Pedestrian squares (`highway=pedestrian`)
+- [x] **Pedestrian squares** (`highway=pedestrian`) — ✅ v0.135.0: `parse.ts` `isPedestrianArea(tags,
+      closed)` detects a pedestrian PLAZA (closed way or `area=yes`, not `area=no`) and emits it as a
+      `'paved'` `Surface` (stone-grey tint in `ground.ts`), riding the ground mesh like the land-use
+      surfaces; an open pedestrian street stays a path road. Tested in `parse.test.ts`. (No Overpass
+      query change — `highway=pedestrian` already rides the highway fetch.)
 - [x] **Flowerbeds, fountains and statues** — from `amenity=fountain`, `historic=memorial|monument`,
       `tourism=artwork`, `landuse=flowerbed`; one instanced draw per kind — done in v0.73.0
 - [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)

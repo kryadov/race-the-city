@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fixture from '../fixtures/overpass-small.json'
-import { parseOsm, classifyRoad, buildingHeight, classifySurface, isPitch, pitchSport, hasCycleLane, type OverpassResponse } from '../../src/geo/parse'
+import { parseOsm, classifyRoad, buildingHeight, classifySurface, isPitch, pitchSport, hasCycleLane, isPedestrianArea, type OverpassResponse } from '../../src/geo/parse'
 import { Projector } from '../../src/geo/project'
 import { pointInPolygon } from '../../src/physics/collide'
 
@@ -150,6 +150,54 @@ describe('wooded areas', () => {
     // both the way-wood and the relation-forest carry through to green
     expect(world.green.length).toBeGreaterThanOrEqual(2)
     for (const ring of world.forests) expect(world.green).toContain(ring)
+  })
+})
+
+describe('isPedestrianArea', () => {
+  it('paves a plaza — a closed pedestrian way, or one tagged area=yes', () => {
+    expect(isPedestrianArea({ highway: 'pedestrian' }, true)).toBe(true)
+    expect(isPedestrianArea({ highway: 'pedestrian', area: 'yes' }, false)).toBe(true)
+  })
+  it('leaves a pedestrian STREET as a line', () => {
+    expect(isPedestrianArea({ highway: 'pedestrian' }, false)).toBe(false) // open way
+    expect(isPedestrianArea({ highway: 'pedestrian', area: 'no' }, true)).toBe(false) // explicit no
+  })
+  it('ignores anything that is not a pedestrian way', () => {
+    expect(isPedestrianArea({ highway: 'residential' }, true)).toBe(false)
+    expect(isPedestrianArea({ highway: 'footway' }, true)).toBe(false)
+    expect(isPedestrianArea({}, true)).toBe(false)
+  })
+})
+
+describe('parseOsm — pedestrian plazas', () => {
+  const world = parseOsm(
+    {
+      elements: [
+        // A closed highway=pedestrian way — a plaza. Should pave, not become a road.
+        { type: 'node', id: 41, lat: 41.7151, lon: 44.8271 },
+        { type: 'node', id: 42, lat: 41.7151, lon: 44.8276 },
+        { type: 'node', id: 43, lat: 41.7156, lon: 44.8276 },
+        { type: 'node', id: 44, lat: 41.7156, lon: 44.8271 },
+        { type: 'way', id: 401, nodes: [41, 42, 43, 44, 41], tags: { highway: 'pedestrian' } },
+        // An OPEN highway=pedestrian way — a pedestrian street. Stays a road line.
+        { type: 'node', id: 45, lat: 41.7161, lon: 44.8271 },
+        { type: 'node', id: 46, lat: 41.7161, lon: 44.8281 },
+        { type: 'way', id: 402, nodes: [45, 46], tags: { highway: 'pedestrian' } },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+
+  it('paves the closed plaza as a surface', () => {
+    const paved = world.surfaces.filter((s) => s.kind === 'paved')
+    expect(paved.length).toBe(1)
+    expect(paved[0].ring.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('does not turn the plaza into a road, but keeps the pedestrian street as one', () => {
+    // Only the open pedestrian street (way 402) is a road; the plaza is paved ground.
+    expect(world.roads.length).toBe(1)
+    expect(world.roads[0].kind).toBe('path')
   })
 })
 

@@ -136,7 +136,8 @@ Built from the real map around you:
   Drive the **🌾 combine** across a **farmland field** and it **mows** a swathe — standing crop turns
   to stubble in your wake, with the odd **hay bale** left behind. **Sports pitches** (`leisure=pitch`)
   with goals or a basketball hoop, a few players and a ball; **cycle-lane stripes** along bike routes.
-  **Manhole covers** dotted down the streets; **benches**
+  **Ground reads by land use** — farmland khaki, meadow and orchard greens, built-up grey, and
+  **pedestrian plazas** paved in stone. **Manhole covers** dotted down the streets; **benches**
   (some with someone sat on them), **bus stops**, and **café / fuel signposts** at those spots.
   **Landmarks** (museums, monuments, memorials, castles, viewpoints) get their own signpost.
 - **Archways** — where a road or railway runs straight through a building, the passage is opened
