@@ -353,10 +353,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [x] **Landmark plaque + statue placement** — ✅ plaque-beside-monument (poiMarkers `markerPos`
       SIGN_OFFSET_M, earlier) + ✅ v0.118.2 monument-not-in-tree (`clearOfProps` in greenery.ts drops any
       tree within STATUE_CLEAR of a prop; main.ts passes `world.props` positions). Tested in `greenery.test.ts`.
-- [ ] **Manhole detail + open covers** — add **four small fixings around the rim** (like real cast
-      covers), and make **some covers sit ajar / offset** as if not fully closed. Driving over an open
-      one **drops the wheel in and tilts the car** — a physics dip at that spot (per-wheel height /
-      a brief suspension pothole), not just a visual. Keep it cheap (instanced covers already).
+- [x] **Manhole detail + open covers** — ✅ SHIPPED. Rim fixings + ajar lids landed earlier (bolts
+      v0.110.19, ribs v0.110.38); the **physics dip** shipped v0.136.0: `manholes.ts` surfaces the ajar
+      covers' positions on the mesh (`openManholesOf`), and `vehicle/pothole.ts` (`stepDip`/`makeHoleQuery`)
+      tips the body toward a wheel that drops into one — a brief eased jolt, fed through the renderer's
+      existing lean/pitch (no new mesh). Off the ground / hovercraft: no dip. Fully unit-tested.
 - [x] **BUG — lit windows sink into the ground** — ✅ ALREADY DONE (verified 2026-07-21): `buildings.ts`
       seats the ground floor at the MAX terrain under the footprint (`groundStats().max` → `splitPlinth(geo,
       max)`) and fills the sloped gap below with a solid, windowless **plinth** — so windows start at the

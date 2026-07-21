@@ -93,6 +93,21 @@ const ROAD_SURFACE = 0.15
 
 const UP = new THREE.Vector3(0, 1, 0)
 
+/** World (x,z) of an ajar cover — a spot a wheel can drop into (vehicle/pothole.ts). */
+export interface OpenManhole {
+  x: number
+  z: number
+}
+
+/**
+ * The ajar covers a manhole mesh surfaced on its `userData`, or an empty list.
+ * A tiny typed reader so callers don't reach into `userData` untyped.
+ */
+export function openManholesOf(mesh: THREE.InstancedMesh): OpenManhole[] {
+  const open = mesh.userData.openManholes
+  return Array.isArray(open) ? (open as OpenManhole[]) : []
+}
+
 /**
  * Round low-poly iron covers scattered along every drivable road's centreline.
  *
@@ -125,6 +140,12 @@ export function buildManholes(
   })
   const mesh = new THREE.InstancedMesh(geo, mat, kept.length)
 
+  // World (x,z) of every lid left ajar — the ones a wheel can drop into. Surfaced
+  // on the mesh so the car physics (vehicle/pothole.ts) can tilt over them; the
+  // list is built in the same pass as the matrices, off the same `rand`, so the
+  // covers that dip are exactly the ones that LOOK open.
+  const open: OpenManhole[] = []
+
   const m = new THREE.Matrix4()
   const q = new THREE.Quaternion()
   const tiltQ = new THREE.Quaternion()
@@ -149,6 +170,7 @@ export function buildManholes(
       const nudge = rand() * AJAR_NUDGE_MAX // shoved off-seat, but stays on the road
       pos.x += c * nudge
       pos.z += sn * nudge
+      open.push({ x: pos.x, z: pos.z })
     }
     mesh.setMatrixAt(i, m.compose(pos, q, one))
     // A little brightness variety around the base iron so a street of them does
@@ -159,6 +181,7 @@ export function buildManholes(
   }
   mesh.instanceMatrix.needsUpdate = true
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  mesh.userData.openManholes = open
   // frustumCulled stays true (the default): the covers never move, so three's
   // one-shot InstancedMesh bounding sphere — unioned over every instance — stays
   // correct for the life of the batch. (The cull-blink gotcha is about instances

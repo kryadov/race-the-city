@@ -137,7 +137,8 @@ Built from the real map around you:
   to stubble in your wake, with the odd **hay bale** left behind. **Sports pitches** (`leisure=pitch`)
   with goals or a basketball hoop, a few players and a ball; **cycle-lane stripes** along bike routes.
   **Ground reads by land use** — farmland khaki, meadow and orchard greens, built-up grey, and
-  **pedestrian plazas** paved in stone. **Manhole covers** dotted down the streets; **benches**
+  **pedestrian plazas** paved in stone. **Manhole covers** dotted down the streets — a few sit
+  **ajar**, and driving over an open one **drops a wheel in and tips the car** for a moment; **benches**
   (some with someone sat on them), **bus stops**, and **café / fuel signposts** at those spots.
   **Landmarks** (museums, monuments, memorials, castles, viewpoints) get their own signpost.
 - **Archways** — where a road or railway runs straight through a building, the passage is opened

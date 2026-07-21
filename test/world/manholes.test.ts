@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { buildManholes } from '../../src/world/manholes'
+import { buildManholes, openManholesOf } from '../../src/world/manholes'
 import type { Road, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
@@ -252,5 +252,24 @@ describe('buildManholes', () => {
     }
     expect(tilted).toBeGreaterThan(0) // some are ajar...
     expect(tilted).toBeLessThan(mesh.count / 2) // ...but most sit flush
+
+    // The ajar lids are surfaced for the car physics to dip over — one open spot
+    // per tilted instance, and each sits at that instance's world (x,z).
+    const open = openManholesOf(mesh)
+    expect(open.length).toBe(tilted)
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, m)
+      m.decompose(p, rot, sc)
+      if (up.clone().applyQuaternion(rot).y >= 0.9986) continue // flush lid — not surfaced
+      const hit = open.some((o) => Math.hypot(o.x - p.x, o.z - p.z) < 1e-3)
+      expect(hit).toBe(true)
+    }
+  })
+
+  it('surfaces no open manholes when a fixed rng never rolls one ajar', () => {
+    // rand() === 0.99 is above AJAR_CHANCE (0.125), so every lid stays shut.
+    const mesh = buildManholes([straight(2000)], flat, () => 0.99)
+    expect(mesh.count).toBeGreaterThan(0)
+    expect(openManholesOf(mesh)).toEqual([])
   })
 })

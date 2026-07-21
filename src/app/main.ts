@@ -125,7 +125,8 @@ import { buildRoads, buildRailways, roadWidth } from '../world/roads'
 import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../world/bridge'
 import { buildBridges, pierFootprints, type PierCollider } from '../world/bridgeMesh'
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
-import { buildManholes } from '../world/manholes'
+import { buildManholes, openManholesOf } from '../world/manholes'
+import { createDip, stepDip, makeHoleQuery, type DipState } from '../vehicle/pothole'
 import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
 import { buildPitches } from '../world/pitches'
@@ -383,6 +384,9 @@ let vehicle: VehicleType = 'car'
 let prevForward = 0
 let lean = 0 // current bank angle (bikes only), eased toward the target
 const MAX_LEAN = 0.5 // rad (~29°) at full steer and speed
+let dip: DipState = createDip() // suspension tilt as a wheel drops into an open manhole
+const NO_HOLE = (): boolean => false // a query with no open covers (airborne / hovering)
+let holeQuery: (x: number, z: number) => boolean = NO_HOLE // open covers to dip over, per city
 let steerDir = 0 // sign of the currently-held steer
 let steerHold = 0 // seconds that direction has been held
 let steerVis = 0 // front-wheel angle, eased toward the input so it winds on with the hold
@@ -593,7 +597,9 @@ async function loadCity(query: string): Promise<void> {
     const detail = new THREE.Group()
     detail.add(buildRoadDetail(normalRoads, provider))
     if (bridgeRoads.length) detail.add(buildRoadDetail(bridgeRoads, (r) => ownDeck[r] ?? provider))
-    detail.add(buildManholes(normalRoads, provider)) // iron covers down the street centrelines
+    const manholes = buildManholes(normalRoads, provider) // iron covers down the street centrelines
+    detail.add(manholes)
+    holeQuery = makeHoleQuery(openManholesOf(manholes)) // a wheel dips into the ajar ones
     roadDetailMesh = detail
     roadDetailMesh.visible = getRoadDetail()
     const waterMesh = buildWater(world.water, provider, world.waterHoles)
@@ -1086,7 +1092,12 @@ async function loadCity(query: string): Promise<void> {
         // and the car twitched in all directions in the air. On the ground (car.y ≈
         // terrain) it still pitches to the slope as before.
         const airborne = car.y > provider.heightAt(car.x, car.z) + 1.5
-        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle] || onDeck || airborne, steerVis, car.tumble ?? 0)
+        // A wheel dropping into an open manhole tips the body toward it — a quick
+        // dip-and-recover. Off the ground (a jump) or floating (hovercraft) nothing
+        // dips, so feed a no-hole query there and the tilt eases back to level.
+        const overOpenCover = airborne || HOVERS[vehicle] ? NO_HOLE : holeQuery
+        dip = stepDip(dip, car.x, car.z, car.heading, overOpenCover, dt)
+        syncCamera(stage, car, dt, provider, lean + dip.roll, !!HOVERS[vehicle] || onDeck || airborne, steerVis, (car.tumble ?? 0) + dip.pitch)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)

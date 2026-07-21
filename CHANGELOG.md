@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.136.0 — an open manhole dips your wheel
+- The ~1-in-8 manhole covers that sit **ajar** are now a **physics dip**, not just a visual: drive a
+  wheel over an open one and that corner **drops in and tips the body** toward it — a quick jolt that
+  eases back to level once the wheel is clear. Off the ground (mid-jump) or in a hovercraft nothing
+  dips. The open covers are surfaced from the same layout that draws them, so the lids that *look*
+  open are exactly the ones you feel; the tilt rides the renderer's existing lean/pitch — no new mesh.
+- 👀 Roll slowly over the tilted covers dotted down a street: the car should give a little sideways
+  (or nose-down) lurch on each one and settle straight after, not glide over flat.
+
 ## v0.135.0 — pedestrian plazas are paved
 - A `highway=pedestrian` **area** (a plaza — a closed way, or one tagged `area=yes`) now paves as
   **stone-grey ground**, instead of being drawn as a thin path ribbon round its edge. A pedestrian
