@@ -252,10 +252,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       `isStop(i)`; `traffic.ts` holds at a stop line (STOP_SETBACK) on red, goes on green, O(1)/car via a
       prebuilt `nodeLight[]`. Anti-deadlock: unconditional phase cycle + per-car `MAX_WAIT_S` fail-safe
       (pure `lightClearance`, tested). STILL TODO: **pedestrians** obeying lights (cars only for now).
-- [ ] **Trains: real windows + smooth motion** — give train cars **proper individual windows**, not
-      one stripe running the whole length; and on **curves and grades** the cars should **turn/pitch
-      smoothly** instead of snapping/jerking. `trains.ts` — window geometry per car + ease the car's
-      yaw/pitch along the rail (sample ahead/behind on the polyline, interpolate) so it flows.
+- [x] **Trains: real windows + smooth motion** — ✅ ALREADY DONE (verified 2026-07-21): `trains.ts` lays
+      out separate window panes per car (`windowBand`, not one stripe), and orients each carriage from two
+      points a half-carriage ahead and behind its centre — so a bend spreads across the carriage length
+      (banks/pitches through the curve) instead of snapping at each vertex; grade pitch from the sampled ends.
 - [x] **Level-crossing barriers** — ✅ ALREADY DONE (verified 2026-07-21): `trains.ts` drops boom barriers
       at road×rail crossings — a bar sweeps down when a train comes within range (a framerate-independent
       ease) and lifts after it passes, capped to a handful of the nearest crossings, deduped for parallel
@@ -499,9 +499,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       high bridge, the car reaches the edge and drops rather than launching off it — v0.94.0:
       a downward step past `LEDGE_DROP` (1m) now makes the car airborne at the lip, carrying
       horizontal speed into an arc instead of snapping down to the street
-- [ ] **Trees want more variety in height** — today every tree is scaled 0.7-1.4 of one
-      model per variant, which reads as uniform; the variants themselves are all much of a
-      size (conifer 3.7, broadleaf 3.6, spruce 4.4)
+- [x] **Trees want more variety in height** — ✅ v0.131.0: `greenery.ts` `treeScale(rng)` replaces the flat
+      `0.7 + rng()*0.7` with a shaped spread — ~20% short (0.5–0.8), ~20% tall (1.35–1.9), the rest mid
+      (0.8–1.35) — so a stand reads as a mix of ages. Perch height still derives from the actual scale.
+      Tested in `greenery.test.ts` (range + spread + band pick).
 - [ ] **Keep the car on the map** — nothing stops you driving off the ground mesh (RADIUS
       1000m from the middle) into empty space
 - [ ] **The moon does not read at night** — one exists (v0.68.2): a shader disc riding

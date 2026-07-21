@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { variantsFor, frondGeo, collectForestSpots, FOREST_TREE_CAP, buildGreenery, clearOfProps, STATUE_CLEAR } from '../../src/world/greenery'
+import { variantsFor, frondGeo, collectForestSpots, FOREST_TREE_CAP, buildGreenery, clearOfProps, STATUE_CLEAR, treeScale } from '../../src/world/greenery'
 import { pointInPolygon } from '../../src/physics/collide'
 import type { Vec2 } from '../../src/geo/types'
 
@@ -27,6 +27,44 @@ function square(size: number): Vec2[] {
 
 const names = (lat: number): string[] => variantsFor(lat).map((v) => v.name)
 const hasPalm = (lat: number): boolean => names(lat).includes('palm')
+
+describe('treeScale', () => {
+  it('keeps every tree within a sane min/max', () => {
+    const rng = testRng(7)
+    for (let i = 0; i < 5000; i++) {
+      const s = treeScale(rng)
+      expect(s).toBeGreaterThanOrEqual(0.5)
+      expect(s).toBeLessThanOrEqual(1.9)
+    }
+  })
+
+  it('spreads wider than the old flat 0.7–1.4 band, both shorter and taller', () => {
+    const rng = testRng(11)
+    let short = 0 // markedly short — below the old floor
+    let tall = 0 // markedly tall — above the old ceiling
+    const N = 5000
+    for (let i = 0; i < N; i++) {
+      const s = treeScale(rng)
+      if (s < 0.7) short++
+      if (s > 1.4) tall++
+    }
+    // A real mix: a good few saplings and a few giants, not a uniform stand.
+    expect(short / N).toBeGreaterThan(0.05)
+    expect(tall / N).toBeGreaterThan(0.05)
+  })
+
+  it('picks the band by the first draw: short, tall or the middle', () => {
+    // Two draws per call — the band pick, then the position. Feed both.
+    const scripted = (band: number, u: number): (() => number) => {
+      const seq = [band, u]
+      let i = 0
+      return () => seq[i++]
+    }
+    expect(treeScale(scripted(0.1, 0.5))).toBeCloseTo(0.5 + 0.5 * 0.3) // short band
+    expect(treeScale(scripted(0.9, 0.5))).toBeCloseTo(1.35 + 0.5 * 0.55) // tall band
+    expect(treeScale(scripted(0.5, 0.5))).toBeCloseTo(0.8 + 0.5 * 0.55) // middle band
+  })
+})
 
 describe('variantsFor', () => {
   it('grows palms in the tropics and subtropics', () => {

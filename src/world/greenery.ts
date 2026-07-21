@@ -224,6 +224,21 @@ export function variantsFor(lat: number): TreeVariant[] {
   return [CONIFER, BROADLEAF, SPRUCE] // north: no palms
 }
 
+/**
+ * A tree's size multiplier — a shaped spread, not a flat band. A plain
+ * `0.7 + rng()*0.7` made every tree much of a size; here most stay mid-height, a
+ * good few come out markedly SHORT (saplings, shrubs) and a few markedly TALL, so
+ * a stand reads as a mix of ages rather than one cloned model. Two rng draws: a
+ * band, then a place in it. Pure — the tests lock the range and the spread.
+ */
+export function treeScale(rng: () => number): number {
+  const band = rng()
+  const u = rng()
+  if (band < 0.2) return 0.5 + u * 0.3 // 0.50–0.80: short
+  if (band > 0.8) return 1.35 + u * 0.55 // 1.35–1.90: tall
+  return 0.8 + u * 0.55 // 0.80–1.35: the common middle
+}
+
 const UP = new THREE.Vector3(0, 1, 0)
 
 const WHITE = new THREE.Color(0xffffff)
@@ -256,7 +271,7 @@ function buildTrees(spots: Vec2[], provider: ElevationProvider, rng: () => numbe
       n,
     )
     for (let i = 0; i < n; i++) {
-      const s = 0.7 + rng() * 0.7 // size variety
+      const s = treeScale(rng) // size variety — a shaped spread, not a flat band
       const y = provider.heightAt(pts[i].x, pts[i].z)
       q.setFromAxisAngle(UP, rng() * Math.PI * 2) // rotation variety
       scl.set(s, s, s)

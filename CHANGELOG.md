@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.131.0 — trees come in a real range of heights
+- Trees used to be scaled on a flat 0.7–1.4 band, so a stand read as one cloned model. Now the size
+  follows a **shaped spread**: most stay mid-height, but a good few come out **markedly short**
+  (saplings, shrubs) and a few **markedly tall** (up to ~1.9×), so woods and parks read as a mix of
+  ages. A bird still perches at each tree's true crown height, so nothing floats. Pure `treeScale`,
+  tested.
+- 👀 Look across any park or wood — the trees should vary in height now, some low and bushy, the odd
+  one towering, instead of all much of a size.
+
 ## v0.130.0 — deliveries carry a load that fits the vehicle
 - On the **drop-off leg** of a Taxi/delivery fare, the load you're hauling now **rides on the car** —
   and it's **typed to what you drive**: a **passenger** in an ordinary car (a **smartly-dressed** one

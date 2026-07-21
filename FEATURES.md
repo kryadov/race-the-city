@@ -126,7 +126,9 @@ Built from the real map around you:
 - **Water** — rivers (incl. big multipolygon rivers like the Neva), reservoirs, and a flat sea
   along the coast, with **boats, ships, yachts and sailing boats** sized to the water available.
 - **Greenery** — parks, woods and grass, with **trees whose kind follows latitude** (palms in
-  the Mediterranean band, firs up north), plus fountains, statues and flowerbeds.
+  the Mediterranean band, firs up north) and a **real spread of heights** — saplings and shrubs
+  through to the odd giant, so a stand reads as a mix rather than one cloned size — plus fountains,
+  statues and flowerbeds.
 - **Parking** tarmac with painted bays, filled with parked cars — and a few of them **come alive**:
   they pull out of a bay and drive off, others arrive and park (all within the lot), and **someone
   gets in and out** — a figure boards a car before it leaves and steps out when one arrives.
