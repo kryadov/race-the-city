@@ -52,6 +52,11 @@ function boundBox(ring: Vec2[], color: THREE.Color): Box {
  * Surfaces are tested before green so their distinct tint wins where one overlaps
  * a park lawn — a scrub is both greenery and an orchard-tinted surface, and the
  * more specific land-use colour is the one to keep.
+ *
+ * @param grass the colour park/green lawns wear — the season paints this (spring's
+ *   fresh green, autumn's ochre, winter's frost-grey; see world/season.ts). It
+ *   defaults to the summer green {@link GREEN}, so a caller that doesn't care about
+ *   the date gets the year-round park colour and nothing changes.
  */
 export function buildGround(
   provider: ElevationProvider,
@@ -59,6 +64,7 @@ export function buildGround(
   green: Vec2[][],
   surfaces: Surface[] = [],
   segments = 128,
+  grass: THREE.Color = GREEN,
 ): THREE.Mesh {
   const geo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, segments, segments)
   geo.rotateX(-Math.PI / 2) // XY plane -> XZ ground plane
@@ -68,7 +74,7 @@ export function buildGround(
   // priority. Both fold into the one boxes list — a single per-vertex scan.
   const boxes: Box[] = [
     ...surfaces.map((s) => boundBox(s.ring, SURFACE_COLORS[s.kind])),
-    ...green.map((ring) => boundBox(ring, GREEN)),
+    ...green.map((ring) => boundBox(ring, grass)),
   ]
 
   const colors = new Float32Array(pos.count * 3)

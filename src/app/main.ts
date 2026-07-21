@@ -120,6 +120,7 @@ import { griddedProvider } from '../terrain/gridded'
 import type { Vec2, LatLon } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
+import { season } from '../world/season'
 import { startPose } from '../world/start'
 import { buildBuildings } from '../world/buildings'
 import { buildArchways, type DrivableWay } from '../world/archways'
@@ -571,7 +572,11 @@ async function loadCity(query: string): Promise<void> {
     }
     worldGroup = []
 
-    const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS)
+    // Park/green lawns wear the season's grass colour (fresh green in spring,
+    // ochre in autumn, frost-grey in winter) — for this city's hemisphere, since
+    // south of the equator the seasons are half a year out of phase.
+    const grass = new THREE.Color(season(new Date(), center.lat).grass)
+    const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS, grass)
     facades?.dispose() // the outgoing city's facade textures
     const { mesh: buildingsMesh, footprints, tops, facades: newFacades } = buildBuildings(world.buildings, provider)
     facades = newFacades

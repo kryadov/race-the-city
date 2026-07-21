@@ -80,6 +80,22 @@ describe('buildGround land-use surfaces', () => {
     for (const c of Object.values(SURFACE_COLORS)) expect(hasColor(mesh, c)).toBe(false)
   })
 
+  it('paints park lawns the seasonal grass colour it is given', () => {
+    const green: Vec2[][] = [rect(-90, -90, 90, 90)]
+    const summer = new THREE.Color(0x4c7a42) // the default (summer) park green
+    const autumn = new THREE.Color(0x7d7a45) // season.ts autumn grass
+
+    // Default: no grass argument → the year-round summer green, unchanged.
+    const dflt = buildGround(provider, HALF, green, [], SEGMENTS)
+    expect(hasColor(dflt, summer)).toBe(true)
+    expect(hasColor(dflt, autumn)).toBe(false)
+
+    // Given autumn's grass, the park wears it instead of the summer green.
+    const fall = buildGround(provider, HALF, green, [], SEGMENTS, autumn)
+    expect(hasColor(fall, autumn)).toBe(true)
+    expect(hasColor(fall, summer)).toBe(false)
+  })
+
   it('adds no extra draw — every tint rides the one ground mesh', () => {
     // The whole point of vertex-colour tinting: still a single mesh, one draw,
     // whatever land-use areas are painted on it.

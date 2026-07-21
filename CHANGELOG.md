@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.139.0 — parks change with the season
+- **Park and lawn ground now wears the season's colour** — fresh bright green in spring, the summer
+  green as before, a drying ochre-green in autumn, and a frost-dulled grey-green in winter. It reads
+  `world/season.ts` (already driving tree crowns and pedestrian clothing) so the whole scene dresses
+  for the same date, and it's per-hemisphere: south of the equator the seasons are half a year out of
+  phase, so a July city there shows its winter grass. Rides the one ground mesh as a vertex tint — no
+  extra geometry, no extra draw.
+- 👀 Today (July) a **southern-hemisphere** city — Sydney, Buenos Aires, Cape Town — should show
+  winter-dulled grey-green parks, while a northern city stays summer green; the northern parks turn
+  ochre once autumn comes.
+
 ## v0.138.1 — pause & help buttons back on the edge
 - The **⏸ pause** and **? help** buttons in the top-right corner had drifted a slot inward: they used
   to trail an in-game settings button that has since moved into the menu panel, but kept its old

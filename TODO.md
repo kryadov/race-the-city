@@ -387,9 +387,10 @@ A coherent, mostly-free theme: the world dresses for the season and the date. Al
 an effect we already have** — so it satisfies "must not cost frame rate" by construction.
 
 **Seasonal (driven by date + latitude):**
-- [ ] **Grass & parks by season** — season.ts (v0.110.21) already exposes `season(date,lat).grass`;
-      just tint `ground.ts` park vertices toward it instead of the fixed GREEN (needs lat passed to
-      buildGround — a small main.ts + ground.ts wiring). Tree crowns are DONE (v0.110.21).
+- [x] **Grass & parks by season** — ✅ SHIPPED v0.139.0: `buildGround` takes a `grass` colour and
+      main.ts passes `season(new Date(), center.lat).grass`, so park/green lawns tint spring-green /
+      summer / autumn-ochre / winter-grey per hemisphere. Vertex tint on the one ground mesh; tested.
+      Tree crowns were already done (v0.110.21).
 - [ ] **Tree crowns by season** (already instanced) — spring: a few blossoming white/pink deciduous
       crowns; summer green; autumn yellow-orange-red; winter bare / snow-dusted. A material tint on
       the existing draw call.
