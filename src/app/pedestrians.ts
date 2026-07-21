@@ -3,7 +3,8 @@ import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import type { DeckIndex } from '../world/bridge'
 import { buildRoadGraph, nextNode, type RoadGraph } from '../world/roadGraph'
-import { pointInPolygon, type Circle } from '../physics/collide'
+import { type Circle } from '../physics/collide'
+import { isOverWater } from '../world/waterArea'
 import { season, type SeasonName } from '../world/season'
 
 /** People at 'normal': ambience, not a crowd to thread. */
@@ -173,6 +174,10 @@ export function createPedestrians(
   // (the same shape main.ts holds before a city loads), so nothing breaks when
   // a city has no bridges or a caller passes none.
   decks: DeckIndex = { heightAt: () => null },
+  // Islands cut out of the water (water-hole inner rings). Without these, a walker
+  // standing on an island inside a river — the whole Île de la Cité, sitting in
+  // the Seine — counts as "over water" and gets hidden, emptying the city centre.
+  waterHoles: Vec2[][] = [],
 ): Pedestrians {
   const group = new THREE.Group()
   scene.add(group)
@@ -208,13 +213,11 @@ export function createPedestrians(
     }
   }
   const onBridge = (a: number, b: number): boolean => bridgeEdges.has(edgeKey(a, b))
-  // True where (x,z) falls inside a lake/river outline — a walker standing there
-  // would be down on the bed under the surface, so we steer them off it or hide
-  // them (in the walk loop below).
-  const overWater = (x: number, z: number): boolean => {
-    for (const ring of water) if (ring.length >= 3 && pointInPolygon(x, z, ring)) return true
-    return false
-  }
+  // True where (x,z) falls over open water — inside a lake/river outline but not
+  // on an island cut out of it. A walker over water would be down on the bed under
+  // the surface, so we steer them off it or hide them (in the walk loop below); a
+  // walker on an island belongs there and is left alone.
+  const overWater = (x: number, z: number): boolean => isOverWater(x, z, water, waterHoles)
 
   const spawn = (near: { x: number; z: number } | null): Walker | null => {
     if (!graph.nodes.length) return null

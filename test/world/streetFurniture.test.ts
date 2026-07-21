@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { buildStreetFurniture, isOverWater } from '../../src/world/streetFurniture'
+import { buildStreetFurniture } from '../../src/world/streetFurniture'
+import { isOverWater } from '../../src/world/waterArea'
 import type { Road, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }

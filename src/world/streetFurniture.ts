@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
-import { pointInPolygon } from '../physics/collide'
+import { isOverWater } from './waterArea'
 
 /**
  * Street furniture from OSM: benches (some empty, some with a person sat on
@@ -45,28 +45,6 @@ interface Placed {
   x: number
   z: number
   yaw: number
-}
-
-/**
- * Is (x,z) out over open water? True when it falls inside a water body's outline
- * but NOT inside one of that water's islands (a `waterHole` inner ring — like the
- * Île de la Cité sitting in the Seine). Benches and bus stops that land over the
- * water are dropped; ones on the bank or on an island stay. Pure, so it's tested.
- */
-export function isOverWater(x: number, z: number, water: Vec2[][], holes: Vec2[][]): boolean {
-  let inWater = false
-  for (const ring of water) {
-    if (ring.length >= 3 && pointInPolygon(x, z, ring)) {
-      inWater = true
-      break
-    }
-  }
-  if (!inWater) return false
-  // On an island cut out of the water body → dry land, keep it.
-  for (const hole of holes) {
-    if (hole.length >= 3 && pointInPolygon(x, z, hole)) return false
-  }
-  return true
 }
 
 /** Squared distance from (x,z) to segment a-b. */

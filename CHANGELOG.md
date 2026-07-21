@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.141.2 — pedestrians walk the river islands again
+- **BUG:** the walk logic counted an island inside a river as water (it read only the outer outline),
+  so pedestrians on an island in the middle of a water body — the whole **Île de la Cité** in the
+  Seine — were hidden or steered off, emptying the demo's city centre of people. They now stay: the
+  over-water test subtracts islands (water holes). The check is shared, tested `isOverWater` — the
+  same rule benches, bus stops and boats already use. New pedestrian island tests guard it.
+
 ## v0.141.1 — boats keep off the islands
 - **BUG:** boats treated an island as open water when it's an inner ring of a water body (the code
   only read outer outlines), so a boat could sit or motor across the **Île de la Cité** in the Seine

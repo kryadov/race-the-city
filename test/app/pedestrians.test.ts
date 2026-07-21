@@ -116,3 +116,43 @@ describe('walking bridges', () => {
     for (const y of bodyYs(scene)) expect(Math.abs(y)).toBeLessThan(0.05)
   })
 })
+
+describe('walking an island in a river', () => {
+  const v = (x: number, z: number): Vec2 => ({ x, z })
+  const flat = { heightAt: () => 0 }
+  const rect = (x0: number, z0: number, x1: number, z1: number): Vec2[] => [
+    v(x0, z0), v(x1, z0), v(x1, z1), v(x0, z1),
+  ]
+  // A road sitting inside a big water body — but on an island cut out of it.
+  const road: Road[] = [{ points: [v(-60, 0), v(0, 0), v(60, 0)], kind: 'residential' }]
+  const river = [rect(-500, -500, 500, 500)] // water everywhere around
+  const island = [rect(-120, -50, 120, 50)] // the island the road runs along
+
+  /** How many body instances are still visible (not collapsed to scale 0 by hide). */
+  function visibleBodies(scene: THREE.Scene): number {
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    const m = new THREE.Matrix4()
+    const s = new THREE.Vector3()
+    let n = 0
+    for (let i = 0; i < bodies.count; i++) {
+      bodies.getMatrixAt(i, m)
+      m.decompose(new THREE.Vector3(), new THREE.Quaternion(), s)
+      if (s.x > 0.5) n++
+    }
+    return n
+  }
+
+  it('hides walkers when the road lies in open water (no island)', () => {
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, road, flat, () => 0.5, 6, river, 0, undefined, [])
+    p.update(0, 0, 0)
+    expect(visibleBodies(scene)).toBe(0) // both pavements are wet → all hidden
+  })
+
+  it('keeps them when the road is on an island cut out of the water', () => {
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, road, flat, () => 0.5, 6, river, 0, undefined, island)
+    p.update(0, 0, 0)
+    expect(visibleBodies(scene)).toBeGreaterThan(0) // the island is dry land → they stay
+  })
+})
