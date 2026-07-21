@@ -12,6 +12,12 @@ const DASH_HW = 0.16
 const MAX_DASHES = 4000
 /** How far above the ribbon its paint sits — enough to beat z-fighting, no more. */
 const PAINT_HAIR = 0.03
+/** Cycle-lane stripe: a continuous coloured band hugging the kerb of any road that
+ *  IS a cycleway or carries a `cycleway=lane|track|…` tag (Road.cycleway). */
+const CYCLE_HW = 0.45 // stripe half-width
+const CYCLE_OFFSET_FRAC = 0.62 // centre of the stripe, as a fraction of the road half-width from the centreline
+const CYCLE_COLOR = 0xb5533a // terracotta, the usual painted cycle-lane colour
+const MAX_CYCLE_QUADS = 6000
 const LAMP_SPACING = 30 // metres between lamps along a road
 const WORKING_LAMPS = 520 // pre-filter cap (keeps the mid-road check cheap)
 const MAX_LAMPS = 170 // final network budget
@@ -106,16 +112,19 @@ export function buildRoadDetail(roads: Road[], provider: DetailGround): THREE.Ob
   const ribbonLift = typeof provider === 'function' ? 0 : ROAD_Y_OFFSET
   const group = new THREE.Group()
   const dash: number[] = []
+  const cycle: number[] = []
   const lamps: Lamp[] = []
   const signs: Sign[] = []
   const segs: Seg[] = []
   let dashes = 0
+  let cycleQuads = 0
 
   for (let r = 0; r < roads.length; r++) {
     const road = roads[r]
     const wide = DASH_KINDS.has(road.kind)
     const lamped = LAMP_KINDS.has(road.kind)
     const signed = SIGN_KINDS.has(road.kind)
+    const cyclelaned = !!road.cycleway
     const hw = roadWidth(road.kind) / 2
     if (road.points.length < 2) continue
     const side = r % 2 === 0 ? 1 : -1 // lamps on one alternating side per road
@@ -136,6 +145,15 @@ export function buildRoadDetail(roads: Road[], provider: DetailGround): THREE.Ob
       const uz = dz / len
       const nx = -uz
       const nz = ux
+
+      // A continuous cycle-lane stripe hugging the kerb, offset to one side. A
+      // dedicated cycleway is thin (hw ~1m) so the stripe sits near its centre;
+      // on a wide road it rides in by the kerb. Bounded by MAX_CYCLE_QUADS.
+      if (cyclelaned && cycleQuads < MAX_CYCLE_QUADS) {
+        const off = Math.max(0, hw - CYCLE_HW) * CYCLE_OFFSET_FRAC
+        emitBand(cycle, a.x, a.z, b.x, b.z, nx, nz, off, CYCLE_HW, groundOf(r), ribbonLift + PAINT_HAIR)
+        cycleQuads++
+      }
 
       if (wide && dashes < MAX_DASHES) {
         let d = carryDash
@@ -174,6 +192,15 @@ export function buildRoadDetail(roads: Road[], provider: DetailGround): THREE.Ob
     geo.setAttribute('position', new THREE.Float32BufferAttribute(dash, 3))
     geo.computeVertexNormals()
     group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xefe6bf, flatShading: true, side: THREE.DoubleSide })))
+  }
+
+  if (cycle.length) {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(cycle, 3))
+    geo.computeVertexNormals()
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: CYCLE_COLOR, flatShading: true, side: THREE.DoubleSide }))
+    mesh.name = 'cycle-lane'
+    group.add(mesh)
   }
 
   // Even spatial spread first, then drop any pole that landed on another road,
@@ -264,6 +291,39 @@ function emitDash(
     [bx + nx * DASH_HW, bz + nz * DASH_HW],
     [bx - nx * DASH_HW, bz - nz * DASH_HW],
     [ax - nx * DASH_HW, az - nz * DASH_HW],
+  ]
+  const tri = (i: number, j: number, k: number): void => {
+    for (const p of [pts[i], pts[j], pts[k]]) out.push(p[0], y(p[0], p[1]), p[1])
+  }
+  tri(0, 1, 2)
+  tri(0, 2, 3)
+}
+
+/**
+ * One flat quad along a segment, offset sideways by `off` along the normal and
+ * `hw` wide — a continuous painted band (the cycle-lane stripe), as opposed to
+ * the centred dash quad above. Height sampled at each corner so it lies on a
+ * slope; `lift` clears the road the same way the dashes do.
+ */
+function emitBand(
+  out: number[],
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+  nx: number,
+  nz: number,
+  off: number,
+  hw: number,
+  provider: ElevationProvider,
+  lift: number,
+): void {
+  const y = (x: number, z: number): number => provider.heightAt(x, z) + lift
+  const pts: [number, number][] = [
+    [ax + nx * (off + hw), az + nz * (off + hw)],
+    [bx + nx * (off + hw), bz + nz * (off + hw)],
+    [bx + nx * (off - hw), bz + nz * (off - hw)],
+    [ax + nx * (off - hw), az + nz * (off - hw)],
   ]
   const tri = (i: number, j: number, k: number): void => {
     for (const p of [pts[i], pts[j], pts[k]]) out.push(p[0], y(p[0], p[1]), p[1])

@@ -81,7 +81,7 @@ function featuresQuery(b: BBox): string {
   way["waterway"="riverbank"](${box});
   way["landuse"="reservoir"](${box});
   way["amenity"="parking"](${box});
-  way["leisure"~"park|garden"](${box});
+  way["leisure"~"park|garden|pitch"](${box});
   way["natural"~"wood|scrub"](${box});
   way["landuse"~"grass|forest|meadow|recreation_ground|village_green"](${box});
   way["landuse"~"farmland|farmyard|animal_keeping|orchard"](${box});

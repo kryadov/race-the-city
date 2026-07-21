@@ -1,5 +1,5 @@
 import type { Projector } from './project'
-import type { Building, BuildingKind, Poi, Prop, PropKind, Railway, Road, RoadKind, Surface, SurfaceKind, Vec2, WorldData } from './types'
+import type { Building, BuildingKind, Pitch, PitchSport, Poi, Prop, PropKind, Railway, Road, RoadKind, Surface, SurfaceKind, Vec2, WorldData } from './types'
 
 export interface OverpassMember {
   type: 'node' | 'way' | 'relation'
@@ -64,6 +64,47 @@ export function isField(tags: Record<string, string>): boolean {
 export function isParking(tags: Record<string, string>): boolean {
   // Multi-storey and underground parking are buildings, not painted tarmac.
   return tags.amenity === 'parking' && !tags.building && tags.parking !== 'underground' && tags.parking !== 'multi-storey'
+}
+
+/** A sports pitch (`leisure=pitch`) — a marked playing field. */
+export function isPitch(tags: Record<string, string>): boolean {
+  return tags.leisure === 'pitch'
+}
+
+// The sports we lay a recognisable field for; anything else is a generic pitch
+// (still a green field with an outline, just no sport-specific furniture).
+const PITCH_SPORT: Record<string, PitchSport> = {
+  soccer: 'soccer', football: 'soccer',
+  basketball: 'basketball',
+  tennis: 'tennis',
+}
+
+/** Which sport a pitch is for. `sport=soccer;basketball` picks the first listed. */
+export function pitchSport(tags: Record<string, string>): PitchSport {
+  const first = (tags.sport ?? '').split(';')[0].trim()
+  return PITCH_SPORT[first] ?? 'generic'
+}
+
+// The `cycleway=*` values that mean the road carries a cycle lane worth painting.
+// `separate` / `no` do not (the cyclists have their own way, or there is none).
+const CYCLE_LANE_VALUES = new Set([
+  'lane', 'track', 'opposite_lane', 'opposite_track', 'shared_lane', 'both', 'left', 'right', 'yes',
+])
+
+/**
+ * True when this way is a cycle route to stripe: a dedicated `highway=cycleway`,
+ * or an ordinary road carrying a `cycleway=lane|track|…` (or a side-specific
+ * `cycleway:left|right|both=lane|track`) tag. These ways are already fetched by
+ * the existing `way["highway"]` query, so this needs no Overpass change.
+ */
+export function hasCycleLane(tags: Record<string, string>): boolean {
+  if (tags.highway === 'cycleway') return true
+  if (CYCLE_LANE_VALUES.has(tags.cycleway)) return true
+  for (const k of ['cycleway:left', 'cycleway:right', 'cycleway:both']) {
+    const v = tags[k]
+    if (v && v !== 'no' && v !== 'separate') return true
+  }
+  return false
 }
 
 export function isWater(tags: Record<string, string>): boolean {
@@ -189,6 +230,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const green: Vec2[][] = []
   const forests: Vec2[][] = []
   const parking: Vec2[][] = []
+  const pitches: Pitch[] = []
   const fields: Vec2[][] = []
   const surfaces: Surface[] = []
   const coast: Vec2[][] = []
@@ -226,6 +268,9 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     } else if (isParking(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) parking.push(ring)
+    } else if (isPitch(tags)) {
+      const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
+      if (ring.length >= 3) pitches.push({ ring, sport: pitchSport(tags) })
     } else if (isGreen(tags) || isField(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) {
@@ -247,6 +292,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       if (tags.name) road.name = tags.name
       if (tags.bridge && tags.bridge !== 'no') road.bridge = true
       if (tags.tunnel && tags.tunnel !== 'no') road.tunnel = true
+      if (hasCycleLane(tags)) road.cycleway = true
       const layer = parseInt(tags.layer, 10)
       if (!Number.isNaN(layer) && layer !== 0) road.layer = layer
       roads.push(road)
@@ -336,7 +382,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     )
   }
 
-  return { roads, buildings, water, green, forests, parking, fields, surfaces, trees, props, coast, railways, benches, busStops, pois }
+  return { roads, buildings, water, green, forests, parking, pitches, fields, surfaces, trees, props, coast, railways, benches, busStops, pois }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */

@@ -11,6 +11,7 @@ const ROAD_EDGE = 0xff5bd0
 const NEON_TREE = 0x1dd85f // greenery glows green in neon
 const NEON_DETAIL = 0xffb13b // lamps/signs glow amber in neon
 const NEON_CROP = 0xe8c33a // standing crop, stubble and hay bales glow warm gold
+const NEON_PITCH = 0x39e08a // sports pitches — surface, markings and goals glow green
 const NEON_HERO = 0xffffff // the player car glows white — it's you, and it stands out
 const NEON_BOT = 0xff8a3d // every other mover (traffic, buses, bikes, walkers, trains…) glows warm amber
 const EDGE_ANGLE = 20 // degrees: keep only significant edges (box corners, outlines)
@@ -36,6 +37,9 @@ export interface WorldRefs {
   /** Standing crop / stubble / hay bales (instanced) — static world, so flipped by
    *  material here rather than the live mover scan. Optional: a city may have no field. */
   crops?: THREE.Object3D
+  /** Sports pitches: green surface, white markings, goals/hoops, figures — static
+   *  world, flipped by material here too. Optional: a city may have no pitch. */
+  pitches?: THREE.Object3D
 }
 
 /** A material we recolour for neon, plus its day values to restore. */
@@ -117,6 +121,7 @@ export class ThemeController {
     collect(world.streetFurniture, NEON_DETAIL)
     collect(world.poiMarkers, NEON_DETAIL)
     if (world.crops) collect(world.crops, NEON_CROP)
+    if (world.pitches) collect(world.pitches, NEON_PITCH)
   }
 
   /**

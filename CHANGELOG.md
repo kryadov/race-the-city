@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.126.0 — sports pitches and cycle lanes
+- **Sports grounds** — OSM `leisure=pitch` fields now render as a marked green pitch: a white outline
+  and centre line (a centre circle for football/basketball), **goals** at each end, or a **basketball
+  hoop** where the sport says so, plus a few players with a ball. Capped, clipped, neon-aware.
+- **Cycle lanes** — roads with a cycle lane (`highway=cycleway` or a `cycleway=*` tag) get a terracotta
+  **lane stripe** painted along them, riding the existing road-markings layer (no extra draw call).
+- ⚠️ Adding pitches to the map query changes the OSM cache key, so **every city re-downloads once** on
+  its next load (a one-time cost — cached offline again afterwards). Nothing else about the data changed.
+- 👀 Find a park pitch (football goals / basketball hoop + a ball and players); look for the terracotta
+  cycle-lane stripe on bike routes.
+
 ## v0.125.0 — Cops & Robbers chase mode
 - A new mode (**🚓** on the mode picker): two AI police cars hunt you down, re-routing to your live
   position through the streets. **Evade** them for 50s to escape (score +1); get within ~9m of a cop

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fixture from '../fixtures/overpass-small.json'
-import { parseOsm, classifyRoad, buildingHeight, classifySurface, type OverpassResponse } from '../../src/geo/parse'
+import { parseOsm, classifyRoad, buildingHeight, classifySurface, isPitch, pitchSport, hasCycleLane, type OverpassResponse } from '../../src/geo/parse'
 import { Projector } from '../../src/geo/project'
 
 const projector = new Projector({ lat: 41.7151, lon: 44.8271 })
@@ -232,6 +232,96 @@ describe('land-use surfaces', () => {
     // green (tint + tree scatter), so nothing that depended on them regresses.
     expect(world.fields.length).toBeGreaterThanOrEqual(2)
     expect(world.green.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('pitch classification', () => {
+  it('recognises a leisure=pitch way', () => {
+    expect(isPitch({ leisure: 'pitch' })).toBe(true)
+    expect(isPitch({ leisure: 'park' })).toBe(false)
+    expect(isPitch({})).toBe(false)
+  })
+
+  it('reads the sport, defaulting unknown/absent to generic', () => {
+    expect(pitchSport({ sport: 'soccer' })).toBe('soccer')
+    expect(pitchSport({ sport: 'football' })).toBe('soccer')
+    expect(pitchSport({ sport: 'basketball' })).toBe('basketball')
+    expect(pitchSport({ sport: 'tennis' })).toBe('tennis')
+    expect(pitchSport({ sport: 'soccer;basketball' })).toBe('soccer') // first listed
+    expect(pitchSport({ sport: 'petanque' })).toBe('generic')
+    expect(pitchSport({})).toBe('generic')
+  })
+})
+
+describe('sports pitches', () => {
+  const world = parseOsm(
+    {
+      elements: [
+        // a soccer pitch as a closed way
+        { type: 'node', id: 1, lat: 41.7151, lon: 44.8271 },
+        { type: 'node', id: 2, lat: 41.7151, lon: 44.8281 },
+        { type: 'node', id: 3, lat: 41.7156, lon: 44.8281 },
+        { type: 'node', id: 4, lat: 41.7156, lon: 44.8271 },
+        { type: 'way', id: 100, nodes: [1, 2, 3, 4, 1], tags: { leisure: 'pitch', sport: 'soccer' } },
+        // a pitch with no sport → generic
+        { type: 'node', id: 11, lat: 41.7161, lon: 44.8291 },
+        { type: 'node', id: 12, lat: 41.7161, lon: 44.8296 },
+        { type: 'node', id: 13, lat: 41.7164, lon: 44.8296 },
+        { type: 'node', id: 14, lat: 41.7164, lon: 44.8291 },
+        { type: 'way', id: 200, nodes: [11, 12, 13, 14, 11], tags: { leisure: 'pitch' } },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+
+  it('collects each pitch as a typed closed ring', () => {
+    expect(world.pitches.length).toBe(2)
+    for (const p of world.pitches) expect(p.ring.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('carries the sport through, defaulting to generic', () => {
+    expect(world.pitches.some((p) => p.sport === 'soccer')).toBe(true)
+    expect(world.pitches.some((p) => p.sport === 'generic')).toBe(true)
+  })
+
+  it('does not file a pitch as green/park or a building', () => {
+    // A pitch is neither a park lawn nor a footprint — it has its own layer.
+    expect(world.green.length).toBe(0)
+    expect(world.buildings.length).toBe(0)
+  })
+})
+
+describe('cycle-lane detection', () => {
+  it('flags a dedicated cycleway and a road carrying a cycleway tag', () => {
+    expect(hasCycleLane({ highway: 'cycleway' })).toBe(true)
+    expect(hasCycleLane({ highway: 'residential', cycleway: 'lane' })).toBe(true)
+    expect(hasCycleLane({ highway: 'primary', cycleway: 'track' })).toBe(true)
+    expect(hasCycleLane({ highway: 'residential', 'cycleway:right': 'lane' })).toBe(true)
+  })
+
+  it('does not flag a plain road, or one whose cyclists are separate/none', () => {
+    expect(hasCycleLane({ highway: 'residential' })).toBe(false)
+    expect(hasCycleLane({ highway: 'residential', cycleway: 'no' })).toBe(false)
+    expect(hasCycleLane({ highway: 'primary', cycleway: 'separate' })).toBe(false)
+  })
+
+  it('sets Road.cycleway on the parsed road, and leaves plain roads unflagged', () => {
+    const world = parseOsm(
+      {
+        elements: [
+          { type: 'node', id: 1, lat: 41.7151, lon: 44.8271 },
+          { type: 'node', id: 2, lat: 41.7156, lon: 44.8281 },
+          { type: 'way', id: 100, nodes: [1, 2], tags: { highway: 'residential', cycleway: 'lane' } },
+          { type: 'node', id: 3, lat: 41.7161, lon: 44.8291 },
+          { type: 'node', id: 4, lat: 41.7166, lon: 44.8301 },
+          { type: 'way', id: 200, nodes: [3, 4], tags: { highway: 'residential' } },
+        ],
+      } as OverpassResponse,
+      projector,
+    )
+    const withLane = world.roads.find((r) => r.cycleway)
+    expect(withLane).toBeDefined()
+    expect(world.roads.filter((r) => r.cycleway).length).toBe(1)
   })
 })
 

@@ -276,9 +276,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Bot buses that stop + board** — add **AI buses** that run routes and **stop at bus stops**
       (`highway=bus_stop`, already used for street furniture), where **people get on and off**. Bus
       as a traffic agent with dwell-at-stop behaviour + pedestrian board/alight.
-- [ ] **Sports grounds** — place **pitches with goals (football) / courts with hoops (basketball)**
-      via the same OSM-prop pattern as fountains/benches (`leisure=pitch`), with a few **figures
-      playing with a ball** on them. Instanced figures + a simple ball-and-players loop, capped.
+- [x] **Sports grounds** — ✅ v0.126.0: `src/world/pitches.ts` — `leisure=pitch` fields render a marked
+      green pitch (outline + centre line/circle), football goals or a basketball hoop by `sport=`, and a
+      few capped instanced figures + a ball. Neon via WorldRefs.pitches. Needed the one approved
+      Overpass change (`leisure=…|pitch`). Tested in `pitches.test.ts`. (Decorative — no collider.)
 - [x] **Glowing landmark markers** — ✅ v0.121.0 (done right): NOT a permanent pillar over every
       landmark (that was v0.118.0, reverted v0.119.1) — instead a single gold beam over the ACTIVE
       target inside the new Excursion mode (`excursion.ts`).
@@ -341,9 +342,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       agent within ~22m radially away from the car (eased target tx/tz, clamped to MAX_KNOCK); wired to
       the horn keydown in main.ts (once per press, guarded by `car`). Parked cars aren't traffic agents.
       Tested in `traffic.test.ts` (scatters near, spares far, pushes AWAY from the source).
-- [ ] **Bike lanes + cyclists** — paint a **cycle-lane stripe as a texture on the existing road
-      ribbon** (no new mesh — same draw call as the road markings), and add **cyclists** riding it
-      (instanced, reuse the pedestrian/traffic graph on `cycleway`/pavement). Keep it cheap.
+- [x] **Bike lanes + cyclists** — ✅ v0.126.0 (stripe) + cyclists already shipped: a terracotta cycle-lane
+      stripe painted along `highway=cycleway` / `cycleway=*` roads, merged into `roadDetail.ts`'s markings
+      (no extra draw, neon-covered for free). `Road.cycleway` parsed from the tag (no query change needed —
+      it rides the existing `highway` fetch). Tested in `roadDetail.test.ts` + `parse.test.ts`.
 - [ ] **Roll on a big launch** — if the car leaves a ramp/hill **hard enough** (high vertical speed /
       airtime), let it **flip/roll** per the current physics on landing; a gentle hop stays upright.
       A threshold on launch speed that permits angular tumble, otherwise keep the car damped level.

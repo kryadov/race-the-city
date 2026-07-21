@@ -14,7 +14,16 @@ export interface Road {
   tunnel?: boolean
   /** OSM `layer`: how many levels above (or below) the ground this way runs. */
   layer?: number
+  /** This way IS a dedicated cycleway, or carries a `cycleway=lane|track|…` tag, so
+   *  a coloured cycle-lane stripe is painted along it in the road-detail layer. */
+  cycleway?: boolean
 }
+
+/** What a sports pitch is for — decides its markings and end furniture (goals vs
+ *  a hoop). `generic` is any pitch with no `sport` we recognise. */
+export type PitchSport = 'soccer' | 'basketball' | 'tennis' | 'generic'
+/** A sports pitch: its OSM outline ring and the sport it is played for. */
+export interface Pitch { ring: Vec2[]; sport: PitchSport }
 /** What a building is for — decides its facade: windows, doors and signage. */
 /**
  * A railway line. Trams share the street, so they carry trams and nothing else;
@@ -61,6 +70,8 @@ export interface WorldData {
    * the generic greenery where they overlap. */
   surfaces: Surface[]
   coast: Vec2[][]
+  /** Sports pitches (`leisure=pitch`) — a marked playing field with goals or a hoop. */
+  pitches: Pitch[]
   railways: Railway[]
   /** Street furniture points: benches (`amenity=bench`) and bus stops. */
   benches: Vec2[]

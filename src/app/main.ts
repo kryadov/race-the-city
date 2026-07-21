@@ -126,6 +126,7 @@ import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildManholes } from '../world/manholes'
 import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
+import { buildPitches } from '../world/pitches'
 import { buildParkedCars, collectParkedCars, makeRng as parkedRng, SEED as PARKED_SEED } from '../world/parkedCars'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery, type TreePerch } from '../world/greenery'
@@ -578,6 +579,10 @@ async function loadCity(query: string): Promise<void> {
       .filter((r) => r.length >= 3)
       .map((ring) => ({ ring, level: waterLevel(ring, provider) }))
     const parkingMesh = buildParking(world.parking, provider)
+    // Sports pitches: a marked green field with goals/hoops and a few figures.
+    // Static, decorative (no collider) — built before setWorld so its materials
+    // are registered for the neon flip, and added to worldGroup for disposal.
+    const pitchesMesh = buildPitches(world.pitches, provider)
     const parkedCarsMesh = buildParkedCars(world.parking, provider) // fixed seed: same cars each reload
     // The exact fixed-seed set buildParkedCars just drew, so traffic can avoid them (same seed → same cars).
     const parkedCarList = collectParkedCars(world.parking, parkedRng(PARKED_SEED))
@@ -597,7 +602,7 @@ async function loadCity(query: string): Promise<void> {
     greenMesh.traverse((o) => {
       o.castShadow = true
     })
-    for (const obj of [ground, seaMesh, greenMesh, infillMesh, waterMesh, parkingMesh, parkedCarsMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
+    for (const obj of [ground, seaMesh, greenMesh, infillMesh, waterMesh, parkingMesh, pitchesMesh, parkedCarsMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
@@ -607,7 +612,7 @@ async function loadCity(query: string): Promise<void> {
     // the mown strips reset with the field.
     crops?.dispose()
     crops = createCrops(stage.scene, world.surfaces, provider)
-    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh, crops: crops.object })
+    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh, crops: crops.object, pitches: pitchesMesh })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
     // index buildings (with heights) so the camera can tell when one blocks the car
