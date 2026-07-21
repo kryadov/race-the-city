@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.138.1 — pause & help buttons back on the edge
+- The **⏸ pause** and **? help** buttons in the top-right corner had drifted a slot inward: they used
+  to trail an in-game settings button that has since moved into the menu panel, but kept its old
+  offsets, leaving a gap against the screen edge. They're now packed flush to the corner (pause on
+  the edge, help beside it). The row's geometry is derived from one `cornerRight()` helper and pinned
+  by a test, so it can't silently drift again.
+- 👀 In-game, top-right: the two round buttons should sit tight against the corner, no empty gap to
+  their right.
+
 ## v0.138.0 — an offline demo city on boot
 - The opening screen now shows a **built-in demo city — central Paris (Île de la Cité, the Seine
   with its islands, the bridges, Notre-Dame)** — baked into the app as a single same-origin asset

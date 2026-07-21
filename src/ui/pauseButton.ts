@@ -1,4 +1,5 @@
 import { t, onLangChange } from '../i18n/i18n'
+import { cornerRight, CORNER_SIZE } from './cornerButtons'
 
 export interface PauseButton {
   paused(): boolean
@@ -6,16 +7,18 @@ export interface PauseButton {
 }
 
 /**
- * A pause button sitting to the left of the ⚙ button, plus Escape as a shortcut.
- * It only reports state — the loop decides what freezing means.
+ * A pause button in the top-right corner, plus Escape as a shortcut. It only
+ * reports state — the loop decides what freezing means.
  */
 export function createPauseButton(root: HTMLElement, onChange: (paused: boolean) => void): PauseButton {
   let paused = false
 
   const btn = document.createElement('button')
-  // 44px gear at right:16 — sit one button-width plus a gap to its left.
+  // Flush to the right edge (slot 0). The in-game settings button used to sit here
+  // and the pause sat a slot to its left; settings has since moved into the menu
+  // panel, so the pause takes the edge and the ? help button sits beside it.
   btn.style.cssText =
-    'position:absolute;top:16px;right:68px;pointer-events:auto;width:44px;height:44px;' +
+    `position:absolute;top:16px;right:${cornerRight(0)}px;pointer-events:auto;width:${CORNER_SIZE}px;height:${CORNER_SIZE}px;` +
     'border:0;border-radius:10px;background:rgba(11,14,19,.8);color:#fff;font-size:18px;cursor:pointer'
   root.appendChild(btn)
 

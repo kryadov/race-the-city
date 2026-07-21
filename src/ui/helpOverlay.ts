@@ -1,4 +1,5 @@
 import { t, onLangChange } from '../i18n/i18n'
+import { cornerRight, CORNER_SIZE } from './cornerButtons'
 
 /** Every binding, read off the code that implements it. */
 const KEYS: readonly { keys: string; label: string }[] = [
@@ -26,9 +27,11 @@ export function createHelpOverlay(root: HTMLElement): HelpOverlay {
 
   const btn = document.createElement('button')
   btn.textContent = '?'
-  // Third in the row along the top right, after the pause and the gear.
+  // Slot 1 — just left of the pause button, which holds the edge at slot 0. The
+  // settings button that used to lead this row now lives in the menu panel, so
+  // the row is just pause + help, packed against the corner.
   btn.style.cssText =
-    'position:absolute;top:16px;right:120px;pointer-events:auto;width:44px;height:44px;' +
+    `position:absolute;top:16px;right:${cornerRight(1)}px;pointer-events:auto;width:${CORNER_SIZE}px;height:${CORNER_SIZE}px;` +
     'border:0;border-radius:10px;background:rgba(11,14,19,.8);color:#fff;font-size:19px;cursor:pointer'
   root.appendChild(btn)
 
