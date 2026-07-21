@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { spots, createBoats } from '../../src/app/boats'
+import { spots, createBoats, circleClearOfHoles } from '../../src/app/boats'
 import type { Vec2 } from '../../src/geo/types'
 
 /** Ground a metre below the waterline everywhere, so the whole outline is wet. */
@@ -41,6 +41,46 @@ describe('boats on small water', () => {
   it('still leaves a genuine puddle empty', () => {
     // 6m across (radius 3, below MIN_ROOM): too small for even a rowboat.
     expect(spots(pond(6, 20, 20), wet, 0).length).toBe(0)
+  })
+})
+
+describe('boats and islands (water holes)', () => {
+  // A big body with a large island cut out of its middle — the Île de la Cité /
+  // Gezira case, where the island terrain sits at the waterline (flat baked demo
+  // ground) so the height check alone would not catch it.
+  const body = pond(800, 0, 0)
+  const island = pond(300, 0, 0) // a 300m island dead centre
+
+  const onIsland = (x: number, z: number): boolean => Math.abs(x) < 150 && Math.abs(z) < 150
+
+  it('places no boat spot on an island cut out of the water', () => {
+    // Without the island the roomy middle yields central spots…
+    expect(spots(body, wet, 0).some((s) => onIsland(s.x, s.z))).toBe(true)
+    // …and with it, none land on the island.
+    expect(spots(body, wet, 0, [island]).some((s) => onIsland(s.x, s.z))).toBe(false)
+  })
+
+  it('circleClearOfHoles rejects a patrol circle that crosses an island', () => {
+    // Centre well inside the island → its whole circle is over land: rejected.
+    expect(circleClearOfHoles([island], 0, 0, 40, 5)).toBe(false)
+    // Far out in open water, clear of the island: fine.
+    expect(circleClearOfHoles([island], 340, 0, 20, 5)).toBe(true)
+    // No holes at all: trivially clear.
+    expect(circleClearOfHoles([], 0, 0, 40, 5)).toBe(true)
+  })
+
+  it('keeps every placed boat off the island as it patrols', () => {
+    const scene = new THREE.Scene()
+    const boats = createBoats(scene, [body], wet, () => 0.5, 6, [island])
+    const group = scene.children[0] as THREE.Group
+    expect(group.children.length).toBeGreaterThan(0) // boats were placed on the open water
+    // Run the patrol: circleClearOfHoles guarantees the whole circuit stays off
+    // the island, so no frame ever puts a hull over it.
+    for (let f = 0; f < 240; f++) {
+      boats.update(1 / 60)
+      for (const b of group.children) expect(onIsland(b.position.x, b.position.z)).toBe(false)
+    }
+    boats.dispose()
   })
 })
 

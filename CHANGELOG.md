@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.141.1 — boats keep off the islands
+- **BUG:** boats treated an island as open water when it's an inner ring of a water body (the code
+  only read outer outlines), so a boat could sit or motor across the **Île de la Cité** in the Seine
+  (and Gezira in Cairo's Nile). Boats now avoid water-hole islands — no spot is placed on one, and a
+  patrol circle that would cross one is rejected — so they stay on the open river. Tested.
+
 ## v0.141.0 — softer bike lanes, with cyclists on them
 - The **cycle-lane stripe is toned down** — from a harsh terracotta-red to a muted, dusty clay that
   still reads as a painted lane without cutting the eye (you'll notice it especially in Paris, which

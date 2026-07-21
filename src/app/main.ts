@@ -457,6 +457,7 @@ let lastParkedCars: ReturnType<typeof collectParkedCars> = [] // parked-car set,
 let lastParking: Vec2[][] = [] // parking-lot rings, so a density rebuild re-animates the living lots
 let lastRailways: import('../geo/types').Railway[] = []
 let lastWater: import('../geo/types').Vec2[][] = []
+let lastWaterHoles: import('../geo/types').Vec2[][] = [] // islands, so re-homed boats keep off them
 let lastLat = 0 // the loaded city's latitude, so a density rebuild dresses the crowd for its season
 // Each water body's surface height, cached per city (waterLevel samples the whole map — too dear per frame).
 let waterLevels: { ring: import('../geo/types').Vec2[]; level: number }[] = []
@@ -763,7 +764,7 @@ async function loadCity(query: string): Promise<void> {
     people?.dispose()
     people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat, decks)
     boats?.dispose()
-    boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4))
+    boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4), world.waterHoles)
     livingParking?.dispose()
     // A few lots come alive: cars drive in/out of their bays, all motion kept
     // inside the lot polygon (never onto a road), atop the static parked cars.
@@ -786,6 +787,7 @@ async function loadCity(query: string): Promise<void> {
     birds.dispose() // the outgoing city's trees and roofs were its perches
     birds = makeBirds()
     lastWater = world.water
+    lastWaterHoles = world.waterHoles
     lastLat = center.lat
     // On a firework holiday (New Year, the 4th…) light up the skyline all session.
     const party = celebration(new Date())
@@ -1360,7 +1362,7 @@ const menu = createMenu(
       people?.dispose()
       people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat, decks)
       boats?.dispose()
-      boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4))
+      boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4), lastWaterHoles)
       livingParking?.dispose()
       livingParking = createLivingParking(stage.scene, lastParking, provider, Math.random)
       buses?.dispose()

@@ -117,6 +117,35 @@ export function circleFits(
 }
 
 /**
+ * The inverse of {@link circleFits} for islands: does the whole patrol circle
+ * stay OFF every island (a water hole)? Same hull-ends sampling, so a boat that
+ * would clip the Île de la Cité on its round is rejected rather than sailing
+ * across it. No holes → trivially clear.
+ */
+export function circleClearOfHoles(
+  holes: Vec2[][],
+  cx: number,
+  cz: number,
+  radius: number,
+  half: number,
+): boolean {
+  if (!holes.length) return true
+  const STEPS = 16
+  for (let i = 0; i < STEPS; i++) {
+    const a = (i / STEPS) * Math.PI * 2
+    const x = cx + Math.cos(a) * radius
+    const z = cz + Math.sin(a) * radius
+    const tx = -Math.sin(a) * half
+    const tz = Math.cos(a) * half
+    for (const h of holes) {
+      if (h.length < 3) continue
+      if (pointInPolygon(x + tx, z + tz, h) || pointInPolygon(x - tx, z - tz, h)) return false
+    }
+  }
+  return true
+}
+
+/**
  * How far out to look for water, and how finely — metres.
  *
  * The whole map, and not a metre less: this is RADIUS in `main.ts`, the ground
@@ -201,8 +230,14 @@ export function spots(
   ring: Vec2[],
   provider: ElevationProvider,
   level: number,
+  holes: Vec2[][] = [],
 ): { x: number; z: number; r: number }[] {
   const found: { x: number; z: number; r: number }[] = []
+  // An island cut out of the body (a water multipolygon inner ring — the Île de
+  // la Cité in the Seine, Gezira in the Nile) is dry land the outline doesn't
+  // know about. Skip any sample sitting on one, so no boat is centred on it.
+  const onIsland = (x: number, z: number): boolean =>
+    holes.some((h) => h.length >= 3 && pointInPolygon(x, z, h))
   // The whole map, and not a metre less: this is RADIUS in `main.ts`, the ground
   // mesh's half-size, and you can drive to any of it. It was a 900m circle round
   // the middle on a fog argument, which was simply wrong — the fog hides what is
@@ -212,6 +247,7 @@ export function spots(
       const r = roomAt(ring, x, z)
       if (r < ROWBOAT_ROOM) continue
       if (provider.heightAt(x, z) > level) continue // dry land inside the outline
+      if (onIsland(x, z)) continue // an island the outline doesn't cut out
       found.push({ x, z, r })
     }
   }
@@ -244,6 +280,7 @@ export function spots(
         const r = roomAt(ring, x, z)
         if (r < MIN_ROOM) continue
         if (provider.heightAt(x, z) > level) continue
+        if (onIsland(x, z)) continue
         found.push({ x, z, r })
       }
     }
@@ -550,6 +587,7 @@ export function createBoats(
   provider: ElevationProvider,
   rand: () => number = Math.random,
   maxBoats = 6,
+  waterHoles: Vec2[][] = [],
 ): Boats {
   const group = new THREE.Group()
   scene.add(group)
@@ -580,6 +618,7 @@ export function createBoats(
       if (radius <= 1) continue
       if (!circleFits(ring, spot.x, spot.z, radius, kind.half)) continue
       if (!circleIsWet(spot.x, spot.z, radius, provider, level)) continue
+      if (!circleClearOfHoles(waterHoles, spot.x, spot.z, radius, kind.half)) continue // keep off islands
       // Keep patrol circles apart — see BOAT_GAP — or a wide harbour's ranked
       // candidates, which cluster on its widest bend, stack several boats on
       // the same water.
@@ -622,7 +661,7 @@ export function createBoats(
     .filter((ring) => ring.length >= 3)
     .map((ring) => {
       const level = waterLevel(ring, provider)
-      return { ring, level, ranked: spots(ring, provider, level) }
+      return { ring, level, ranked: spots(ring, provider, level, waterHoles) }
     })
     .filter((b) => b.ranked.length > 0)
 
