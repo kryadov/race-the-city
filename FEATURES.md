@@ -75,8 +75,10 @@ Each vehicle has:
 
 Physics is arcade drift: tyre grip lets the tail slide, brakes never reverse you, and **jumps**
 have real gravity — crest a ramp and you launch; come off a **roof or the end of a high bridge**
-and you fly off the lip in an arc instead of dropping through it. You can **land on a roof and
-drive along it**, and clear a bungalow, fountain or statue mid-jump.
+and you fly off the lip in an arc instead of dropping through it. Launch off something **hard
+enough** and the car **flips through the air** and rights itself to land back on its wheels — a
+gentle hop just stays level. You can **land on a roof and drive along it**, and clear a bungalow,
+fountain or statue mid-jump.
 
 ---
 

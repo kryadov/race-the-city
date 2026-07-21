@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.129.0 — flip the car on a big launch
+- Kick off a ramp **hard enough** and the car now **flips through the air** — a forward roll that
+  keeps turning while you're airborne and then **rights itself to the nearest whole turn on landing**,
+  so however it tumbled it comes down on its wheels. A **gentle hop stays level** as before: only a
+  launch well past the ordinary crest-of-a-bridge kick tips you over, so kerbs and arches don't spin
+  you. Purely a look — it doesn't change where you land. Hovercraft never flip (they float level).
+- 👀 Find a good ramp or a high bridge end, get up some speed, and launch — the car should barrel over
+  and touch down upright. A small bump should NOT flip you.
+
 ## v0.128.0 — traffic obeys the lights; bridge piers off the carriageway
 - **Traffic lights** now mean something: bot **cars hold at a red** (coasting to a stop line just back
   from the junction) and **go on green**, reading the very phase that lights the lamps. It can't

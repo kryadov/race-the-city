@@ -17,6 +17,16 @@ export interface CarState {
    * decides whether cresting a rise launches the car.
    */
   vy: number
+  /**
+   * Barrel over a big jump. `tumble` is the forward-flip angle (radians, 0 =
+   * level); `tumbleRate` its spin while airborne. A gentle hop never touches
+   * these — only a launch harder than {@link ROLL_LAUNCH_VY} sets a rate, the car
+   * flips through the air, and once back on the ground it rights itself to the
+   * nearest whole turn so it always lands on its wheels. Optional so the many
+   * existing `CarState` literals need no change; treated as 0 when absent.
+   */
+  tumble?: number
+  tumbleRate?: number
 }
 export interface CarInput {
   throttle: number
@@ -25,13 +35,25 @@ export interface CarInput {
 }
 
 export function createCar(x = 0, z = 0): CarState {
-  return { x, z, y: 0, heading: 0, vx: 0, vz: 0, vy: 0 }
+  return { x, z, y: 0, heading: 0, vx: 0, vz: 0, vy: 0, tumble: 0, tumbleRate: 0 }
 }
 
 /** Arcade gravity — heavier than life, so jumps land before you get bored. */
 export const GRAVITY = 18
 /** Below this climb rate nothing throws the car, however sharp the crest. */
 export const TAKEOFF_VY = 2.5
+/**
+ * A launch gentler than this just hops; only a harder one tips the car into a
+ * flip. Well above TAKEOFF_VY, so cresting a kerb or a bridge arch leaves you
+ * upright and only a proper ramp kick sends you over.
+ */
+export const ROLL_LAUNCH_VY = 9
+/** Flip spin per m/s of launch, and its ceiling — one big jump is a turn or two. */
+const ROLL_GAIN = 0.55
+const MAX_TUMBLE_RATE = 9
+/** How fast the car rights itself to the nearest whole turn once back down. */
+const TUMBLE_SETTLE_K = 7
+const TAU = Math.PI * 2
 /** Ceiling on the climb rate a slope can impart, m/s. */
 const MAX_CLIMB = 22
 /**
@@ -144,9 +166,10 @@ export function stepCar(
 
   const groundY = provider.heightAt(resolved.x, resolved.z)
 
-  // A hovercraft holds its height: it floats, so nothing throws it.
+  // A hovercraft holds its height: it floats, so nothing throws it — and nothing
+  // flips it either.
   if (HOVERS[spec.key]) {
-    return { x: resolved.x, z: resolved.z, y: groundY + HOVER_H, heading, vx, vz, vy: 0 }
+    return { x: resolved.x, z: resolved.z, y: groundY + HOVER_H, heading, vx, vz, vy: 0, tumble: 0, tumbleRate: 0 }
   }
 
   let y: number
@@ -212,5 +235,28 @@ export function stepCar(
     }
   }
 
-  return { x: resolved.x, z: resolved.z, y, heading, vx, vz, vy }
+  // Tumble over a big launch. We know now whether the car has left the ground
+  // (nowAirborne) and whether it just did (was on the ground last frame). A hard
+  // enough upward launch tips it into a forward flip that keeps turning through
+  // the flight; back on the ground it stops spinning and eases to the nearest
+  // whole turn, so however it flipped it settles on its wheels.
+  let tumble = car.tumble ?? 0
+  let tumbleRate = car.tumbleRate ?? 0
+  const wasAirborne = car.y > groundHere + AIR_EPS
+  const nowAirborne = y > groundY + AIR_EPS
+  if (!wasAirborne && nowAirborne && vy > ROLL_LAUNCH_VY && tumbleRate === 0 && tumble === 0) {
+    tumbleRate = Math.min(MAX_TUMBLE_RATE, vy * ROLL_GAIN)
+  }
+  if (nowAirborne && tumbleRate !== 0) {
+    tumble += tumbleRate * dt // mid-flip, still in the air
+  } else if (!nowAirborne) {
+    tumbleRate = 0
+    if (tumble !== 0) {
+      const target = Math.round(tumble / TAU) * TAU // the nearest upright orientation
+      tumble += (target - tumble) * (1 - Math.exp(-TUMBLE_SETTLE_K * dt))
+      if (Math.abs(tumble - target) < 1e-3) tumble = 0
+    }
+  }
+
+  return { x: resolved.x, z: resolved.z, y, heading, vx, vz, vy, tumble, tumbleRate }
 }

@@ -1069,7 +1069,7 @@ async function loadCity(query: string): Promise<void> {
         // and the car twitched in all directions in the air. On the ground (car.y ≈
         // terrain) it still pitches to the slope as before.
         const airborne = car.y > provider.heightAt(car.x, car.z) + 1.5
-        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle] || onDeck || airborne, steerVis)
+        syncCamera(stage, car, dt, provider, lean, !!HOVERS[vehicle] || onDeck || airborne, steerVis, car.tumble ?? 0)
         // sky dome: gradient + sun disc following the cycle (hidden in neon, which paints its own flat bg)
         const skyOn = theme.current !== 'neon'
         sky.setVisible(skyOn)

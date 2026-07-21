@@ -23,34 +23,28 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       pickups already RADIUS-clamped ✅; rivals follow the (now-bounded) trial gates ✅; boats/trains sit
       on water/rail within the map ✅; autopilot + traffic/pedestrians/buses walk the road graph and can
       touch off-map segments but are confined/recycled near the player (low visibility) — left as-is.
-- [ ] **Start position must not face/abut a building or have the view blocked** — the player must not
-      spawn staring into a wall or with a house (or other obstacle) blocking the chase-camera view.
-      DIAGNOSED: `src/world/start.ts` `startPose()` picks the road vertex nearest the map centre and a
-      heading along the road, but never checks what's ahead/around. Fix: score candidate road vertices
-      (a) by openness — reject/penalize a spot whose forward direction (and the chase-camera, which
-      sits BEHIND+ABOVE the car) hits a building footprint within a few metres; pick the heading (either
-      way along the road) and the vertex that leaves the car facing clear road, not masonry. Needs
-      `startPose` to take building footprints (`world.buildings`) + a short ray/box test. Ship as a fix.
+- [x] **Start position must not face/abut a building or have the view blocked** — ✅ ALREADY DONE in
+      v0.112.0 (verified 2026-07-21, was just never ticked): `src/world/start.ts` `startPose()` scores
+      candidate road vertices by openness — AHEAD/BEHIND probes reject a spot whose forward (or the
+      chase-camera band behind+above) hits a building footprint; it tries both headings and rolls off a
+      boxed-in vertex to a clear one. Wired at `main.ts` with `world.buildings.map(b => b.footprint)`.
+      Full coverage in `test/world/start.test.ts`.
 - [x] **Roads run straight into houses; bots drive into the wall → SOLVE WITH ARCHWAYS** — ✅ v0.127.0
       (collision + arch; see the canonical item lower). Road is now drivable through such buildings; a
       stone arch dresses the passage. FOLLOW-UP: the building's VISUAL wall isn't CSG-carved yet (only
       the collider is), so the wall still spans the opening behind the arch frame.
-- [ ] **Moving bots drive through PARKED cars on a lot** (screenshot 2026-07-19, night) — bot traffic
-      (and buses) pass straight through the static parked cars filling a parking lot. Parked cars
-      (`parkedCars.ts`) are not in the collision/obstacle grid and `traffic.ts` doesn't treat them as
-      blockers. Add each parked car's footprint as a solid obstacle so bots (and the player) go round.
-- [ ] **No moving bot cars on bridges** — bridge decks carry no traffic; they should. Traffic walks the
-      ground road graph, and bridge-deck segments either aren't fed to the traffic graph or are dropped
-      by the on-ground height test. Route bots over bridge crossings the way the player drives them.
-- [ ] **Support more OSM ground-surface types (not just grass)** — user sees ground on the OSM map that
-      isn't grass and wants it rendered. MEASURE FIRST (measure-before-fixing): fetch a real city's OSM
-      and enumerate which area tags actually appear (`landuse=residential/commercial/industrial/meadow/
-      farmland/grass`, `natural=scrub/heath/sand/bare_rock`, `surface=*`, `leisure=*`), then map the
-      common ones to distinct ground tints/textures. Ties into "Sandy ground in southern cities" and
-      "Pedestrian squares". Ground build (`ground.ts`) + parse (`parse.ts`). Screenshot 2026-07-19 (OSM
-      carto) shows at least: pale-cream **farmland**, light-green **meadow/grass**, dotted-green
-      **orchard/scrub**, grey **residential** landuse, tan buildings — support farmland/meadow/orchard/
-      residential as distinct ground tints as the first cut.
+- [x] **Moving bots drive through PARKED cars on a lot** — ✅ ALREADY DONE in v0.112.0 ("solid traffic",
+      verified 2026-07-21): `traffic.ts` takes the parked-car positions (`createTraffic(..., parkedCarList,
+      ...)` in main.ts) and a bot holds a gap to the nearest parked car in its path (PARKED_GAP/LOOK/HALF,
+      bucketed on a PARK_CELL grid). See the "Parked cars as static obstacles" block in traffic.ts.
+- [x] **No moving bot cars on bridges** — ✅ ALREADY DONE in v0.112.0 (verified 2026-07-21): `createTraffic`
+      takes the bridge `decks` and recovers which graph edges belong to a bridge road (`bridgeEdges`/
+      `onBridge`), so a bot on a bridge segment rides the deck overhead instead of the ground beneath.
+- [x] **Support more OSM ground-surface types (not just grass)** — ✅ FIRST CUT DONE in v0.112.0 ("ground
+      surfaces", verified 2026-07-21): `ground.ts` `SURFACE_COLORS` tints farmland (khaki), meadow (light
+      green), orchard (mid green) and residential (warm grey) as distinct vertex-coloured surfaces, tested
+      before park green so a surface tint wins. FOLLOW-UP still open: sand/bare_rock (ties into "Sandy
+      ground in southern cities"), commercial/industrial, pedestrian squares.
 - [x] **Menu — comprehensive rework** — ✅ v0.112.0: one unified menu (start + Esc), branded main screen,
       single-select mode picker (Free · Time-trial · Race · Taxi · 🕹 Find-a-car), settings behind ⚙ Options.
 - [x] **Some birds perch in mid-air on nothing** — ✅ v0.110.60: each tree hands the flock its real crown height. a few birds sit motionless in the air with nothing
@@ -342,9 +336,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       stripe painted along `highway=cycleway` / `cycleway=*` roads, merged into `roadDetail.ts`'s markings
       (no extra draw, neon-covered for free). `Road.cycleway` parsed from the tag (no query change needed —
       it rides the existing `highway` fetch). Tested in `roadDetail.test.ts` + `parse.test.ts`.
-- [ ] **Roll on a big launch** — if the car leaves a ramp/hill **hard enough** (high vertical speed /
-      airtime), let it **flip/roll** per the current physics on landing; a gentle hop stays upright.
-      A threshold on launch speed that permits angular tumble, otherwise keep the car damped level.
+- [x] **Roll on a big launch** — ✅ v0.129.0: `CarState.tumble`/`tumbleRate` in `car.ts` — a launch with
+      upward `vy > ROLL_LAUNCH_VY` (9 m/s, well above the ordinary crest kick) sets a flip rate scaled by
+      the launch (capped), the car turns through the air, and on landing rights itself to the nearest whole
+      turn so it lands on its wheels; a gentle hop stays level, hovercraft never flip. Rendered as a pitch
+      about the car's right axis in `syncCamera` (reusing the lean post-multiply). Tested in `car.test.ts`.
 - [ ] **Bridge railings look flat/solid** — v0.110.2 seated the railings on the deck edge but they're
       a **solid-colour wall**; make them read as real railings — **posts at intervals + a top rail (and
       maybe a mid rail), with gaps between**, not a filled parapet. Instanced/merged posts+rails in

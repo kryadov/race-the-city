@@ -105,6 +105,54 @@ describe('stepCar (arcade drift)', () => {
   })
 })
 
+describe('tumble on a big launch', () => {
+  // A crest launch reduces, on flat ground, to a car that leaves the tarmac still
+  // carrying an upward speed (car.vy) — the very climb rate a ramp would have left
+  // it with. Pre-loading vy lets us launch deterministically without sculpting a
+  // ramp, and drives the same airborne path stepCar takes off a real crest.
+
+  it('flips a hard launch through the air and lands it back level', () => {
+    let c: CarState = { ...createCar(), vx: 20, vy: 12 } // a big kick off the crest
+    let maxTumble = 0
+    let flew = false
+    for (let i = 0; i < 240; i++) {
+      c = stepCar(c, NO_INPUT, 1 / 60, emptyGrid, flat, VEHICLES.sports)
+      if (c.y > 0.05) flew = true
+      maxTumble = Math.max(maxTumble, Math.abs(c.tumble ?? 0))
+    }
+    expect(flew, 'it should have left the ground').toBe(true)
+    expect(maxTumble, 'and flipped well past level in the air').toBeGreaterThan(1)
+    expect(Math.abs(c.tumble ?? 0), 'then righted itself on the ground').toBeLessThan(0.05)
+  })
+
+  it('leaves a gentle hop upright — no flip', () => {
+    let c: CarState = { ...createCar(), vx: 12, vy: 5 } // enough to hop, not to tumble
+    let maxTumble = 0
+    let flew = false
+    for (let i = 0; i < 160; i++) {
+      c = stepCar(c, NO_INPUT, 1 / 60, emptyGrid, flat, VEHICLES.car)
+      if (c.y > 0.05) flew = true
+      maxTumble = Math.max(maxTumble, Math.abs(c.tumble ?? 0))
+    }
+    expect(flew, 'a hop still leaves the ground').toBe(true)
+    expect(maxTumble, 'but a small hop must not tumble').toBeLessThan(0.01)
+  })
+
+  it('spins a bigger launch faster', () => {
+    const rateFor = (vy: number): number => {
+      const c = stepCar({ ...createCar(), vx: 20, vy }, NO_INPUT, 1 / 60, emptyGrid, flat, VEHICLES.sports)
+      return Math.abs(c.tumbleRate ?? 0)
+    }
+    expect(rateFor(20)).toBeGreaterThan(rateFor(11))
+  })
+
+  it('never tumbles a hovercar — it floats level', () => {
+    const c = stepCar({ ...createCar(), vx: 20, vy: 20 }, NO_INPUT, 1 / 60, emptyGrid, flat, VEHICLES.hover)
+    expect(c.tumble ?? 0).toBe(0)
+    expect(c.tumbleRate ?? 0).toBe(0)
+  })
+})
+
 describe('VEHICLES presets', () => {
   it('orders top speed sports > car > truck', () => {
     expect(VEHICLES.sports.maxSpeed).toBeGreaterThan(VEHICLES.car.maxSpeed)

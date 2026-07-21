@@ -139,6 +139,10 @@ const basis = new THREE.Matrix4()
 /** Roll applied about the model's forward axis (bikes bank into corners). */
 const leanQuat = new THREE.Quaternion()
 const FWD_AXIS = new THREE.Vector3(1, 0, 0)
+const tumbleQuat = new THREE.Quaternion()
+// The basis puts local +z along the car's right, so a rotation about it pitches
+// the nose up and over — the forward flip a big launch throws (see car.ts tumble).
+const RIGHT_AXIS = new THREE.Vector3(0, 0, 1)
 
 /** How far a steered wheel turns at full lock, radians. */
 const MAX_STEER_YAW = 0.5
@@ -151,6 +155,7 @@ export function syncCamera(
   lean = 0,
   level = false,
   steer = 0,
+  tumble = 0,
 ): void {
   stage.carMesh.position.set(car.x, car.y, car.z)
 
@@ -170,6 +175,9 @@ export function syncCamera(
   // Bank into the corner: the basis puts local +x along forward, so a roll about
   // local +x tips the model's up-vector toward its right (+z).
   if (lean !== 0) stage.carMesh.quaternion.multiply(leanQuat.setFromAxisAngle(FWD_AXIS, lean))
+  // Flip through a big jump: a pitch about the car's own right axis, on top of the
+  // slope basis (which is held level while airborne, so the flip reads clean).
+  if (tumble !== 0) stage.carMesh.quaternion.multiply(tumbleQuat.setFromAxisAngle(RIGHT_AXIS, tumble))
 
   // Spin wheels by rolling distance (forward speed / radius), and point the
   // steered ones where the driver is asking. Both live on the same group: the
