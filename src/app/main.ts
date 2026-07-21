@@ -649,7 +649,7 @@ async function loadCity(query: string): Promise<void> {
     // The exact fixed-seed set buildParkedCars just drew, so traffic can avoid them (same seed → same cars).
     const parkedCarList = collectParkedCars(world.parking, parkedRng(PARKED_SEED))
     const propsMesh = buildProps(world.props, provider)
-    const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider)
+    const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider, Math.random, world.water, world.waterHoles)
     const poiMesh = buildPoiMarkers(world.pois, provider)
     const { object: greenMesh, perches: greenPerches } = buildGreenery(world.green, world.trees, provider, center.lat, world.forests, world.props.map((p) => p.at)) // keep trees off statues/fountains
     // Fill the bare ground between buildings with the odd bench and clump of trees.

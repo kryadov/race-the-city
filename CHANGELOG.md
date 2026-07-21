@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.140.2 — no more benches floating in the river
+- **BUG:** benches (and bus stops) mapped out over water sat on the water surface and read as floating.
+  They're now dropped if they fall inside a water body — but **kept on the bank and on islands** (a
+  bench on the Île de la Cité, an island cut out of the Seine, stays). New `isOverWater` test guards it.
+
 ## v0.140.1 — the Continue button gets its label back
 - **BUG:** the **Continue** button on the start menu shipped with no text — an empty green bar between
   Play and Settings whenever a saved session existed. It now reads **"↻ Continue"** (localized), and

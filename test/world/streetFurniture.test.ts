@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { buildStreetFurniture } from '../../src/world/streetFurniture'
+import { buildStreetFurniture, isOverWater } from '../../src/world/streetFurniture'
 import type { Road, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
@@ -24,7 +24,46 @@ const grid = (n: number): Vec2[] =>
 const inst = (g: THREE.Object3D, name: string): THREE.InstancedMesh | undefined =>
   g.getObjectByName(name) as THREE.InstancedMesh | undefined
 
+/** A closed axis-aligned rectangle ring covering [x0,x1] × [z0,z1]. */
+const rect = (x0: number, z0: number, x1: number, z1: number): Vec2[] => [
+  { x: x0, z: z0 }, { x: x1, z: z0 }, { x: x1, z: z1 }, { x: x0, z: z1 },
+]
+
+describe('isOverWater', () => {
+  const river = [rect(-100, -100, 100, 100)] // one big water body
+  const island = [rect(-20, -20, 20, 20)] // an island cut out of it (a water hole)
+
+  it('is true inside a water body', () => {
+    expect(isOverWater(50, 50, river, [])).toBe(true)
+  })
+  it('is false on the bank, outside the water', () => {
+    expect(isOverWater(200, 0, river, [])).toBe(false)
+  })
+  it('is false on an island cut out of the water (a water hole is dry land)', () => {
+    // The Île de la Cité case: inside the Seine's outline but on the island.
+    expect(isOverWater(0, 0, river, island)).toBe(false)
+    // still true just off the island, over open water
+    expect(isOverWater(40, 40, river, island)).toBe(true)
+  })
+  it('is false when there is no water at all', () => {
+    expect(isOverWater(0, 0, [], [])).toBe(false)
+  })
+})
+
 describe('buildStreetFurniture', () => {
+  it('drops benches and bus stops that sit out over the water, keeps the rest', () => {
+    const water = [rect(0, -50, 100, 50)] // water to the +x side
+    const island = [rect(30, -10, 50, 10)] // an island within it
+    const benches: Vec2[] = [
+      { x: -30, z: 0 }, // dry bank → kept
+      { x: 60, z: 0 }, // out over the water → dropped
+      { x: 40, z: 0 }, // on the island → kept
+    ]
+    const g = buildStreetFurniture(benches, [], [], flat, makeRng(1), water, island)
+    // 2 of the 3 benches survive (bank + island); the one in the river is gone.
+    expect(inst(g, 'bench-frame')!.count).toBe(2)
+  })
+
   it('builds one instanced draw per part, sized to the inputs', () => {
     const g = buildStreetFurniture(grid(24), grid(9), [], flat, makeRng(1))
     expect(inst(g, 'bench-frame')!.count).toBe(24)
