@@ -747,6 +747,9 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
     // In a live session the big button resumes/applies; the "resume the saved
     // session" Continue is redundant, so it hides. Otherwise it's the splash.
     playBtn.textContent = '▶ ' + (live ? t('menu.resume') : t('start.play'))
+    // Label the Continue button — without this it rendered as a blank green bar
+    // between Play and Settings. '↻' reads as "pick up where you left off".
+    continueBtn.textContent = '↻ ' + t('start.continue')
     continueBtn.style.display = !live && hasSession ? 'block' : 'none'
   }
   const paintText = (): void => {

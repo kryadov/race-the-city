@@ -234,6 +234,18 @@ describe('createMenu', () => {
     expect(byRole(root, 'continue').style.display).toBe('none')
   })
 
+  it('gives the Continue button a real label — never a blank green bar', () => {
+    // Regression: the button shipped with no textContent, so a saved session drew
+    // an empty green bar between Play and Settings.
+    const { root } = mount(stubCallbacks(), { ...INIT, hasSession: true })
+    const cont = byRole(root, 'continue')
+    expect(cont.style.display).not.toBe('none') // shown (a session exists)…
+    expect(cont.textContent).toContain('Continue') // …and carries the localized label
+    // and it re-localizes with the language toggle rather than going blank.
+    find(root, (e) => e.dataset.lang === 'ru').click()
+    expect(cont.textContent).toContain('Продолжить')
+  })
+
   it('the language quick-toggle switches the copy', () => {
     const { root } = mount(stubCallbacks())
     const title = byRole(root, 'title')

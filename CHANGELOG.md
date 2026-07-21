@@ -6,6 +6,11 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.140.1 — the Continue button gets its label back
+- **BUG:** the **Continue** button on the start menu shipped with no text — an empty green bar between
+  Play and Settings whenever a saved session existed. It now reads **"↻ Continue"** (localized), and
+  re-localizes with the language toggle. Long-standing; a test now guards the label.
+
 ## v0.140.0 — fields and farms change with the season
 - Following the parks, **pasture (meadow) and cropland (farmland) now dress for the season too** —
   young/tilled green in spring, the summer tints as before, drying and golden-stubble in autumn, and
