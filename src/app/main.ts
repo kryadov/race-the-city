@@ -119,6 +119,7 @@ import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
 import { startPose } from '../world/start'
 import { buildBuildings } from '../world/buildings'
+import { buildArchways, type DrivableWay } from '../world/archways'
 import { buildRoads, buildRailways, roadWidth } from '../world/roads'
 import { buildDecks, createDeckIndex, surfaceUnder, type DeckIndex } from '../world/bridge'
 import { buildBridges, pierFootprints, type PierCollider } from '../world/bridgeMesh'
@@ -554,6 +555,23 @@ async function loadCity(query: string): Promise<void> {
     // the traffic graph leaves them out, so nobody drives into a building.
     const tunnelsMesh = new THREE.Group()
     const railsMesh = buildRailways(world.railways, provider)
+    // Where a drivable, non-tunnel road or (non-tunnel) rail runs straight through a
+    // building footprint, open a passage: subtract the road corridor from that
+    // building's COLLISION footprint (remainders stay solid) and stand a stone
+    // archway over it. Bridges and tunnels are excluded — a bridge rides over the
+    // building, a tunnel under it. Fed the SAME footprints/tops buildBuildings
+    // returned, so it hands back the full building collision set with the crossed
+    // ones replaced by their remainders (used for the grid below).
+    const RAIL_HALF = 1.6 // half a track's ballast: room for a train through the arch
+    const drivableWays: DrivableWay[] = [
+      ...normalRoads.map((r) => ({ points: r.points, half: roadWidth(r.kind) / 2 })),
+      ...world.railways.filter((r) => !r.tunnel).map((r) => ({ points: r.points, half: RAIL_HALF })),
+    ]
+    const archways = buildArchways(footprints, tops, drivableWays, provider)
+    archways.object.traverse((o) => {
+      o.castShadow = true
+      o.receiveShadow = true
+    })
     // A bridge's markings, lamps and signs belong on its deck. Everything else
     // reads the terrain, so the road running *under* an overpass keeps its own.
     // Generous margin: lamps stand beside the carriageway and markings run to
@@ -602,7 +620,7 @@ async function loadCity(query: string): Promise<void> {
     greenMesh.traverse((o) => {
       o.castShadow = true
     })
-    for (const obj of [ground, seaMesh, greenMesh, infillMesh, waterMesh, parkingMesh, pitchesMesh, parkedCarsMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh]) {
+    for (const obj of [ground, seaMesh, greenMesh, infillMesh, waterMesh, parkingMesh, pitchesMesh, parkedCarsMesh, propsMesh, furnitureMesh, poiMesh, railsMesh, tunnelsMesh, roadsMesh, bridgesMesh, roadDetailMesh, buildingsMesh, archways.object]) {
       stage.scene.add(obj)
       worldGroup.push(obj)
     }
@@ -612,7 +630,7 @@ async function loadCity(query: string): Promise<void> {
     // the mown strips reset with the field.
     crops?.dispose()
     crops = createCrops(stage.scene, world.surfaces, provider)
-    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh, crops: crops.object, pitches: pitchesMesh })
+    theme.setWorld({ ground, buildings: buildingsMesh, roads: roadsMesh, greenery: greenMesh, roadDetail: roadDetailMesh, streetFurniture: furnitureMesh, poiMarkers: poiMesh, crops: crops.object, pitches: pitchesMesh, archways: archways.object })
     minimap.setWorld(world.roads, footprints, world.water, world.green, RADIUS)
     roadLabels.setWorld(world.roads, provider)
     // index buildings (with heights) so the camera can tell when one blocks the car
@@ -645,10 +663,13 @@ async function loadCity(query: string): Promise<void> {
     // Bridge piers are solid to a car on the road BELOW, but not to one on the deck
     // above — pierFootprints caps each at the deck underside and the grid height-gates it.
     const piers = pierFootprints((bridgesMesh.userData.piers ?? []) as PierCollider[])
+    // Buildings a road/rail cuts through are already replaced by their carved
+    // remainders in `archways.footprints`/`.tops` (parallel), so the corridor is
+    // open in the grid while the rest of the building stays solid.
     grid = new SpatialGrid(
-      footprints.concat(propFootprints(world.props), piers.footprints),
+      archways.footprints.concat(propFootprints(world.props), piers.footprints),
       25,
-      tops.concat(propTops(world.props, provider), piers.tops),
+      archways.tops.concat(propTops(world.props, provider), piers.tops),
     )
     // On the nearest road, not on the spot the geocoder named: a geocoder names
     // a place, and Tokyo's is a building — you started inside it, against a wall.

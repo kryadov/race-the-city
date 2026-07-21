@@ -129,6 +129,8 @@ Built from the real map around you:
   **Manhole covers** dotted down the streets; **benches**
   (some with someone sat on them), **bus stops**, and **café / fuel signposts** at those spots.
   **Landmarks** (museums, monuments, memorials, castles, viewpoints) get their own signpost.
+- **Archways** — where a road or railway runs straight through a building, the passage is opened
+  (drivable — the car and bots go through, not into a wall) and a **stone arch** stands over it.
 - **Railways** with **trains** — freight, intercity, commuter — running the real lines out of
   and into tunnel mouths.
 - **Traffic and pedestrians** walking the road graph and pavements around you; **livestock** on

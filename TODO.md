@@ -31,15 +31,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       sits BEHIND+ABOVE the car) hits a building footprint within a few metres; pick the heading (either
       way along the road) and the vertex that leaves the car facing clear road, not masonry. Needs
       `startPose` to take building footprints (`world.buildings`) + a short ray/box test. Ship as a fix.
-- [ ] **Roads run straight into houses; bots drive into the wall → SOLVE WITH ARCHWAYS** (screenshot
-      2026-07-19: a road disappears into a building's side, bot cars follow it into the masonry, "ехали
-      наполовину в доме"). USER DECISION: don't just cull the edge — where a (non-tunnel) road/track
-      crosses a building footprint, **render the building bridged over the way with an open archway/
-      passage**, and let BOTH bots and the PLAYER drive through it. This is the canonical
-      **"Road/rail-through-building archways"** item lower in this file — do it there. Detect way ×
-      building-footprint crossings (or OSM `covered`/`tunnel`/arch tags), carve/raise a passage in the
-      merged building mesh, keep the road drivable through it, and make the passage span collidable
-      above head height only. Applies to roads and rail. Needs its own design.
+- [x] **Roads run straight into houses; bots drive into the wall → SOLVE WITH ARCHWAYS** — ✅ v0.127.0
+      (collision + arch; see the canonical item lower). Road is now drivable through such buildings; a
+      stone arch dresses the passage. FOLLOW-UP: the building's VISUAL wall isn't CSG-carved yet (only
+      the collider is), so the wall still spans the opening behind the arch frame.
 - [ ] **Moving bots drive through PARKED cars on a lot** (screenshot 2026-07-19, night) — bot traffic
       (and buses) pass straight through the static parked cars filling a parking lot. Parked cars
       (`parkedCars.ts`) are not in the collision/obstacle grid and `traffic.ts` doesn't treat them as
@@ -241,12 +236,13 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       loads per vehicle**: a car carries a **person** (and a status/luxury car carries a smartly-
       dressed one to match), a truck/lorry carries **cargo — sand, gravel, fuel, milk** (pick a
       fitting load per hull). Swap the "passenger" figure for a typed cargo mesh in `taxi.ts`.
-- [ ] **Road/rail-through-building archways** — bot cars (and **railways** — "как обычная, так и
-      железная") sometimes run where a way passes **under a building**, and the road/track appears to
-      vanish into the wall (screenshot). Detect these (way crossing a building footprint, OSM
-      `covered`/`tunnel`, or a building with an arch) and **render the building bridged over the way
-      with an open passage** — so it reads right AND the **player can drive through** it too (bots can
-      now, the player can't). Applies to both roads and rail lines.
+- [x] **Road/rail-through-building archways** — ✅ v0.127.0: `src/world/archways.ts` — detect a drivable
+      non-tunnel road/rail segment crossing a building footprint (`segmentThroughPolygon`), SUBTRACT the
+      road corridor from the building's COLLISION footprint (Sutherland–Hodgman half-plane clips →
+      solid remainders both sides, corridor open) so player + grid bots (cops/rivals) drive through, and
+      stand a stone arch over it. Safe: a footprint fully inside the band stays solid (unhandledCount).
+      Caps ≤64 buildings, ≤6 corridors. Neon via WorldRefs.archways. Tested in `archways.test.ts`.
+      FOLLOW-UP: the building's extruded VISUAL mesh isn't CSG-carved (wall still spans behind the arch).
 - [x] **People get in and out of cars** — ✅ v0.123.0: the living-parking cars (v0.122.0) now board/alight
       a walker — `walkerState` + `kerbPoint` in `livingParking.ts` overlay the PARKED phase (alight bay→kerb
       fading out at the start, board kerb→bay fading in before LEAVING), on a straight in-lot segment (never

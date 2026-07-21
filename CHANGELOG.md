@@ -6,6 +6,18 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.127.0 — drive through the buildings a road runs into (archways)
+- Where an OSM road or railway runs straight through a building, the car and bots used to hit an
+  invisible wall — the road vanished into masonry. The building's collision is now **carved open along
+  the road corridor** (the road is genuinely drivable through; the rest of the building stays solid),
+  and a **stone archway** stands over the passage so it reads as the building bridging the road. The
+  fix reaches the player and the grid-driven bots (the chase cops, the race rivals) alike.
+- Known limit / follow-up: the building's *visual* wall still spans the opening for now (dressed by the
+  arch frame); physically cutting the extruded mesh (CSG) is a follow-up. Safe by construction — a
+  building too small to carve is kept solid rather than opened wholesale.
+- 👀 Find a road that dives into a building — you can now drive through it, under a stone arch, instead
+  of stopping dead in the wall.
+
 ## v0.126.0 — sports pitches and cycle lanes
 - **Sports grounds** — OSM `leisure=pitch` fields now render as a marked green pitch: a white outline
   and centre line (a centre circle for football/basketball), **goals** at each end, or a **basketball
