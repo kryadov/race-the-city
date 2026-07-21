@@ -251,10 +251,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       a walker — `walkerState` + `kerbPoint` in `livingParking.ts` overlay the PARKED phase (alight bay→kerb
       fading out at the start, board kerb→bay fading in before LEAVING), on a straight in-lot segment (never
       clips a building). Bounded to the animated cars, neon-covered. Tested in `livingParking.test.ts`.
-- [ ] **Arcade mode: Police / Robber (tag)** — a mode where you're **either the police (goal: touch
-      the runner) or the runner (goal: avoid being touched)**. AI drives the other role on the road
-      graph; win/lose on contact or a timer. Slots into the start-menu mode list + `applyTrial`/
-      `applyTaxi`-style wiring, reusing rivals/traffic AI for the opponent.
+- [x] **Arcade mode: Police / Robber (tag)** — ✅ v0.125.0: 🚓 Cops & Robbers — you're the runner, 2 AI
+      cops (`chase.ts`) pursue your LIVE position via A* over the road graph (re-path every 1.2s, real
+      `stepCar` physics, capped just under a sports car), bust within CATCH_R=9m, escape by surviving
+      EVADE_TIME=50s (score++). `chaseHud.ts`, mode in menu, neon-flagged, minimap→nearest cop. Tested
+      in `chase.test.ts`. (Only the runner role for now; player-as-cop could be a follow-up.)
 - [ ] **Traffic lights + obey them** — **signals at junctions**, and both **cars and pedestrians go
       only on green** (stop line on red/amber). A per-junction light phase clock; `traffic.ts` and
       `pedestrians.ts` agents check the light for the edge they're entering and hold at the stop line.

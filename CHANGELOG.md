@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.125.0 — Cops & Robbers chase mode
+- A new mode (**🚓** on the mode picker): two AI police cars hunt you down, re-routing to your live
+  position through the streets. **Evade** them for 50s to escape (score +1); get within ~9m of a cop
+  and you're **busted** — either way a fresh round spawns the cops far off and the chase resumes. The
+  cops drive real physics on the road graph (like the rivals), capped just under a sports car so a
+  sharp driver can lose them. The HUD shows the timer, the distance to the nearest cop (a warning when
+  close), and your escapes; the minimap arrow points at the nearest cop so you can flee the other way.
+- 👀 Menu → **🚓 Cops & Robbers** → Play. Outrun the police for the timer — a fast car and tight corners help.
+
 ## v0.124.0 — the combine mows the fields
 - Drive the **🌾 combine harvester** over a **farmland** field and it now cuts a swathe: the standing
   gold crop shrinks to **stubble** where you pass, and every so often a **hay bale** is left behind in

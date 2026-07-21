@@ -45,6 +45,8 @@ import { createTaxi } from './taxi'
 import { createTaxiHud } from '../ui/taxiHud'
 import { createExcursion } from './excursion'
 import { createExcursionHud } from '../ui/excursionHud'
+import { createChase } from './chase'
+import { createChaseHud } from '../ui/chaseHud'
 import { createReplay } from './replay'
 import { createReplayControls } from '../ui/replayControls'
 import { createAircraft } from './aircraft'
@@ -284,6 +286,8 @@ const taxi = createTaxi(stage.scene)
 const taxiHud = createTaxiHud(ui)
 const excursion = createExcursion(stage.scene)
 const excursionHud = createExcursionHud(ui)
+const chase = createChase(stage.scene)
+const chaseHud = createChaseHud(ui)
 const replay = createReplay()
 const replayControls = createReplayControls(ui, {
   onRecordToggle: () => (replay.recording() ? replay.stopRec() : replay.startRec()),
@@ -294,6 +298,8 @@ trial.setEnabled(false) // mode starts 'free' (attract); a mode pick applies via
 trialHud.setVisible(false)
 excursion.setEnabled(false)
 excursionHud.setVisible(false)
+chase.setEnabled(false)
+chaseHud.setVisible(false)
 /** Build a vehicle, fit its nitro plume, and put it on stage. */
 function showVehicle(type: VehicleType): void {
   const mesh = buildVehicleMesh(type)
@@ -721,6 +727,7 @@ async function loadCity(query: string): Promise<void> {
       .map((p) => ({ x: p.x, z: p.z }))
       .filter((p) => Math.abs(p.x) <= REACH_BOUND && Math.abs(p.z) <= REACH_BOUND)
     excursion.reset(lastLandmarks, provider, car)
+    chase.reset(world.roads, grid, provider, car) // cops spawn far off, on the road graph
     currentCity = query
     driftFx.reset()
 
@@ -834,6 +841,16 @@ async function loadCity(query: string): Promise<void> {
             for (const b of FINISH_BURSTS) fireworks.fire(car.x + b.x, car.y + b.y, car.z + b.z)
           } else if (es.justFailed) {
             audio.thud() // ran out of time for that sight
+          }
+        }
+        if (chase.enabled()) {
+          const cs = chase.update(dt, car)
+          chaseHud.set(cs)
+          if (cs.justEscaped) {
+            audio.chime(true) // you got away — a win rings out
+            for (const b of FINISH_BURSTS) fireworks.fire(car.x + b.x, car.y + b.y, car.z + b.z)
+          } else if (cs.justBusted) {
+            audio.thud() // a cop caught you
           }
         }
         // Everything solid that moves: traffic, people, trains — but only those at
@@ -1048,8 +1065,14 @@ async function loadCity(query: string): Promise<void> {
         clouds.update(stage.camera.position, dt, car.y) // clouds ride above the land, not above sea level
         minimap.update(
           car,
-          taxi.enabled() ? taxi.target() : excursion.enabled() ? excursion.target() : trial.nextGate(),
-          taxi.enabled() ? (taxi.state().phase === 'toPickup' ? '#39e07a' : '#ffb020') : undefined,
+          taxi.enabled()
+            ? taxi.target()
+            : excursion.enabled()
+              ? excursion.target()
+              : chase.enabled()
+                ? chase.target() // the arrow points at the nearest cop — flee the other way
+                : trial.nextGate(),
+          taxi.enabled() ? (taxi.state().phase === 'toPickup' ? '#39e07a' : '#ffb020') : chase.enabled() ? '#ff5040' : undefined,
         )
         roadLabels.update(stage.camera, car.x, car.z)
         stage.renderer.render(stage.scene, stage.camera)
@@ -1132,6 +1155,13 @@ function applyMode(m: Mode): void {
   excursion.setEnabled(m === 'excursion')
   excursionHud.setVisible(m === 'excursion')
   if (m === 'excursion' && car) excursion.reset(lastLandmarks, provider, car)
+  // Cops & Robbers: an AI police car hunts the player.
+  chase.setEnabled(m === 'chase')
+  chaseHud.setVisible(m === 'chase')
+  if (m === 'chase' && car) {
+    chase.reset(lastRoads, grid, provider, car)
+    theme.refreshMovers() // the freshly spawned cop cars are day-styled — flip them if we're in neon
+  }
   // Arcade "find a car" pickups.
   carPickups.setEnabled(m === 'arcade')
 }

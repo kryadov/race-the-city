@@ -89,6 +89,9 @@ drive along it**, and clear a bungalow, fountain or statue mid-jump.
 - **Excursion** (🗺) — tour the city's **landmarks** (museums, monuments, memorials, castles,
   viewpoints): drive to each before the clock runs out, chasing a single **gold beam of light** over
   the current sight (and the minimap arrow), your count of sights seen climbing as you go.
+- **Cops & Robbers** (🚓) — two **AI police cars** hunt you down through the streets, re-routing to
+  wherever you are. **Evade** them for the timer to escape (score +1); let one within a few metres and
+  you're **busted**. A fast car and tight corners are your friends. HUD shows the timer + nearest cop.
 - **Time trial** — gates, a lap clock, and your best lap kept between sessions. A checkpoint
   chime marks each gate; **fireworks** when you finish a lap.
 - **Races with rivals** — three AI cars run the gate course on A\* routes over the road graph,
