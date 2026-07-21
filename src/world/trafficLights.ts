@@ -8,10 +8,15 @@ import type { ElevationProvider } from '../terrain/provider'
  * standing beside the crossroads, its three lamps — red over amber over green —
  * cycling green → amber → red and glowing on the lit one.
  *
- * Ambient only. The background traffic (see traffic.ts) does NOT obey these; they
- * are here for the same reason the trains have headlamps and the platforms have
- * canopy lights — to make a driven-through city read as alive. So they cost a
- * few small groups and a handful of emissive toggles per frame, nothing more.
+ * The background traffic (see traffic.ts) obeys these: a bot car entering a
+ * signalled junction holds at the stop line while the light is amber or red and
+ * goes on green. The lights are exposed for that via {@link TrafficLights.junctions}
+ * and {@link TrafficLights.isStop}, and the go/stop split is the pure
+ * {@link signalPhase} — the SAME function that lights the lamps, so what a car
+ * obeys is exactly what the player sees lit. The phase is a free-running function
+ * of the clock alone (never of the traffic), so red always yields to green within
+ * one CYCLE; that, plus a per-car max-wait fail-safe in traffic.ts, is what makes
+ * a mistimed light unable to gridlock the streets.
  *
  * Every material is a flat-shaded `MeshStandardMaterial`, in keeping with the
  * rest of the city; the lit lamp carries its colour in `emissive` and is switched
@@ -73,6 +78,28 @@ const GREEN_LENS = { color: 0x063311, emissive: 0x2bff52 }
 export interface TrafficLights {
   update(dt: number): void
   dispose(): void
+  /** The signalled junctions, as (x, z), so traffic can map its own graph nodes
+   *  onto the lights once and then look each up in O(1). Stable order, parallel
+   *  to {@link isStop}. */
+  readonly junctions: readonly Vec2[]
+  /** Is signalled junction `i` currently showing STOP (amber or red)? Live — it
+   *  reads the current clock — and O(1). Out-of-range returns false. */
+  isStop(i: number): boolean
+}
+
+/**
+ * Whether a signal at `clock`, with cycle `offset`, is telling a car to GO or to
+ * STOP. Green is go; amber and red are both stop (you do not enter on amber).
+ *
+ * Pure and side-effect-free: it drives both the lit lamp (via {@link TrafficLights.isStop})
+ * and the bot cars that obey it, so the two can never disagree. Because it depends
+ * on nothing but the clock, every junction is green for GREEN out of every CYCLE
+ * seconds no matter what the traffic does — red is never permanent, which is the
+ * backbone of the no-deadlock guarantee.
+ */
+export function signalPhase(clock: number, offset: number): 'go' | 'stop' {
+  const p = (((clock + offset) % CYCLE) + CYCLE) % CYCLE
+  return p < GREEN ? 'go' : 'stop'
 }
 
 /** A welded road-graph node: where it is, what meets it, and the busiest road on it. */
@@ -271,7 +298,17 @@ export function createTrafficLights(
   let clock = 0
   apply(0) // lit from the first frame, before any update lands
 
+  // Positions of the placed signals, parallel to `signals`, so a car can be told
+  // whether the light at the junction it is entering says stop. Frozen once —
+  // the same junctions live for the life of the city.
+  const junctions: readonly Vec2[] = chosen.map((j) => ({ x: j.x, z: j.z }))
+
   return {
+    junctions,
+    isStop(i) {
+      const s = signals[i]
+      return s ? signalPhase(clock, s.offset) === 'stop' : false
+    },
     update(dt) {
       clock += dt
       apply(clock)

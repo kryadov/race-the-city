@@ -40,13 +40,26 @@ const DECK_SHALLOW_SPAN = 100
 const DECK_DEEPEN_PER_M = 0.02
 const DECK_DEPTH_MAX = 3.0
 /**
- * Distance between piers along the span. A pier under every densified deck point
- * (one every DECK_STEP ≈ 4m) turned a wide crossing into a centipede of thin
- * stilts — most of why the span looked flimsy and afloat. A real viaduct stands
- * on a handful of piers tens of metres apart, so we walk the deck by distance and
- * raise one only this often.
+ * Distance between pier bents along the span. A pier under every densified deck
+ * point (one every DECK_STEP ≈ 4m) turned a wide crossing into a centipede of
+ * thin stilts — most of why the span looked flimsy and afloat. A real viaduct
+ * stands on a handful of bents tens of metres apart, so we walk the deck by
+ * distance and raise one only this often. Each bent is now a PAIR of piers (one
+ * near each deck edge, see PIER_EDGE_FRAC), so the bents are spaced wider than
+ * when it was a single centreline pier to keep the overall count viaduct-sparse.
  */
-const PIER_SPACING = 25
+const PIER_SPACING = 50
+/**
+ * How far each pier stands to the side of the deck centreline, as a fraction of
+ * the deck half-width. A viaduct carries its slab on a pair of piers set just
+ * inboard of the fascia, NOT one down the middle — and a centreline pier (now
+ * that piers are solid, v0.117.1) lands in the carriageway of any road that runs
+ * UNDERNEATH the bridge and walls it off. Standing the pair off toward the edges
+ * leaves the centre bay clear for that lower road to pass through. At 0.6 the
+ * pier centre sits well inside the deck edge, so the whole column stays under the
+ * slab it holds up rather than floating off its side.
+ */
+const PIER_EDGE_FRAC = 0.6
 
 /** The structural depth of a deck slab spanning `span` metres end to end. */
 export function deckDepth(span: number): number {
@@ -189,16 +202,23 @@ function polylineLength(pts: Vec2[]): number {
 }
 
 /**
- * Piers spaced evenly along a deck, in place of one under every densified point.
+ * Pier bents spaced evenly along a deck, in place of one under every densified
+ * point.
  *
- * We walk the centreline by DISTANCE and drop a pier every `spacing` metres,
+ * We walk the centreline by DISTANCE and drop a bent every `spacing` metres,
  * interpolating the deck underside (`under`) and the ground between points, so a
- * wide span stands on a handful of piers like a real viaduct rather than a comb
+ * wide span stands on a handful of bents like a real viaduct rather than a comb
  * of stilts. `next` carries across segment boundaries, keeping the rhythm even
- * over the whole span rather than restarting at each point. A pier is raised only
+ * over the whole span rather than restarting at each point. A bent is raised only
  * where the deck stands clear of the ground by more than PIER_MIN — the
  * abutments, where the deck has already settled onto the bank (there `under`
  * equals the ground), need none.
+ *
+ * Each bent is a PAIR of piers stood off to either side of the centreline by
+ * PIER_EDGE_FRAC of the deck half-width (`half`), perpendicular to the span — so
+ * the centre bay is left clear for a road passing beneath the bridge, rather than
+ * a single pier planted in the middle of it. Both piers of a bent share the same
+ * underside and ground, since the deck is flat across its width.
  */
 function emitPiers(
   out: { x: number; z: number; top: number; ground: number }[],
@@ -206,19 +226,29 @@ function emitPiers(
   under: number[],
   ground: number[],
   spacing: number,
+  half: number,
 ): void {
+  const off = half * PIER_EDGE_FRAC
   let dist = 0
-  let next = spacing / 2 // start half a bay in, so piers sit between the ends
+  let next = spacing / 2 // start half a bay in, so bents sit between the ends
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i]
     const b = pts[i + 1]
-    const segLen = Math.hypot(b.x - a.x, b.z - a.z) || 1
+    const dx = b.x - a.x
+    const dz = b.z - a.z
+    const segLen = Math.hypot(dx, dz) || 1
+    // Unit perpendicular to the span here (left of travel), toward the deck edge.
+    const nx = -dz / segLen
+    const nz = dx / segLen
     while (next <= dist + segLen) {
       const f = (next - dist) / segLen
       const top = under[i] + (under[i + 1] - under[i]) * f
       const g = ground[i] + (ground[i + 1] - ground[i]) * f
       if (top - g > PIER_MIN) {
-        out.push({ x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f, top, ground: g })
+        const cx = a.x + dx * f
+        const cz = a.z + dz * f
+        out.push({ x: cx + nx * off, z: cz + nz * off, top, ground: g })
+        out.push({ x: cx - nx * off, z: cz - nz * off, top, ground: g })
       }
       next += spacing
     }
@@ -313,11 +343,12 @@ export function buildBridges(decks: Deck[], provider: ElevationProvider): THREE.
       emitBalustrade(railPos, sides.map((s) => s[edge]), d.y)
     }
 
-    // Piers spaced along the span, their tops at the deck's underside (not its
-    // surface — a pier reaching the profiled height poked up through the deck).
-    // They stop beneath the slab and carry it from below, only where it stands
-    // clear of the ground.
-    emitPiers(piers, pts, under, ground, PIER_SPACING)
+    // Pier bents spaced along the span, their tops at the deck's underside (not
+    // its surface — a pier reaching the profiled height poked up through the
+    // deck). Each bent is a pair stood off toward the deck edges (so a road below
+    // runs through the clear centre), stopping beneath the slab and carrying it
+    // from below, only where it stands clear of the ground.
+    emitPiers(piers, pts, under, ground, PIER_SPACING, half)
   }
 
   group.add(ribbonMesh(deckPos, DECK_COLOR))

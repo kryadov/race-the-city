@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { buildBridges, deckDepth, pierFootprints, PIER_COLLIDER_R, type PierCollider } from '../../src/world/bridgeMesh'
 import { buildDecks, MAX_ARCH } from '../../src/world/bridge'
+import { roadWidth } from '../../src/world/roads'
 import { SpatialGrid } from '../../src/physics/grid'
 import { resolveCircle } from '../../src/physics/collide'
 import type { Road, Vec2 } from '../../src/geo/types'
@@ -146,6 +147,51 @@ describe('a bridge over a wide river', () => {
     const silly = buildDecks([river(40)], wideRiver)
     const peak = Math.max(...heights(buildBridges(silly, wideRiver)))
     expect(peak - BANK).toBeLessThanOrEqual(MAX_ARCH + 1.5) // + railing headroom
+  })
+})
+
+describe('bridge piers stand off the carriageway, clear of a road passing under', () => {
+  // The river runs along x at z=0, so the deck centreline is z=0 and the deck
+  // spans z ∈ [-half, +half]. A road crossing UNDER the bridge would run down
+  // that centreline, so a pier there walls it off — the piers must stand off it.
+  const half = roadWidth('primary') / 2
+  const decks = buildDecks([river()], wideRiver)
+  const piers = buildBridges(decks, wideRiver).userData.piers as PierCollider[]
+
+  it('offsets every pier off the deck centreline, but keeps it under the deck', () => {
+    expect(piers.length, 'a wide viaduct raised no piers').toBeGreaterThan(2)
+    for (const p of piers) {
+      // Off the centreline: not planted in the middle where a lower road runs.
+      expect(Math.abs(p.z), 'a pier is sat on the deck centreline').toBeGreaterThan(1)
+      // Still under the deck slab (within its half-width), not floated off the side.
+      expect(Math.abs(p.z), 'a pier floated off the edge of the deck').toBeLessThan(half)
+    }
+  })
+
+  it('raises the piers in symmetric pairs, one near each deck edge', () => {
+    const leftE = piers.filter((p) => p.z > 0)
+    const rightE = piers.filter((p) => p.z < 0)
+    expect(leftE.length, 'no pier on the +z edge').toBeGreaterThan(0)
+    expect(leftE.length, 'the two edges are unevenly propped').toBe(rightE.length)
+    // Each +z pier has a partner mirrored across the centreline at the same point.
+    for (const p of leftE) {
+      const twin = rightE.find((q) => Math.abs(q.x - p.x) < 1e-6)
+      expect(twin, 'a pier with no partner on the far edge').toBeTruthy()
+      expect(twin!.z).toBeCloseTo(-p.z, 6)
+      expect(twin!.top).toBeCloseTo(p.top, 6) // shared underside: the deck is flat across
+    }
+  })
+
+  it('centres each collider footprint on the pier as drawn', () => {
+    const { footprints, tops } = pierFootprints(piers)
+    expect(footprints).toHaveLength(piers.length)
+    footprints.forEach((fp, k) => {
+      const cx = fp.reduce((s, c) => s + c.x, 0) / fp.length
+      const cz = fp.reduce((s, c) => s + c.z, 0) / fp.length
+      expect(cx, 'the footprint drifted off the drawn pier').toBeCloseTo(piers[k].x, 6)
+      expect(cz, 'the footprint drifted off the drawn pier').toBeCloseTo(piers[k].z, 6)
+      expect(tops[k]).toBeCloseTo(piers[k].top, 6) // capped at the deck underside
+    })
   })
 })
 

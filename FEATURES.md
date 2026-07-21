@@ -94,6 +94,8 @@ drive along it**, and clear a bungalow, fountain or statue mid-jump.
   you're **busted**. A fast car and tight corners are your friends. HUD shows the timer + nearest cop.
 - **Time trial** — gates, a lap clock, and your best lap kept between sessions. A checkpoint
   chime marks each gate; **fireworks** when you finish a lap.
+- **Traffic lights** — signals at busy junctions, and the **bot cars obey them**: they stop at a red
+  and pull away on green (the streets never gridlock — a held car always gets its turn).
 - **Races with rivals** — three AI cars run the gate course on A\* routes over the road graph,
   through the same physics as you; the HUD shows your place.
 - **Demo / autopilot** — a menu toggle drives the car for you around the road network (also the

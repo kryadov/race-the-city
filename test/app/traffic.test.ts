@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createTraffic } from '../../src/app/traffic'
+import { createTraffic, lightClearance, MAX_WAIT_S, type SignalSource } from '../../src/app/traffic'
 import { createPedestrians } from '../../src/app/pedestrians'
 import { buildDecks, createDeckIndex } from '../../src/world/bridge'
 import type { Road, Vec2 } from '../../src/geo/types'
@@ -69,6 +69,69 @@ describe('traffic', () => {
     expect(scene.children.length).toBe(1)
     t.dispose()
     expect(scene.children.length).toBe(0)
+  })
+})
+
+describe('traffic obeys the lights', () => {
+  describe('lightClearance — the pure hold / go / fail-safe decision', () => {
+    it('lets a car go on green, whatever the distance to the junction', () => {
+      expect(lightClearance(50, false, 0)).toBe(Infinity)
+      expect(lightClearance(3, false, 0)).toBe(Infinity)
+    })
+
+    it('brakes a car toward the stop line on red — more room when further out', () => {
+      const far = lightClearance(50, true, 0)
+      const near = lightClearance(6, true, 0)
+      expect(far).toBeGreaterThan(near) // still yards to run: full clearance
+      expect(near).toBeGreaterThan(0) // short of the line: keep coasting in
+      expect(near).toBeLessThan(6) // but held back by the stop-line setback
+    })
+
+    it('does not freeze a car already past the stop line (never trapped in the box)', () => {
+      // remain below the setback: the car is at/over the line, so it clears through
+      // rather than dead-stopping mid-junction — also what saves a short final edge.
+      expect(lightClearance(2, true, 0)).toBe(Infinity)
+    })
+
+    it('the max-wait fail-safe releases a car held too long, so a light cannot gridlock', () => {
+      expect(lightClearance(5, true, 0)).toBeLessThan(Infinity) // normally still held
+      expect(lightClearance(5, true, MAX_WAIT_S)).toBe(Infinity) // waited it out: go
+      expect(lightClearance(5, true, MAX_WAIT_S + 5)).toBe(Infinity)
+    })
+  })
+
+  describe('a bot at a mocked signalled junction', () => {
+    // A straight E-W road with a junction node at the origin, governed by a mock
+    // light. One car starts 40m east (rand 0.1 → the east-end node) and drives west
+    // toward it. `x` is its along-road position: positive = east of the junction
+    // (short of it), negative = past it. We flip the light and watch the car obey.
+    const approach: Road[] = [{ points: [v(40, 0), v(0, 0), v(-300, 0)], kind: 'residential' }]
+    const noDeck = { heightAt: (): number | null => null }
+    const light = (stop: boolean): SignalSource => ({ junctions: [v(0, 0)], isStop: () => stop })
+
+    const runX = (stop: boolean, seconds: number): number => {
+      const scene = new THREE.Scene()
+      const t = createTraffic(scene, approach, flat, () => 0.1, 1, [], noDeck, light(stop))
+      for (let s = 0; s < seconds; s += 0.5) t.update(0.5, 0, 0, 0)
+      const body = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+      return positions(body)[0].x
+    }
+
+    it('holds at the stop line on red — does not drive through the junction', () => {
+      const x = runX(true, 8) // < MAX_WAIT_S, so the fail-safe has NOT yet fired
+      expect(x, 'the car ran the red light').toBeGreaterThan(0) // never crossed west
+      expect(x, 'the car never reached the light').toBeLessThan(10) // held AT the line
+    })
+
+    it('drives on through when the light is green', () => {
+      const x = runX(false, 8)
+      expect(x, 'a green light still held the car back').toBeLessThan(-5)
+    })
+
+    it('the fail-safe eventually frees a car at a stuck-red light (no permanent gridlock)', () => {
+      const x = runX(true, 40) // well past MAX_WAIT_S: waiting must have been abandoned
+      expect(x, 'a permanently red light gridlocked the car for good').toBeLessThan(0)
+    })
   })
 })
 

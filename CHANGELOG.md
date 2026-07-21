@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.128.0 — traffic obeys the lights; bridge piers off the carriageway
+- **Traffic lights** now mean something: bot **cars hold at a red** (coasting to a stop line just back
+  from the junction) and **go on green**, reading the very phase that lights the lamps. It can't
+  gridlock — every junction is green for part of every cycle (the phase runs on a clock, never on the
+  traffic), and a car held too long proceeds anyway as a fail-safe. O(1) per car. (Pedestrians still
+  cross freely — cars only, for now.)
+- **Bridge piers** are now a **pair set toward the deck edges** instead of one on the centreline, so a
+  pier no longer plants itself in the middle of a road running UNDER the bridge (piers became solid in
+  v0.117.1) — the centre bay stays clear to drive through.
+- 👀 Watch bot cars stop at reds and pull away on green; drive the road under a viaduct — the piers are off to the sides.
+
 ## v0.127.0 — drive through the buildings a road runs into (archways)
 - Where an OSM road or railway runs straight through a building, the car and bots used to hit an
   invisible wall — the road vanished into masonry. The building's collision is now **carved open along

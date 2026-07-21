@@ -709,8 +709,13 @@ async function loadCity(query: string): Promise<void> {
     hud.setDistance(odometer)
     trains?.dispose() // the outgoing city's trains ran on its railways
     trains = createTrains(stage.scene, world.railways, provider, Math.random, countFor(density, 5), world.roads)
+    // Traffic lights first: the traffic reads them so a bot holds at a red and
+    // goes on green (the light phase is a free-running function of the clock, plus
+    // a per-car max-wait fail-safe, so a mistimed signal can't gridlock the city).
+    trafficLights?.dispose()
+    trafficLights = createTrafficLights(stage.scene, world.roads, provider, Math.random, countFor(density, 5))
     traffic?.dispose()
-    traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16), parkedCarList, decks)
+    traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16), parkedCarList, decks, trafficLights)
     people?.dispose()
     people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat, decks)
     boats?.dispose()
@@ -721,8 +726,6 @@ async function loadCity(query: string): Promise<void> {
     livingParking = createLivingParking(stage.scene, world.parking, provider, Math.random)
     buses?.dispose()
     buses = createBuses(stage.scene, world.roads, world.busStops, provider, Math.random, countFor(density, 4))
-    trafficLights?.dispose()
-    trafficLights = createTrafficLights(stage.scene, world.roads, provider, Math.random, countFor(density, 5))
     motorcycles?.dispose()
     motorcycles = createMotorcycles(stage.scene, world.roads, provider, Math.random, countFor(density, 4))
     cyclists?.dispose()
@@ -1024,12 +1027,14 @@ async function loadCity(query: string): Promise<void> {
         sky2.update(dt, stage.camera.position.x, stage.camera.position.z, night)
         birds.update(dt, stage.camera.position.x, stage.camera.position.z, car.x, car.z)
         trains?.update(dt, night)
+        // Advance the lights before the traffic, so a bot obeys this frame's phase
+        // (not last frame's) when it decides whether to hold at a junction.
+        trafficLights?.update(dt)
         traffic?.update(dt, car.x, car.z, night, trains?.obstacles())
         people?.update(dt, car.x, car.z)
         boats?.update(dt)
         livingParking?.update(dt)
         buses?.update(dt, night > 0)
-        trafficLights?.update(dt)
         motorcycles?.update(dt, night > 0)
         cyclists?.update(dt, night > 0)
         herds?.update(dt)
@@ -1279,8 +1284,11 @@ const menu = createMenu(
       if (!car) return
       trains?.dispose()
       trains = createTrains(stage.scene, lastRailways, provider, Math.random, countFor(density, 5), lastRoads)
+      // Lights before traffic: the bots obey them (see the load path above).
+      trafficLights?.dispose()
+      trafficLights = createTrafficLights(stage.scene, lastRoads, provider, Math.random, countFor(density, 5))
       traffic?.dispose()
-      traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16), lastParkedCars, decks)
+      traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16), lastParkedCars, decks, trafficLights)
       people?.dispose()
       people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat, decks)
       boats?.dispose()
@@ -1289,8 +1297,6 @@ const menu = createMenu(
       livingParking = createLivingParking(stage.scene, lastParking, provider, Math.random)
       buses?.dispose()
       buses = createBuses(stage.scene, lastRoads, lastBusStops, provider, Math.random, countFor(density, 4))
-      trafficLights?.dispose()
-      trafficLights = createTrafficLights(stage.scene, lastRoads, provider, Math.random, countFor(density, 5))
       motorcycles?.dispose()
       motorcycles = createMotorcycles(stage.scene, lastRoads, provider, Math.random, countFor(density, 4))
       cyclists?.dispose()

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createTrafficLights } from '../../src/world/trafficLights'
+import { createTrafficLights, signalPhase } from '../../src/world/trafficLights'
 import type { Road, RoadKind, Vec2 } from '../../src/geo/types'
 
 const flat = { heightAt: () => 0 }
@@ -149,5 +149,69 @@ describe('traffic lights', () => {
     expect(lightsOf(scene).length).toBe(0)
     expect(() => t.update(0.1)).not.toThrow()
     expect(() => t.dispose()).not.toThrow()
+  })
+
+  it('exposes each junction and a live stop/go that tracks the lit lamp', () => {
+    const scene = new THREE.Scene()
+    const t = createTrafficLights(scene, cross, flat, () => 0.5)
+    expect(t.junctions.length).toBe(1)
+    expect(t.junctions[0].x).toBeCloseTo(0, 5)
+    expect(t.junctions[0].z).toBeCloseTo(0, 5)
+    // What a car obeys (isStop) must be exactly what the player sees lit, every
+    // step of a full cycle: stop iff the lit lamp is NOT green.
+    const light = lightsOf(scene)[0]
+    for (let i = 0; i < 200; i++) {
+      const lit = activeOf(light) // 'green' | 'amber' | 'red' | null
+      expect(t.isStop(0), `isStop disagreed with the ${lit} lamp`).toBe(lit !== 'green')
+      t.update(0.1)
+    }
+  })
+
+  it('is safe to query a junction index that has no light', () => {
+    const scene = new THREE.Scene()
+    const t = createTrafficLights(scene, cross, flat, () => 0.5)
+    expect(t.isStop(5)).toBe(false)
+    expect(t.isStop(-1)).toBe(false)
+  })
+})
+
+describe('signalPhase — the pure go/stop lookup a car obeys', () => {
+  it('starts on go, matching the green that is lit from the first frame', () => {
+    expect(signalPhase(0, 0)).toBe('go')
+  })
+
+  it('passes through both go and stop as the clock runs', () => {
+    const seen = new Set<'go' | 'stop'>()
+    for (let t = 0; t < 40; t += 0.1) seen.add(signalPhase(t, 0))
+    expect(seen.has('go')).toBe(true)
+    expect(seen.has('stop')).toBe(true)
+  })
+
+  it('never holds stop forever — red always yields to green within one cycle (no deadlock)', () => {
+    // The backbone of the no-gridlock guarantee: the phase depends on the clock
+    // alone, so the longest unbroken run of 'stop' is just the amber+red window and
+    // is BOUNDED. Were it ever unbounded, a junction could hold traffic for good.
+    const dt = 0.05
+    let run = 0
+    let maxStop = 0
+    let greens = 0
+    for (let t = 0; t < 300; t += dt) {
+      if (signalPhase(t, 0) === 'stop') {
+        run += dt
+        maxStop = Math.max(maxStop, run)
+      } else {
+        run = 0
+        greens++
+      }
+    }
+    expect(greens, 'never showed green in 300s').toBeGreaterThan(0)
+    expect(maxStop, 'red never ends — a car could be held for good').toBeLessThan(9)
+  })
+
+  it('shifts with the offset, so a run of lights need not switch in lock-step', () => {
+    // At the same instant, some offset must read stop while offset 0 reads go.
+    let differs = false
+    for (let o = 0; o < 40; o += 0.1) if (signalPhase(0, o) === 'stop') differs = true
+    expect(differs).toBe(true)
   })
 })

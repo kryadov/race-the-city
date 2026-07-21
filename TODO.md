@@ -252,10 +252,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       `stepCar` physics, capped just under a sports car), bust within CATCH_R=9m, escape by surviving
       EVADE_TIME=50s (score++). `chaseHud.ts`, mode in menu, neon-flagged, minimap→nearest cop. Tested
       in `chase.test.ts`. (Only the runner role for now; player-as-cop could be a follow-up.)
-- [ ] **Traffic lights + obey them** — **signals at junctions**, and both **cars and pedestrians go
-      only on green** (stop line on red/amber). A per-junction light phase clock; `traffic.ts` and
-      `pedestrians.ts` agents check the light for the edge they're entering and hold at the stop line.
-      Keep the check O(1) per agent (light state cached per node).
+- [~] **Traffic lights + obey them** — ✅ v0.128.0 for CARS: `signalPhase` (trafficLights.ts) exposed +
+      `isStop(i)`; `traffic.ts` holds at a stop line (STOP_SETBACK) on red, goes on green, O(1)/car via a
+      prebuilt `nodeLight[]`. Anti-deadlock: unconditional phase cycle + per-car `MAX_WAIT_S` fail-safe
+      (pure `lightClearance`, tested). STILL TODO: **pedestrians** obeying lights (cars only for now).
 - [ ] **Trains: real windows + smooth motion** — give train cars **proper individual windows**, not
       one stripe running the whole length; and on **curves and grades** the cars should **turn/pitch
       smoothly** instead of snapping/jerking. `trains.ts` — window geometry per car + ease the car's
@@ -349,10 +349,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       a **solid-colour wall**; make them read as real railings — **posts at intervals + a top rail (and
       maybe a mid rail), with gaps between**, not a filled parapet. Instanced/merged posts+rails in
       `bridgeMesh.ts`, keep it cheap.
-- [~] **Bridge pillars: off the road + solid** — collidable ✅ v0.117.1: `pierFootprints` (bridgeMesh.ts)
-      + piers stashed on `group.userData.piers`; main.ts adds them to the collision grid capped at the
-      deck underside (height-gated: solid to the road below, drivable on the deck above). STILL TODO:
-      **offset piers off the carriageway** of a road running underneath (the visual/placement half).
+- [x] **Bridge pillars: off the road + solid** — ✅ collidable v0.117.1 + ✅ v0.128.0 off-carriageway:
+      `emitPiers` now stands a PAIR of piers toward the deck edges (`PIER_EDGE_FRAC` 0.6) instead of one
+      on the centreline, so the centre bay stays clear for a road running under the bridge; colliders
+      track the drawn positions. Tested in `bridgeMesh.test.ts`.
 - [x] **Landmark plaque + statue placement** — ✅ plaque-beside-monument (poiMarkers `markerPos`
       SIGN_OFFSET_M, earlier) + ✅ v0.118.2 monument-not-in-tree (`clearOfProps` in greenery.ts drops any
       tree within STATUE_CLEAR of a prop; main.ts passes `world.props` positions). Tested in `greenery.test.ts`.

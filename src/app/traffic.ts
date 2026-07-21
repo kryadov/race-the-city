@@ -46,6 +46,60 @@ const FOLLOW_GAP = 7
 const BRAKE_ZONE = 6
 
 /**
+ * Obeying the traffic lights.
+ *
+ * A bot entering a signalled junction holds at a stop line STOP_SETBACK metres
+ * back from the junction node while its light is amber/red, then goes on green.
+ * It reuses the very same brake-to-a-gap logic it already uses for the car and
+ * the parked car ahead: the light just contributes one more "clearance" the step
+ * is capped by, so the bot coasts to a halt at the line rather than stamping the
+ * brake.
+ *
+ * MAX_WAIT_S is the anti-deadlock fail-safe — a car held this long proceeds no
+ * matter what the light says, so a mistimed signal can NEVER freeze it for good.
+ * Together with the light's own guarantee that it turns green for part of every
+ * cycle (trafficLights.ts `signalPhase` depends on the clock alone, never on the
+ * traffic), no car is ever held indefinitely and the streets cannot gridlock.
+ * WAIT_NEAR is how close to the stop line the car must be for the wait to count
+ * as "held" (rather than merely driving toward a distant red). LIGHT_SNAP is how
+ * near a graph node a signalled junction must be to be treated as its light —
+ * both are welded on the same 0.5m grid, so they coincide; the slack costs nothing.
+ */
+const STOP_SETBACK = 4
+export const MAX_WAIT_S = 10
+const WAIT_NEAR = 2
+const LIGHT_SNAP = 3
+
+/**
+ * What traffic needs of the traffic lights: where the signalled junctions are,
+ * and whether each currently says STOP. Structural, so traffic doesn't reach into
+ * trafficLights' internals — `createTrafficLights`' return satisfies it directly.
+ */
+export interface SignalSource {
+  readonly junctions: readonly Vec2[]
+  isStop(index: number): boolean
+}
+
+/**
+ * How far a bot may still advance toward the junction it is entering before that
+ * junction's light, given the distance left to the junction node (`remain`),
+ * whether the light says stop (`wantStop`), and how long the car has already been
+ * held (`held`, seconds).
+ *
+ * Returns the along-road clearance to the stop line — the caller caps its step by
+ * it, so a small value brakes the car to a halt at the line. Infinity means
+ * "proceed": on green (`!wantStop`), when the car is already past the stop line
+ * (so it never freezes IN the junction box, and short final edges don't trap it),
+ * and when the max-wait fail-safe has fired (`held >= MAX_WAIT_S`). Pure, so the
+ * hold / go / fail-safe decision is unit-testable without the sim.
+ */
+export function lightClearance(remain: number, wantStop: boolean, held: number): number {
+  if (!wantStop || held >= MAX_WAIT_S) return Infinity
+  const toLine = remain - STOP_SETBACK
+  return toLine > 0 ? toLine : Infinity
+}
+
+/**
  * Parked cars as static obstacles.
  *
  * A retail park's service aisles run right through its bays, so the road graph
@@ -165,6 +219,9 @@ interface Agent {
   kz: number
   tx: number
   tz: number
+  /** Seconds spent held at a red light on this approach, for the max-wait
+   *  fail-safe (see MAX_WAIT_S). Reset to zero on green and on crossing a node. */
+  held: number
 }
 
 interface Placed {
@@ -214,11 +271,31 @@ export function createTraffic(
   // main.ts holds before a city loads), so nothing breaks when a city has no
   // bridges or a caller passes none.
   decks: DeckIndex = { heightAt: () => null },
+  // The city's traffic lights, so a bot holds at a red and goes on green. Null
+  // (the default) keeps the old ambient-only behaviour, so any caller/test that
+  // passes no lights is unaffected.
+  lights: SignalSource | null = null,
 ): Traffic {
   const group = new THREE.Group()
   scene.add(group)
   group.userData.neonMover = 'bot' // so the theme flips the bot cars to neon wireframe like the world
   const graph: RoadGraph = buildRoadGraph(roads)
+
+  // Map each signalled junction onto the graph node a car approaches it by, so a
+  // car can look up "is the light at the node I'm entering red?" in O(1) — one
+  // array read plus one live phase read, no per-car scan of the lights. Built
+  // once at construction; the light STATE itself is read live each frame. -1 is
+  // "no light governs this node". The junctions and the graph are welded on the
+  // same 0.5m grid, so a signalled junction sits on its node; LIGHT_SNAP is slack.
+  const nodeLight: number[] = new Array(graph.nodes.length).fill(-1)
+  if (lights) {
+    lights.junctions.forEach((j, i) => {
+      const nd = graph.nearest(j.x, j.z)
+      if (nd >= 0 && Math.hypot(graph.nodes[nd].x - j.x, graph.nodes[nd].z - j.z) < LIGHT_SNAP) {
+        nodeLight[nd] = i
+      }
+    })
+  }
   const rng = makeRng(0xc0ffee)
   const agents: Agent[] = []
 
@@ -314,7 +391,7 @@ export function createTraffic(
     const A = graph.nodes[at]
     const B = graph.nodes[to]
     const yaw = Math.atan2(B.z - A.z, B.x - A.x)
-    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw, bridge: onBridge(at, to), kx: 0, kz: 0, tx: 0, tz: 0 }
+    return { at, to, s: 0, speed: 7 + rand() * 6, type: Math.floor(rand() * BODY_TYPES.length), uturns: 0, yaw, bridge: onBridge(at, to), kx: 0, kz: 0, tx: 0, tz: 0, held: 0 }
   }
 
   for (let i = 0; i < count; i++) {
@@ -568,6 +645,22 @@ export function createTraffic(
           let clear = gapAhead(i) - FOLLOW_GAP
           const parked = parkedAhead(here.x, here.z, here.angle) - PARKED_GAP
           if (parked < clear) clear = parked
+          // Hold at a red light: cap the clearance at the stop line short of the
+          // junction node this car is entering, and count the seconds it waits
+          // there so the max-wait fail-safe can release it. O(1) — one array read
+          // plus one live phase read; no scan of the lights.
+          const li = nodeLight[a.to]
+          const wantStop = li >= 0 && !!lights && lights.isStop(li)
+          const A = graph.nodes[a.at]
+          const B = graph.nodes[a.to]
+          const remain = Math.hypot(B.x - A.x, B.z - A.z) - a.s
+          const lightClear = lightClearance(remain, wantStop, a.held)
+          if (lightClear < clear) clear = lightClear
+          if (wantStop && a.held < MAX_WAIT_S && remain > STOP_SETBACK && remain - STOP_SETBACK < WAIT_NEAR) {
+            a.held += dt // queued at the line: accrue the wait toward the fail-safe
+          } else if (!wantStop) {
+            a.held = 0 // green (or no light): a fresh countdown for the next red
+          }
           if (clear < BRAKE_ZONE) step *= Math.max(0, clear / BRAKE_ZONE)
           step = Math.min(step, Math.max(0, clear))
         }
@@ -603,7 +696,12 @@ export function createTraffic(
         // per segment (a set lookup, not a deck scan), so the height below knows
         // whether to seat the car on the deck or the ground. A recycled car gets
         // its flag from spawn, so this only needs to fire when the edge changed.
-        if (hops > 0) a.bridge = onBridge(a.at, a.to)
+        // Crossing a node also clears any light-wait: it belonged to the junction
+        // just left, and the next approach starts a fresh countdown.
+        if (hops > 0) {
+          a.bridge = onBridge(a.at, a.to)
+          a.held = 0
+        }
         if (hops >= MAX_HOPS || a.uturns >= 2) {
           const fresh = spawn({ x: camX, z: camZ })
           if (fresh) {
