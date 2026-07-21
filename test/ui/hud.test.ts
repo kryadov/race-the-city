@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rpmFraction } from '../../src/ui/hud'
+import { rpmFraction, HUD_STACK } from '../../src/ui/hud'
 
 describe('rpmFraction', () => {
   it('idles at the bottom of the sweep', () => {
@@ -13,5 +13,19 @@ describe('rpmFraction', () => {
   })
   it('never points below idle', () => {
     expect(rpmFraction(-500)).toBe(0)
+  })
+})
+
+describe('HUD_STACK order', () => {
+  it('puts the city name under the speedometer', () => {
+    expect(HUD_STACK.indexOf('city')).toBeGreaterThan(HUD_STACK.indexOf('speedo'))
+  })
+
+  it('keeps the tacho above the speedo (one instrument cluster)', () => {
+    expect(HUD_STACK.indexOf('tacho')).toBeLessThan(HUD_STACK.indexOf('speedo'))
+  })
+
+  it('tucks the pause-only debug readout at the very bottom', () => {
+    expect(HUD_STACK.indexOf('debug')).toBe(HUD_STACK.length - 1)
   })
 })

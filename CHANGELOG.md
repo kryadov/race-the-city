@@ -6,6 +6,12 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.139.1 — city name sits under the speedometer
+- The **city name moved from above the speedometer cluster to just beneath the dial**, tucked into
+  its empty lower crown so it reads as part of the instrument. The cluster's row order (tacho, speedo,
+  city, debug) is now a pinned `HUD_STACK` constant, so it can't drift on a later edit.
+- 👀 Bottom-left: the place name should now sit right under the speedo, not up above the tacho.
+
 ## v0.139.0 — parks change with the season
 - **Park and lawn ground now wears the season's colour** — fresh bright green in spring, the summer
   green as before, a drying ochre-green in autumn, and a frost-dulled grey-green in winter. It reads

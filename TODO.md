@@ -363,6 +363,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Signage text** — real **labels on building nameplates, monuments and signposts** (street
       names, POI names, monument names from OSM). Rendered text (canvas-texture atlas or SDF) on the
       existing sign/nameplate meshes; cap how many render at once and fade by distance for cost.
+- [x] **City name under the speedometer** — ✅ DONE v0.139.1: moved the HUD city label from above the
+      speedo cluster to just beneath the dial (`hud.ts`), tucked into its empty lower crown. Row order
+      is now a pinned `HUD_STACK` constant with a test.
 - [x] **Pause / help buttons drifted from the edge** — ✅ FIXED v0.138.1: the ⏸ and ? buttons trailed
       a removed in-game settings button and kept its offsets. Now derived from a shared `cornerRight()`
       helper (`src/ui/cornerButtons.ts`) — pause flush at the edge (slot 0), help beside it (slot 1) —

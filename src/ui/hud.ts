@@ -125,7 +125,17 @@ const buildDial = (ticks: number, redFrom: number | null, display: number = DISP
   return { svg, needle, num, unit }
 }
 
-/** Compact speedometer gauge (fixed size) under the ⚙ button, with the city name. */
+/**
+ * Top-to-bottom order of the speedometer cluster's rows. The city label sits
+ * UNDER the speedo (moved there from above the cluster on request), so the eye
+ * leaving the road lands on the dial with the place name tucked beneath it; the
+ * pause-only debug readout sits below that. Pulled out as data so the order is
+ * pinned by a test and can't drift on a future edit.
+ */
+export const HUD_STACK = ['tacho', 'speedo', 'city', 'debug'] as const
+export type HudRow = (typeof HUD_STACK)[number]
+
+/** Compact speedometer gauge (fixed size), the tacho above it and the city name below. */
 export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   let units = initialUnits
   let kmh = 0
@@ -146,8 +156,10 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
     'white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85);display:none'
 
   const city = document.createElement('div')
+  // Sits under the speedo now; a negative top pulls it up into the dial's empty
+  // lower crown so it reads as part of the instrument, not a stray caption.
   city.style.cssText =
-    'font-size:12px;color:rgba(255,255,255,.8);margin-bottom:2px;overflow:hidden;' +
+    'font-size:12px;color:rgba(255,255,255,.8);margin-top:-6px;overflow:hidden;' +
     'text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.7)'
 
   // The tachometer rides directly above the speedometer as the smaller, secondary
@@ -216,7 +228,10 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   paint()
   onLangChange(paint)
 
-  box.append(city, tacho.svg, svg, debug)
+  // Append in HUD_STACK order (tacho, speedo, city, debug) so the city label lands
+  // under the dial. The map keys must cover HUD_STACK — enforced by its type.
+  const rows: Record<HudRow, Element> = { tacho: tacho.svg, speedo: svg, city, debug }
+  for (const key of HUD_STACK) box.append(rows[key])
   root.appendChild(box)
   root.appendChild(fuelBox)
 
