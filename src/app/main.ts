@@ -572,11 +572,14 @@ async function loadCity(query: string): Promise<void> {
     }
     worldGroup = []
 
-    // Park/green lawns wear the season's grass colour (fresh green in spring,
-    // ochre in autumn, frost-grey in winter) — for this city's hemisphere, since
-    // south of the equator the seasons are half a year out of phase.
-    const grass = new THREE.Color(season(new Date(), center.lat).grass)
-    const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS, grass)
+    // Park lawns, pasture and cropland all dress for the season (fresh in spring,
+    // ochre/golden in autumn, frost-grey/bare-brown in winter) — for this city's
+    // hemisphere, since south of the equator the seasons are half a year out of
+    // phase. Summer equals the year-round colours, so summer looks unchanged.
+    const szn = season(new Date(), center.lat)
+    const grass = new THREE.Color(szn.grass)
+    const seasonalSurfaces = { meadow: new THREE.Color(szn.pasture), farmland: new THREE.Color(szn.crop) }
+    const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS, grass, seasonalSurfaces)
     facades?.dispose() // the outgoing city's facade textures
     const { mesh: buildingsMesh, footprints, tops, facades: newFacades } = buildBuildings(world.buildings, provider)
     facades = newFacades

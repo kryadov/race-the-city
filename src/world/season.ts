@@ -21,6 +21,19 @@ export interface Season {
    * this; greenery only grows the trees, but the palette lives in one place. */
   grass: number
   /**
+   * The colour open pasture/meadow wears — the rough grassland the livestock
+   * graze. Like {@link grass} but for `meadow` land-use, kept a touch brighter so
+   * it still reads apart from a mown park. Summer equals ground.ts's meadow tint,
+   * so summer is unchanged; the other seasons dull and brown it.
+   */
+  pasture: number
+  /**
+   * The colour cropland/farmland wears — tilled-green in spring, warm khaki in
+   * summer (unchanged from ground.ts), golden at harvest in autumn, bare brown in
+   * winter. For `farmland` land-use.
+   */
+  crop: number
+  /**
    * Recolour a deciduous tree crown from its summer-green `base` to this
    * season's hue. `r` in [0,1) — drawn from the world's seeded RNG — spreads a
    * stand of trees across the season's range (autumn's yellow -> orange -> red),
@@ -83,6 +96,8 @@ const SEASONS: Record<SeasonName, Season> = {
   spring: {
     name: 'spring',
     grass: 0x5c9a3f, // fresh, bright park green
+    pasture: 0x8fc563, // young pasture, brighter than summer
+    crop: 0x9fae63, // tilled ground greening with the first shoots
     crown: (base, r) => {
       const [h, s, l] = hslOf(base)
       return rgbOf(h + (r - 0.5) * 0.02, s + 0.12, l + 0.13)
@@ -94,6 +109,8 @@ const SEASONS: Record<SeasonName, Season> = {
   summer: {
     name: 'summer',
     grass: 0x4c7a42, // the ground mesh's default park green
+    pasture: 0x83b25c, // == ground.ts SURFACE_COLORS.meadow — summer is unchanged
+    crop: 0xbdaa6a, // == ground.ts SURFACE_COLORS.farmland — summer is unchanged
     crown: (base) => base,
     blossom: 0xf3d9e6,
     blossomChance: 0,
@@ -102,6 +119,8 @@ const SEASONS: Record<SeasonName, Season> = {
   autumn: {
     name: 'autumn',
     grass: 0x7d7a45, // duller, drying ochre-green
+    pasture: 0x9a9a55, // drying pasture, going to seed
+    crop: 0xc9a24f, // golden stubble at harvest
     crown: (_base, r) => rgbOf(0.015 + r * 0.12, 0.72, 0.44),
     blossom: 0xf3d9e6,
     blossomChance: 0,
@@ -110,6 +129,8 @@ const SEASONS: Record<SeasonName, Season> = {
   winter: {
     name: 'winter',
     grass: 0x6f7a68, // grey-green, frost-dulled
+    pasture: 0x83836e, // frost-dulled grassland, grey-brown
+    crop: 0x9c8d6e, // bare, ploughed brown earth
     crown: (base, r) => {
       const [h] = hslOf(base)
       return rgbOf(h, 0.1, 0.5 + (r - 0.5) * 0.04)

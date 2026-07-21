@@ -120,4 +120,25 @@ describe('season() blossom, snow and grass', () => {
     const grasses = [of(0), of(3), of(6), of(9)].map((s) => s.grass)
     expect(new Set(grasses).size, 'four distinct greens').toBe(4)
   })
+
+  it('keeps summer pasture and crop equal to the ground mesh base tints (no summer change)', () => {
+    // These MUST match ground.ts SURFACE_COLORS.meadow / .farmland, so wiring the
+    // season in leaves a summer scene looking exactly as it did before.
+    const summer = of(6) // July, London — high summer
+    expect(summer.pasture).toBe(0x83b25c) // == SURFACE_COLORS.meadow
+    expect(summer.crop).toBe(0xbdaa6a) // == SURFACE_COLORS.farmland
+  })
+
+  it('dulls pasture and crop away from summer as the year turns', () => {
+    const summer = of(6)
+    for (const m of [0, 3, 9]) {
+      // winter/spring/autumn each give pasture and crop their own colour
+      expect(of(m).pasture, `month ${m} pasture`).not.toBe(summer.pasture)
+      expect(of(m).crop, `month ${m} crop`).not.toBe(summer.crop)
+    }
+    // winter is the drabbest: its pasture is less saturated/greener-grey than summer's.
+    const [, sSat] = hsl(summer.pasture)
+    const [, wSat] = hsl(of(0).pasture)
+    expect(wSat).toBeLessThan(sSat)
+  })
 })

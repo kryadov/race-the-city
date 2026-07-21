@@ -57,6 +57,9 @@ function boundBox(ring: Vec2[], color: THREE.Color): Box {
  *   fresh green, autumn's ochre, winter's frost-grey; see world/season.ts). It
  *   defaults to the summer green {@link GREEN}, so a caller that doesn't care about
  *   the date gets the year-round park colour and nothing changes.
+ * @param surfaceOverrides seasonal tints for land-use kinds (farmland, meadow),
+ *   merged over the year-round {@link SURFACE_COLORS}. Only the kinds given change;
+ *   the rest keep their base colour. Omitted → every surface uses its base tint.
  */
 export function buildGround(
   provider: ElevationProvider,
@@ -65,7 +68,9 @@ export function buildGround(
   surfaces: Surface[] = [],
   segments = 128,
   grass: THREE.Color = GREEN,
+  surfaceOverrides: Partial<Record<SurfaceKind, THREE.Color>> = {},
 ): THREE.Mesh {
+  const surfaceColor = (kind: SurfaceKind): THREE.Color => surfaceOverrides[kind] ?? SURFACE_COLORS[kind]
   const geo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, segments, segments)
   geo.rotateX(-Math.PI / 2) // XY plane -> XZ ground plane
   const pos = geo.attributes.position as THREE.BufferAttribute
@@ -73,7 +78,7 @@ export function buildGround(
   // Surfaces first, park green after: first match wins, so the order is the
   // priority. Both fold into the one boxes list — a single per-vertex scan.
   const boxes: Box[] = [
-    ...surfaces.map((s) => boundBox(s.ring, SURFACE_COLORS[s.kind])),
+    ...surfaces.map((s) => boundBox(s.ring, surfaceColor(s.kind))),
     ...green.map((ring) => boundBox(ring, grass)),
   ]
 

@@ -80,6 +80,27 @@ describe('buildGround land-use surfaces', () => {
     for (const c of Object.values(SURFACE_COLORS)) expect(hasColor(mesh, c)).toBe(false)
   })
 
+  it('overrides only the surface kinds it is handed, leaving the rest at their base tint', () => {
+    const surfaces: Surface[] = [
+      { kind: 'farmland', ring: rect(-90, -90, -40, 90) },
+      { kind: 'meadow', ring: rect(-20, -90, 20, 90) },
+      { kind: 'orchard', ring: rect(50, -90, 90, 90) },
+    ]
+    const winterFarm = new THREE.Color(0x9c8d6e) // season.ts winter crop
+    const winterMeadow = new THREE.Color(0x83836e) // season.ts winter pasture
+    const mesh = buildGround(provider, HALF, [], surfaces, SEGMENTS, new THREE.Color(0x4c7a42), {
+      farmland: winterFarm,
+      meadow: winterMeadow,
+    })
+    // farmland & meadow wear the winter overrides...
+    expect(hasColor(mesh, winterFarm)).toBe(true)
+    expect(hasColor(mesh, winterMeadow)).toBe(true)
+    expect(hasColor(mesh, SURFACE_COLORS.farmland)).toBe(false) // base summer khaki gone
+    expect(hasColor(mesh, SURFACE_COLORS.meadow)).toBe(false)
+    // ...but orchard, not overridden, keeps its year-round tint.
+    expect(hasColor(mesh, SURFACE_COLORS.orchard)).toBe(true)
+  })
+
   it('paints park lawns the seasonal grass colour it is given', () => {
     const green: Vec2[][] = [rect(-90, -90, 90, 90)]
     const summer = new THREE.Color(0x4c7a42) // the default (summer) park green

@@ -403,8 +403,9 @@ an effect we already have** — so it satisfies "must not cost frame rate" by co
       palettes/sets: winter coats/hats/scarves; summer shorts/tees/sun-hats; rain → an optional
       umbrella prop for the high tier. Texture/colour swap on the existing instanced people, no
       physics change.
-- [ ] **Fields/farms by season** (where the livestock graze) — brown in winter, green in summer; a
-      material swap.
+- [x] **Fields/farms by season** — ✅ SHIPPED v0.140.0: season.ts gained `pasture` (meadow) and `crop`
+      (farmland) palettes (summer == SURFACE_COLORS, so no summer change); `buildGround` takes a
+      `surfaceOverrides` map and main.ts passes the seasonal meadow/farmland. Vertex tint, tested.
 
 **Calendar one-offs (date condition + existing assets):**
 - [ ] **New Year fireworks** — the lap-finish fireworks already exist; also trigger them on New

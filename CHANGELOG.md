@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.140.0 — fields and farms change with the season
+- Following the parks, **pasture (meadow) and cropland (farmland) now dress for the season too** —
+  young/tilled green in spring, the summer tints as before, drying and golden-stubble in autumn, and
+  frost-grey pasture / bare-brown ploughed earth in winter. Summer deliberately equals the year-round
+  colours, so a summer scene looks exactly as it did; only the other seasons shift. Per-hemisphere,
+  like the grass. Still one ground mesh, vertex tints — no extra draw.
+- 👀 Today (July) a **southern-hemisphere** farming edge (try a city with fields, e.g. around Buenos
+  Aires or Christchurch) should show wintry brown/grey fields; northern fields stay summer, turning
+  golden in autumn.
+
 ## v0.139.1 — city name sits under the speedometer
 - The **city name moved from above the speedometer cluster to just beneath the dial**, tucked into
   its empty lower crown so it reads as part of the instrument. The cluster's row order (tacho, speedo,
