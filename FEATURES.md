@@ -87,7 +87,10 @@ fountain or statue mid-jump.
 - **Free roam** — just drive.
 - **Taxi** — pick a passenger up at the glowing green marker, deliver them to the amber marker
   before the meter runs out, then on to the next fare — a chaining shift, your score climbing with
-  every drop-off. Fares and score show under the minimap.
+  every drop-off. Fares and score show under the minimap. The load **rides on your vehicle** while a
+  fare is aboard, typed to what you're driving — a **passenger** in a car (a smartly-dressed one in a
+  sports car), **sand** in a pickup tray, **gravel** on a truck, **fuel** on a tanker, **milk** on a
+  tractor.
 - **Excursion** (🗺) — tour the city's **landmarks** (museums, monuments, memorials, castles,
   viewpoints): drive to each before the clock runs out, chasing a single **gold beam of light** over
   the current sight (and the minimap arrow), your count of sights seen climbing as you go.

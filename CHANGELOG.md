@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.130.0 — deliveries carry a load that fits the vehicle
+- On the **drop-off leg** of a Taxi/delivery fare, the load you're hauling now **rides on the car** —
+  and it's **typed to what you drive**: a **passenger** in an ordinary car (a **smartly-dressed** one
+  in a sports/race/cabrio), **sand** in a pickup's tray, **gravel** on a truck or lorry, **fuel** on a
+  tanker, **milk** on a tractor/combine. The bus still carries a person. It shows only while a fare is
+  aboard (green→amber leg) and clears on delivery. Neon-styled with the rest of the movers.
+- 👀 Take a fare in Taxi mode: after you reach the green pickup, a load appears on the car for the run
+  to the amber drop-off. Switch vehicles and the load changes to suit — a truck hauls gravel, a tanker
+  fuel, a pickup sand.
+
 ## v0.129.0 — flip the car on a big launch
 - Kick off a ramp **hard enough** and the car now **flips through the air** — a forward roll that
   keeps turning while you're airborne and then **rights itself to the nearest whole turn on landing**,

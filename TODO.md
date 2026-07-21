@@ -226,10 +226,12 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       lot polygon (`pathInside` verify), so no car drives into a building — no road-graph routing.
       Neon-flagged, fades via opacity, avoids the static parked cars. Tested in `livingParking.test.ts`.
       (Note: cars fade at the lot mouth rather than routing onto real roads — the safe design.)
-- [ ] **Delivery cargo by vehicle type** — the deliver-a-fare/parcel mode should carry **different
-      loads per vehicle**: a car carries a **person** (and a status/luxury car carries a smartly-
-      dressed one to match), a truck/lorry carries **cargo — sand, gravel, fuel, milk** (pick a
-      fitting load per hull). Swap the "passenger" figure for a typed cargo mesh in `taxi.ts`.
+- [x] **Delivery cargo by vehicle type** — ✅ v0.130.0: `src/app/cargo.ts` — a `cargoRider` shows a load
+      riding on the car during a fare's drop-off leg, typed by `cargoFor(vehicle)`: person (ordinary car),
+      vip/smartly-dressed (sports/racecar/cabrio), sand (pickup), gravel (truck/lorry/crane/roller), fuel
+      (tanker), milk (tractor/combine/tiller); bus + the rest carry a person. All six loads built once and
+      hidden (so the neon scan always covers them), positioned per-frame at a per-kind anchor. Tested in
+      `cargo.test.ts`.
 - [x] **Road/rail-through-building archways** — ✅ v0.127.0: `src/world/archways.ts` — detect a drivable
       non-tunnel road/rail segment crossing a building footprint (`segmentThroughPolygon`), SUBTRACT the
       road corridor from the building's COLLISION footprint (Sutherland–Hodgman half-plane clips →
@@ -254,9 +256,10 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       one stripe running the whole length; and on **curves and grades** the cars should **turn/pitch
       smoothly** instead of snapping/jerking. `trains.ts` — window geometry per car + ease the car's
       yaw/pitch along the rail (sample ahead/behind on the polyline, interpolate) so it flows.
-- [ ] **Level-crossing barriers** — drop **boom barriers (шлагбаумы) at railway crossings** that
-      lower when a train approaches and raise after it passes. Reuse `trains.ts` timing + the road/rail
-      intersection points; a hinged bar mesh + a simple down/up animation gated on train proximity.
+- [x] **Level-crossing barriers** — ✅ ALREADY DONE (verified 2026-07-21): `trains.ts` drops boom barriers
+      at road×rail crossings — a bar sweeps down when a train comes within range (a framerate-independent
+      ease) and lifts after it passes, capped to a handful of the nearest crossings, deduped for parallel
+      tracks.
 - [ ] **Forests / woodland** — support and render **large wooded areas** (OSM `landuse=forest`,
       `natural=wood`): fill the polygon with **instanced trees** at a sensible density (capped +
       culled), not just the scattered `natural=tree` points. Reuse the greenery tree instancing.
@@ -302,9 +305,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       `event.code` (physical position) now — horn (KeyH), neon (KeyV), zoom (Equal/Minus), help (Slash),
       and **WASD driving** (`vehicle/input.ts`, which had the same bug — WASD was dead on Cyrillic, only
       arrows worked). Pure `readInput`/`hotkeyFor` helpers, tested in `test/vehicle/input.test.ts`.
-- [ ] **Flashing police lightbar** — the police car's roof beacons should **flash red/blue while
-      driving** (alternating), not glow steady. Animate the shared BEACON_RED/BLUE emissive intensity
-      in the loop for emergency vehicles. (Doing this myself — main.ts + parts.ts.)
+- [x] **Flashing police lightbar** — ✅ ALREADY DONE (verified 2026-07-21): `main.ts` strobes the shared
+      `BEACON_RED`/`BEACON_BLUE` emissive intensity red↔blue off `blinkClock` (~6 Hz), so the police car,
+      ambulance and firetruck roof bars — and the two Cops & Robbers chase cops — all flash while driving.
 - [x] **Per-vehicle horn** — ✅ v0.117.0: `HornProfile`/`HORNS` table + `hornProfile(type)` in audio.ts
       (deep air-horn for haulers, sharp parp for sports, thin beep for bikes, soft EV tone, firm
       emergency); `setVehicle` swaps it in and `horn()` plays it. Tested in `audio.test.ts`.
@@ -341,10 +344,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       the launch (capped), the car turns through the air, and on landing rights itself to the nearest whole
       turn so it lands on its wheels; a gentle hop stays level, hovercraft never flip. Rendered as a pitch
       about the car's right axis in `syncCamera` (reusing the lean post-multiply). Tested in `car.test.ts`.
-- [ ] **Bridge railings look flat/solid** — v0.110.2 seated the railings on the deck edge but they're
-      a **solid-colour wall**; make them read as real railings — **posts at intervals + a top rail (and
-      maybe a mid rail), with gaps between**, not a filled parapet. Instanced/merged posts+rails in
-      `bridgeMesh.ts`, keep it cheap.
+- [x] **Bridge railings look flat/solid** — ✅ ALREADY DONE (verified 2026-07-21): `bridgeMesh.ts` draws a
+      see-through balustrade — plumb posts every POST_SPACING metres tied by a top rail and a mid rail,
+      daylight in the gaps — explicitly replacing the old filled parapet. All merged into one draw.
 - [x] **Bridge pillars: off the road + solid** — ✅ collidable v0.117.1 + ✅ v0.128.0 off-carriageway:
       `emitPiers` now stands a PAIR of piers toward the deck edges (`PIER_EDGE_FRAC` 0.6) instead of one
       on the centreline, so the centre bay stays clear for a road running under the bridge; colliders

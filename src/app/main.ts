@@ -43,6 +43,7 @@ import { createRivals } from './rivals'
 import { createTrialHud } from '../ui/trialHud'
 import { createTaxi } from './taxi'
 import { createTaxiHud } from '../ui/taxiHud'
+import { createCargoRider } from './cargo'
 import { createExcursion } from './excursion'
 import { createExcursionHud } from '../ui/excursionHud'
 import { createChase } from './chase'
@@ -286,6 +287,7 @@ const bubbles = createBubbles(stage.scene)
 const trialHud = createTrialHud(ui)
 const taxi = createTaxi(stage.scene)
 const taxiHud = createTaxiHud(ui)
+const cargoRider = createCargoRider(stage.scene) // the load riding on the car mid-delivery
 const excursion = createExcursion(stage.scene)
 const excursionHud = createExcursionHud(ui)
 const chase = createChase(stage.scene)
@@ -862,6 +864,9 @@ async function loadCity(query: string): Promise<void> {
             audio.thud() // meter ran out
           }
         }
+        // The load rides on the car once a fare is aboard (the drop-off leg), typed
+        // to the vehicle — a passenger in a car, gravel/fuel/milk on a hauler.
+        cargoRider.update(car, vehicle, taxi.enabled() && taxi.state().phase === 'toDropoff')
         if (excursion.enabled()) {
           const es = excursion.update(dt, car.x, car.z)
           excursionHud.set(es)
