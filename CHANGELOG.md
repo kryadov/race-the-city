@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.141.0 — softer bike lanes, with cyclists on them
+- The **cycle-lane stripe is toned down** — from a harsh terracotta-red to a muted, dusty clay that
+  still reads as a painted lane without cutting the eye (you'll notice it especially in Paris, which
+  is laced with bike lanes).
+- **Cyclists now favour the lanes.** The riders that already thread the city are started on cycle-lane
+  roads where the city has them (~80% of the time, with the rest scattered on ordinary streets so a
+  city with few lanes still has some). Count is unchanged — a handful, not a peloton.
+- 👀 Follow a bike-lane street: it should be a softer clay colour now, with the odd cyclist riding it.
+
 ## v0.140.2 — no more benches floating in the river
 - **BUG:** benches (and bus stops) mapped out over water sat on the water surface and read as floating.
   They're now dropped if they fall inside a water body — but **kept on the bank and on islands** (a

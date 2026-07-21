@@ -6,6 +6,38 @@ import { buildRoadGraph, nextNode, roomToDrive, type RoadGraph } from '../world/
 
 /** A few riders threading the city — quiet company on the kerb side, not a peloton. */
 const COUNT = 6
+/** How often a rider is started on a cycle lane when the city has any (0..1). Most
+ *  of the time, so the riders read as belonging to the lanes; the rest fall on any
+ *  road so a city with few marked lanes still has cyclists dotted about. */
+const CYCLEWAY_BIAS = 0.8
+/** A cycleway road point must fall within this of a graph node to count it as a
+ *  ridable cycle-lane node — so a lane that isn't part of the ridable graph doesn't
+ *  drag the tag onto a far-off ordinary road. Metres, squared. */
+const CYCLEWAY_SNAP2 = 25
+
+/**
+ * Graph node indices that lie on a cycle-lane road (`Road.cycleway` — a dedicated
+ * cycleway or a road carrying a bike lane), so riders can be started on the lanes.
+ * A cycleway point only counts a node it actually sits on (within CYCLEWAY_SNAP2),
+ * so a lane missing from the ridable graph isn't mis-mapped onto a nearby street.
+ * Pure over roads + graph, so it's tested without the renderer.
+ */
+export function cyclewayNodes(roads: Road[], graph: RoadGraph): number[] {
+  const out: number[] = []
+  const seen = new Set<number>()
+  for (const r of roads) {
+    if (!r.cycleway) continue
+    for (const p of r.points) {
+      const n = graph.nearest(p.x, p.z)
+      if (n < 0 || seen.has(n)) continue
+      const node = graph.nodes[n]
+      if ((node.x - p.x) ** 2 + (node.z - p.z) ** 2 > CYCLEWAY_SNAP2) continue
+      seen.add(n)
+      out.push(n)
+    }
+  }
+  return out
+}
 /**
  * Metres right of the centreline a rider keeps. Wider than the motorbike's lane
  * (see motorcycles.ts) and much wider than a car's: a cyclist hugs the kerb in a
@@ -245,14 +277,18 @@ export function createCyclists(
   const rng = makeRng(0x5c1de11)
 
   const riders: Rider[] = []
+  // The cycle lanes to start riders on, when the city has any (see CYCLEWAY_BIAS).
+  const cwNodes = cyclewayNodes(roads, graph)
 
   const spawn = (): Rider | null => {
     if (nodes.length < 2) return null
     // Never start one on a pocket it could only turn round on — a driveway, a
     // service loop — the same trap the traffic guards against with roomToDrive.
+    // Prefer starting on a cycle lane where the city has them, else any road.
     let at = -1
     for (let i = 0; i < 60 && at < 0; i++) {
-      const c = Math.floor(rand() * nodes.length)
+      const onLane = cwNodes.length > 0 && rand() < CYCLEWAY_BIAS
+      const c = onLane ? cwNodes[Math.floor(rand() * cwNodes.length)] : Math.floor(rand() * nodes.length)
       if (roomToDrive(graph, c)) at = c
     }
     if (at < 0) return null

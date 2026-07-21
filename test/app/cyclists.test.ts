@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createCyclists } from '../../src/app/cyclists'
+import { createCyclists, cyclewayNodes } from '../../src/app/cyclists'
+import { buildRoadGraph } from '../../src/world/roadGraph'
 import type { Road, Vec2 } from '../../src/geo/types'
 
 const v = (x: number, z: number): Vec2 => ({ x, z })
@@ -130,6 +131,34 @@ describe('cyclists', () => {
     for (let i = 0; i < a.length; i++) {
       expect(a[i].distanceTo(b[i])).toBeLessThan(1e-6)
     }
+  })
+
+  it('collects the graph nodes on cycle-lane roads, and only those', () => {
+    const lane: Road = { points: [v(0, 0), v(100, 0), v(200, 0)], kind: 'residential', cycleway: true }
+    const plain: Road = { points: [v(0, 60), v(100, 60), v(200, 60)], kind: 'residential' }
+    const roads = [lane, plain]
+    const graph = buildRoadGraph(roads)
+    const cw = cyclewayNodes(roads, graph)
+    expect(cw.length).toBeGreaterThan(0)
+    // every node returned lies on the lane road (z≈0), never on the plain one (z=60)
+    for (const n of cw) expect(Math.abs(graph.nodes[n].z)).toBeLessThan(1)
+  })
+
+  it('finds no cycle-lane nodes when no road carries a lane', () => {
+    const roads: Road[] = [{ points: [v(0, 0), v(100, 0)], kind: 'residential' }]
+    expect(cyclewayNodes(roads, buildRoadGraph(roads))).toEqual([])
+  })
+
+  it('starts riders on the cycle lane where the city has one', () => {
+    // A lane road (z≈0) and a plain road far off (z=400), unconnected. With the
+    // constant rng every rider is biased onto the lane, so none land up at z=400.
+    const lane: Road = { points: [v(-300, 0), v(0, 0), v(300, 0)], kind: 'residential', cycleway: true }
+    const plain: Road = { points: [v(-300, 400), v(0, 400), v(300, 400)], kind: 'residential' }
+    const scene = new THREE.Scene()
+    createCyclists(scene, [lane, plain], flat, () => 0.5).update(0.016, false)
+    const riders = cyclistGroups(scene).map(posOf)
+    expect(riders.length).toBeGreaterThan(0)
+    for (const p of riders) expect(Math.abs(p.z)).toBeLessThan(50) // on the lane, not the far road
   })
 
   it('clears off the scene when the city changes', () => {
