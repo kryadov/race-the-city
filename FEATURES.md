@@ -68,7 +68,7 @@ Each vehicle has:
 - its own **engine sound** (diesel / petrol / race / small / electric / turbine), which **fades
   out after ~10s parked** and returns on the throttle;
 - **headlights** (a spotlight that brightens at night), **tail lights**, **brake lights**, and
-  **turn signals** with fender repeaters;
+  **turn signals** with fender repeaters and a soft **relay tick-tock** while they flash;
 - **steered wheels** that turn with your input (a combine steers on its rear, a tracked hull on
   neither), and visible **glass** on enclosed cabs;
 - a **nitro flame** from the exhaust when boosting.

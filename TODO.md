@@ -636,7 +636,9 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [x] **Per-vehicle engine sound** — diesel / petrol / race / small / electric / turbine
       profiles — done in v0.61.0
 - [x] Horn (hold H) and checkpoint chime — done in v0.77.0
-- [ ] Indicator tick
+- [x] **Indicator tick** — ✅ v0.134.0: `audio.ts` `tick()` (a short muted triangle click) fired on each
+      blink transition via the pure `indicatorTicked(prevOn, nowOn)` edge test in main.ts — a relay
+      tick-tock while indicating, silent when paused. Tested in `audio.test.ts`.
 - [ ] Positional audio (engine quieter as camera pulls back)
 
 ## 🖥 UI / UX

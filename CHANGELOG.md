@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.134.0 — the turn signal ticks
+- The turn indicator now **clicks** — a soft relay **tick-tock** on each flash (tick as the lamp
+  lights, tock as it goes out), the way a real one sounds. Quiet by design, and only while you're
+  actually indicating (a steer held the same way for a moment). Off when paused.
+- 👀 Hold a turn a second so the fender repeaters start blinking — you should hear a gentle tick-tock
+  in time with them.
+
 ## v0.133.1 — a bridge's name rides its deck
 - A bridge road's **street-name label** was placed at the terrain height under the deck, so the name
   floated **down under the bridge** instead of on the carriageway you drive. It now rides the **deck**

@@ -105,7 +105,7 @@ import {
   clearSession,
   resetSettings,
 } from './prefs'
-import { AudioEngine } from '../audio/audio'
+import { AudioEngine, indicatorTicked } from '../audio/audio'
 import { t } from '../i18n/i18n'
 import { geocode } from '../geo/geocode'
 import { bboxAround, fetchOsm, overpassQuery } from '../geo/overpass'
@@ -388,6 +388,7 @@ let steerHold = 0 // seconds that direction has been held
 let steerVis = 0 // front-wheel angle, eased toward the input so it winds on with the hold
 const STEER_EASE = 7 // per second; ~full lock after a third of a second held
 let blinkClock = 0 // free-running clock for the indicator blink
+let prevBlinkOn = false // last frame's blink state, for the relay-tick edge
 /**
  * A full day and night, in seconds. Eight minutes: at four, you could not drive
  * across a city without the sun setting on you.
@@ -1007,6 +1008,8 @@ async function loadCity(query: string): Promise<void> {
         }
         blinkClock += dt
         const blinkOn = steerHold > 0.5 && Math.floor(blinkClock / 0.4) % 2 === 0
+        if (!frozen && indicatorTicked(prevBlinkOn, blinkOn)) audio.tick() // relay tick-tock
+        prevBlinkOn = blinkOn
         TURN_RIGHT_MAT.emissiveIntensity = blinkOn && steerDir > 0 ? 2.4 : 0
         TURN_LEFT_MAT.emissiveIntensity = blinkOn && steerDir < 0 ? 2.4 : 0
         // Emergency beacons strobe red↔blue. The police / ambulance / fire-truck

@@ -9,6 +9,7 @@ import {
   hornProfile,
   idleGain,
   IDLE_MUTE_AFTER,
+  indicatorTicked,
 } from '../../src/audio/audio'
 import { VEHICLE_TYPES } from '../../src/vehicle/vehicles'
 
@@ -138,5 +139,16 @@ describe('engineFrequency', () => {
   it('clamps out-of-range speed fractions', () => {
     expect(engineFrequency(2)).toBeCloseTo(265)
     expect(engineFrequency(-1)).toBeCloseTo(55)
+  })
+})
+
+describe('indicatorTicked', () => {
+  it('clicks on each change of the blink lamp — the tick and the tock', () => {
+    expect(indicatorTicked(false, true)).toBe(true) // lamp lights: tick
+    expect(indicatorTicked(true, false)).toBe(true) // lamp out: tock
+  })
+  it('stays silent while the lamp holds its state', () => {
+    expect(indicatorTicked(false, false)).toBe(false) // not indicating
+    expect(indicatorTicked(true, true)).toBe(false) // mid-flash, no change
   })
 })

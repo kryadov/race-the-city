@@ -162,6 +162,15 @@ export function idleGain(idleSeconds: number): number {
   return Math.max(0, 1 - (idleSeconds - IDLE_MUTE_AFTER) / IDLE_FADE)
 }
 
+/**
+ * Whether the turn-signal relay clicks this frame: on any change of the blink
+ * lamp's on/off state — the tick as it lights, the tock as it goes out. Pure, so
+ * the caller can drive {@link AudioEngine.tick} off it and the tests can lock it.
+ */
+export function indicatorTicked(prevOn: boolean, nowOn: boolean): boolean {
+  return prevOn !== nowOn
+}
+
 function loadState(): AudioState {
   try {
     const s = localStorage.getItem(KEY)
@@ -384,6 +393,24 @@ export class AudioEngine {
     g.connect(this.sfxGain)
     osc.start(t)
     osc.stop(t + 0.26)
+  }
+
+  /** A soft turn-signal relay click — short, muted, dropping in pitch like a real tick. */
+  tick(): void {
+    if (!this.ctx || !this.sfxGain) return
+    const ctx = this.ctx
+    const t = ctx.currentTime
+    const osc = ctx.createOscillator()
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(1150, t)
+    osc.frequency.exponentialRampToValueAtTime(480, t + 0.03)
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.05, t) // quiet — a background tick, not an alert
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05)
+    osc.connect(g)
+    g.connect(this.sfxGain)
+    osc.start(t)
+    osc.stop(t + 0.06)
   }
 
   /** The one <audio> element all music flows through, created on first use. */
