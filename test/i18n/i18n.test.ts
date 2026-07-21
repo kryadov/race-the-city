@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { t, setLang, getLang, onLangChange, LANGS } from '../../src/i18n/i18n'
+import { t, setLang, getLang, onLangChange, LANGS, messageKeys } from '../../src/i18n/i18n'
 import { VEHICLE_TYPES } from '../../src/vehicle/vehicles'
 
 describe('i18n', () => {
@@ -17,6 +17,24 @@ describe('i18n', () => {
     expect(t('start.title')).toBe('RACE THE CITY')
     setLang('ru')
     expect(t('start.title')).toBe('МЧИСЬ ПО ГОРОДУ')
+    // Every shipped language gives the title its own, non-English wording.
+    for (const lang of LANGS) {
+      setLang(lang)
+      const title = t('start.title')
+      expect(title, `${lang}/start.title`).not.toBe('start.title') // not the raw key
+      if (lang !== 'en') expect(title, `${lang}/start.title`).not.toBe('RACE THE CITY')
+    }
+  })
+
+  it('ships every language with the exact same set of keys — no gaps, no strays', () => {
+    // English is the source of truth; every other language must cover every key it
+    // has and add none of its own — a missing key falls back to the raw key and
+    // shows in the UI; a stray key is dead weight.
+    const enKeys = messageKeys('en').slice().sort()
+    expect(enKeys.length).toBeGreaterThan(100) // sanity: the map really is populated
+    for (const lang of LANGS) {
+      expect(messageKeys(lang).slice().sort(), `${lang} key set`).toEqual(enKeys)
+    }
   })
 
   it('falls back to the key when a translation is missing', () => {

@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.137.0 — three more languages
+- The UI now speaks **Spanish, German and French** on top of English and Russian — the whole string
+  map is translated, so the start menu (title and all), settings, HUDs, loading and error screens
+  switch language on the fly. The menu's language row and the front-screen quick-toggle pick them up
+  automatically (EN · RU · ES · DE · FR), and the browser's own language is auto-detected on first
+  load (`de-AT` → German, `fr-CA` → French, …), falling back to English.
+- A test now enforces that **every language covers the exact same keys** — no half-translated screen
+  can ship, since a missing string would fail the build.
+- 👀 Open Settings → Language (or the buttons under the title) and switch to ES / DE / FR: every
+  label, button and heading should change, including the big title on the start screen.
+
 ## v0.136.0 — an open manhole dips your wheel
 - The ~1-in-8 manhole covers that sit **ajar** are now a **physics dip**, not just a visual: drive a
   wheel over an open one and that corner **drops in and tips the body** toward it — a quick jolt that

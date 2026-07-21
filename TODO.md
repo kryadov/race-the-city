@@ -178,11 +178,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 > instanced or capped and culled; anything per-frame (crowd AI, water tests, weather) stays O(few)
 > and async where it touches the network. If a feature can't be done cheaply, it doesn't ship as-is.
 
-- [ ] **Localize the start-menu title** — the stylized "RACE THE CITY" logo should switch per
-      language (RU: **"Мчись по городу"**). While in there, audit for any other still-English strings
-      and fold them into i18n. User also wants this to feed a broader **"support for new languages"**
-      effort (beyond EN/RU) — treat the title as the first step of that. (Deferred: "не сейчас, как
-      доберёшься".)
+- [x] **Localize the start-menu title** — ✅ DONE: the title switches per language via
+      `t('start.title')` (menu.ts) — RU "МЧИСЬ ПО ГОРОДУ", plus ES/DE/FR added v0.137.0. The broader
+      "support for new languages" effort it was meant to seed also landed v0.137.0 (EN/RU/ES/DE/FR).
 - [ ] **Analytics / usage stats** — how many players and from where, the most-popular city, etc.
       Needs a server side (the app is currently backend-free static hosting). User wants a
       **brainstorm on free-tier options — NOT necessarily AWS** — for standing up a minimal
@@ -551,9 +549,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [x] **Benches, empty and with people sitting on them; bus stops** — from OSM `amenity=bench`
       and `highway=bus_stop`; instanced benches (~2 in 5 with a blocky seated figure) and
       two-post bus shelters, neon-styled with the road furniture — v0.96.0
-- [ ] **A couple more languages** (localization) — the i18n table (`src/i18n/i18n.ts`) ships
-      English + Russian today; add ~2 more (e.g. Spanish, German — or French/Chinese) by
-      translating the string map. Menu already has the language switch; the work is the copy.
+- [x] **A couple more languages** (localization) — ✅ SHIPPED v0.137.0: added **Spanish, German and
+      French** to `src/i18n/i18n.ts` (full string map each), so EN/RU/ES/DE/FR. `detect()` now
+      matches the browser's primary language subtag against what ships. A parity test
+      (`messageKeys`) enforces every language has the exact same key set — no half-translated ship.
 - [x] **Fly over anything you are above** — the physics grid carries each obstacle's roof
       height now, so a jump clears a bungalow, a fountain or a statue instead of being
       cancelled in mid-air by ground the car is nowhere near — v0.86.0

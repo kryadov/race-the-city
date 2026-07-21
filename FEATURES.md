@@ -181,7 +181,9 @@ Built from the real map around you:
 - **Minimap** of roads, buildings, water and greenery around you.
 - **Settings menu** (⚙) with collapsible groups: city, vehicle, weather, quality, shadows,
   camera zoom, road detail, HUD, road labels, units, language, and more.
-- **Language** — English and Russian today (more planned).
+- **Language** — English, Russian, Spanish, German and French, picked from the menu or auto-detected
+  from your browser. The whole UI — start menu (title included), settings, HUDs and loading screens —
+  switches on the fly.
 - **Pause** (Esc), **controls help** (?), a **version badge**, and an **update notice** when a
   new build deploys (dismiss sticks).
 
