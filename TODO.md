@@ -209,12 +209,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       actual **flower shapes** (a small petalled head — a ring of petals around a centre, not a plain
       squashed sphere) and add **blue, violet and azure** to the palette alongside the pinks/golds.
       `props.ts` bloom geometry + colour list, still merged (one draw per colour).
-- [ ] **Nitro along cross-city highways** — place nitro so that where a **straight/near-straight
-      highway runs clear across the city**, the bottles are spaced to let you **boost the whole way
-      across the map** (chain the pickups). But **don't put them too close** (respect APART_MIN /
-      keep them findable). Needs a straight-run detector over the road graph in the pickup scatter
-      (pickups.ts + the road structure) — design first: identify long low-curvature runs, drop
-      bottles along them at ~boost-window spacing.
+- [x] **Nitro along cross-city highways** — ✅ ALREADY DONE (verified 2026-07-21): `nitro.ts`
+      `corridorSpots` runs `straightRuns` over the motorway/primary arterials (end-to-end / arc ≥
+      CORRIDOR_STRAIGHT, span ≥ CORRIDOR_MIN_SPAN), lays bottles every CORRIDOR_SPACING (110m) via
+      `layAlong`, thins to CORRIDOR_MIN_APART, and `withCorridor` clears the dense scatter near the chain —
+      so a straight arterial becomes a boostable corridor across the map.
 - [x] **Colour-coded nitro** — ✅ v0.113.0: `NITRO_TYPES` table (blue standard / red short-hard /
       green long-gentle) → colour, top-speed mult, accel bonus, duration; `createPickups<T>` now
       carries a per-bottle payload so `nitro.update` reports the collected type, and main.ts sets
@@ -451,8 +450,11 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [x] **Big rivers** — water multipolygon relations, outer rings stitched by node id — done in
       v0.70.0 (verified against live Overpass: 6 water relations around the centre of Saint
       Petersburg, incl. the Neva at 490 members, none of which arrived before)
-- [ ] Island holes in water — relation `inner` rings are skipped, so an island in a river is
-      painted over
+- [x] **Island holes in water** — ✅ v0.133.0: `parse.ts` now collects a water multipolygon's `inner`
+      rings into `WorldData.waterHoles` (stitched via the shared `ringToPoints` whole-or-none helper),
+      and `buildWater` cuts each hole (by centroid-in-body) out of the `THREE.Shape` surface, so an island
+      shows its ground instead of being painted over. `water`/boats/peds/barriers untouched (holes ride
+      apart). Tested in `parse.test.ts` (inner extracted + inside outer) + `water.test.ts` (island area cut).
 - [x] **Parking, marked out** — `amenity=parking` tarmac with painted bays — done in v0.68.0
 - [ ] Pedestrian squares (`highway=pedestrian`)
 - [x] **Flowerbeds, fountains and statues** — from `amenity=fountain`, `historic=memorial|monument`,

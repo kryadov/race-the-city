@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fixture from '../fixtures/overpass-small.json'
 import { parseOsm, classifyRoad, buildingHeight, classifySurface, isPitch, pitchSport, hasCycleLane, type OverpassResponse } from '../../src/geo/parse'
 import { Projector } from '../../src/geo/project'
+import { pointInPolygon } from '../../src/physics/collide'
 
 const projector = new Projector({ lat: 41.7151, lon: 44.8271 })
 
@@ -149,6 +150,49 @@ describe('wooded areas', () => {
     // both the way-wood and the relation-forest carry through to green
     expect(world.green.length).toBeGreaterThanOrEqual(2)
     for (const ring of world.forests) expect(world.green).toContain(ring)
+  })
+})
+
+describe('parseOsm — water islands (inner rings)', () => {
+  const world = parseOsm(
+    {
+      elements: [
+        // A lake as a multipolygon: a big outer ring with a small island (inner ring) in it.
+        { type: 'node', id: 21, lat: 41.710, lon: 44.820 },
+        { type: 'node', id: 22, lat: 41.710, lon: 44.830 },
+        { type: 'node', id: 23, lat: 41.720, lon: 44.830 },
+        { type: 'node', id: 24, lat: 41.720, lon: 44.820 },
+        { type: 'way', id: 201, nodes: [21, 22, 23, 24, 21] },
+        { type: 'node', id: 25, lat: 41.713, lon: 44.824 },
+        { type: 'node', id: 26, lat: 41.713, lon: 44.826 },
+        { type: 'node', id: 27, lat: 41.717, lon: 44.826 },
+        { type: 'node', id: 28, lat: 41.717, lon: 44.824 },
+        { type: 'way', id: 202, nodes: [25, 26, 27, 28, 25] },
+        {
+          type: 'relation',
+          id: 301,
+          members: [
+            { type: 'way', ref: 201, role: 'outer' },
+            { type: 'way', ref: 202, role: 'inner' },
+          ],
+          tags: { natural: 'water', type: 'multipolygon' },
+        },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+
+  it('takes the outer ring as water', () => {
+    expect(world.water.length).toBe(1)
+    expect(world.water[0].length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('carries the inner ring as a water hole (the island)', () => {
+    expect(world.waterHoles.length).toBe(1)
+    expect(world.waterHoles[0].length).toBeGreaterThanOrEqual(3)
+    // The island sits inside the lake's outer ring.
+    const c = world.waterHoles[0].reduce((a, p) => ({ x: a.x + p.x / world.waterHoles[0].length, z: a.z + p.z / world.waterHoles[0].length }), { x: 0, z: 0 })
+    expect(pointInPolygon(c.x, c.z, world.water[0])).toBe(true)
   })
 })
 

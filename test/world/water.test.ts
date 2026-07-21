@@ -17,6 +17,46 @@ const railingMesh = (obj: THREE.Object3D): THREE.Mesh | undefined => {
   return found
 }
 
+/** Total XZ area of the water SURFACE (the flat blue fill), summed over its triangles. */
+const surfaceArea = (obj: THREE.Object3D): number => {
+  let area = 0
+  obj.traverse((o) => {
+    const m = o as THREE.Mesh
+    const mat = m.material as THREE.MeshStandardMaterial | undefined
+    if (!m.isMesh || !mat || Array.isArray(mat) || mat.color?.getHex() !== 0x2f6db0) return
+    const pos = m.geometry.getAttribute('position')
+    const idx = m.geometry.getIndex()
+    const tri = (a: number, b: number, c: number): void => {
+      const ax = pos.getX(a), az = pos.getZ(a)
+      const bx = pos.getX(b), bz = pos.getZ(b)
+      const cx = pos.getX(c), cz = pos.getZ(c)
+      area += Math.abs((bx - ax) * (cz - az) - (cx - ax) * (bz - az)) / 2
+    }
+    if (idx) for (let i = 0; i < idx.count; i += 3) tri(idx.getX(i), idx.getX(i + 1), idx.getX(i + 2))
+    else for (let i = 0; i < pos.count; i += 3) tri(i, i + 1, i + 2)
+  })
+  return area
+}
+
+describe('buildWater islands', () => {
+  const flat = { heightAt: () => 0 }
+  const outer = [v(-100, -100), v(100, -100), v(100, 100), v(-100, 100)] // 200×200 = 40000 m²
+  const island = [v(-20, -20), v(20, -20), v(20, 20), v(-20, 20)] // 40×40 = 1600 m²
+
+  it('cuts an island (inner ring) out of the water surface', () => {
+    const solid = surfaceArea(buildWater([outer], flat))
+    const holed = surfaceArea(buildWater([outer], flat, [island]))
+    expect(holed).toBeLessThan(solid)
+    expect(solid - holed).toBeCloseTo(1600, 0) // exactly the island's area is gone
+  })
+
+  it('ignores an island that lies in no body', () => {
+    const far = [v(500, 500), v(520, 500), v(520, 520), v(500, 520)]
+    const solid = surfaceArea(buildWater([outer], flat))
+    expect(surfaceArea(buildWater([outer], flat, [far]))).toBeCloseTo(solid, 0)
+  })
+})
+
 describe('waterLevel', () => {
   it('sits just above the lowest ground under the outline', () => {
     const ring = [v(0, 0), v(10, 0), v(10, 10), v(0, 10)]

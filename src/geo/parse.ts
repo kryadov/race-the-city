@@ -227,6 +227,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const roads: Road[] = []
   const buildings: Building[] = []
   const water: Vec2[][] = []
+  const waterHoles: Vec2[][] = []
   const green: Vec2[][] = []
   const forests: Vec2[][] = []
   const parking: Vec2[][] = []
@@ -326,31 +327,30 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     if (!asWater && !asForest) continue
     if (el.members.length > MAX_RELATION_MEMBERS) continue // a whole-river monster
     const outers: number[][] = []
+    const inners: number[][] = [] // islands (water) / clearings — cut from the surface
     for (const mem of el.members) {
       if (mem.type !== 'way') continue
-      if (mem.role && mem.role !== 'outer') continue // inner rings are islands/clearings; skip for now
       const ns = wayNodes.get(mem.ref)
-      if (ns && ns.length >= 2) outers.push(ns)
+      if (!ns || ns.length < 2) continue
+      if (mem.role === 'inner') inners.push(ns)
+      else if (!mem.role || mem.role === 'outer') outers.push(ns)
     }
     for (const ringIds of stitchRings(outers)) {
-      // Every node or none. Dropping the ones we haven't got leaves a ring with a
-      // hole in it, which is not a ring — it is a polygon that cuts the corner
-      // across dry land, and anything we float on it sails over a field.
-      const pts: Vec2[] = []
-      let whole = true
-      for (const id of ringIds) {
-        const p = nodes.get(id)
-        if (!p) {
-          whole = false
-          break
-        }
-        pts.push(p)
-      }
-      if (!whole || pts.length < 3) continue
+      const pts = ringToPoints(ringIds, nodes)
+      if (!pts) continue
       if (asWater) water.push(pts)
       if (asForest) {
         green.push(pts)
         forests.push(pts)
+      }
+    }
+    // Islands: an inner ring of a WATER body is land the surface must not paint
+    // over, so carry it as a hole to cut. (Forest clearings are left for now — a
+    // clearing in a wood just gets no extra trees, which is harmless.)
+    if (asWater) {
+      for (const ringIds of stitchRings(inners)) {
+        const pts = ringToPoints(ringIds, nodes)
+        if (pts) waterHoles.push(pts)
       }
     }
   }
@@ -382,7 +382,7 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     )
   }
 
-  return { roads, buildings, water, green, forests, parking, pitches, fields, surfaces, trees, props, coast, railways, benches, busStops, pois }
+  return { roads, buildings, water, waterHoles, green, forests, parking, pitches, fields, surfaces, trees, props, coast, railways, benches, busStops, pois }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */
@@ -433,6 +433,22 @@ function dedupeByCell(points: Vec2[], cell: number): Vec2[] {
  *
  * Ways that never close are dropped — an open chain has no inside to fill.
  */
+/**
+ * Resolve a ring of node ids to points — but every node or none. Dropping the ones
+ * we haven't got leaves a ring with a gap in it, which is not a ring but a polygon
+ * that cuts the corner across dry land, and anything floated on it sails over a
+ * field. Returns null for a partial ring or one too small to have an inside.
+ */
+function ringToPoints(ringIds: number[], nodes: Map<number, Vec2>): Vec2[] | null {
+  const pts: Vec2[] = []
+  for (const id of ringIds) {
+    const p = nodes.get(id)
+    if (!p) return null
+    pts.push(p)
+  }
+  return pts.length >= 3 ? pts : null
+}
+
 export function stitchRings(ways: number[][]): number[][] {
   const pool = ways.filter((w) => w.length >= 2).map((w) => w.slice())
   const rings: number[][] = []

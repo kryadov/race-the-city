@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { roomAt } from './area'
+import { pointInPolygon } from '../physics/collide'
 
 const WATER_OFFSET = 0.2 // sit just above the terrain basin
 /**
@@ -206,8 +207,20 @@ function emitRailing(out: number[], ring: Vec2[], baseY: number): void {
   }
 }
 
-/** Flat filled polygons for water bodies, placed at each body's terrain level. */
-export function buildWater(water: Vec2[][], provider: ElevationProvider): THREE.Object3D {
+/** A centroid to test which body a hole belongs to — the average of its vertices. */
+function centroid(ring: Vec2[]): Vec2 {
+  let x = 0, z = 0
+  for (const p of ring) { x += p.x; z += p.z }
+  return { x: x / ring.length, z: z / ring.length }
+}
+
+/**
+ * Flat filled polygons for water bodies, placed at each body's terrain level.
+ * `holes` are island rings (water multipolygon inners): each is cut from whichever
+ * body contains it, so the island's ground shows through instead of being painted
+ * over. A hole not inside any body is simply ignored.
+ */
+export function buildWater(water: Vec2[][], provider: ElevationProvider, holes: Vec2[][] = []): THREE.Object3D {
   const group = new THREE.Group()
   const mat = new THREE.MeshStandardMaterial({
     color: 0x2f6db0,
@@ -238,6 +251,20 @@ export function buildWater(water: Vec2[][], provider: ElevationProvider): THREE.
     shape.moveTo(ring[0].x, ring[0].z)
     for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i].x, ring[i].z)
     shape.closePath()
+
+    // Cut any island that sits in THIS body out of the surface, so its ground
+    // shows through. Tested by the island's centroid, so a boundary vertex shared
+    // with the shore can't misjudge which body it belongs to.
+    for (const hole of holes) {
+      if (hole.length < 3) continue
+      const c = centroid(hole)
+      if (!pointInPolygon(c.x, c.z, ring)) continue
+      const path = new THREE.Path()
+      path.moveTo(hole[0].x, hole[0].z)
+      for (let i = 1; i < hole.length; i++) path.lineTo(hole[i].x, hole[i].z)
+      path.closePath()
+      shape.holes.push(path)
+    }
 
     const geo = new THREE.ShapeGeometry(shape)
     geo.rotateX(Math.PI / 2) // XY shape → XZ plane, z preserved (no mirror)

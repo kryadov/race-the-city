@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.133.0 — islands in the water read as land
+- A river or lake mapped as an OSM multipolygon carries **inner rings** — the islands sitting in it.
+  Those used to be dropped, so the flat water surface **painted straight over the island**. Now each
+  inner ring is **cut out of the water** (as a hole in the surface), so the island's ground shows
+  through — the Île de la Cité, an ait in a river, a lake islet all read as land again. Water bodies,
+  boats, pedestrians and the shoreline barriers are untouched (the holes ride alongside as their own
+  data), so nothing else changes.
+- 👀 Find a city with an island in its river (Paris, for one) — the island should be ground now, with
+  the water flowing around it, not a blue patch over the top.
+
 ## v0.132.0 — a day/night lock now breathes instead of freezing
 - **Perpetual day** and **perpetual night** (⚙ Options → time of day) used to hold the sky stone-still.
   Now the lock **breathes**: the sun eases gently to one side of its hold time and back on a slow

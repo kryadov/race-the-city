@@ -595,7 +595,7 @@ async function loadCity(query: string): Promise<void> {
     detail.add(buildManholes(normalRoads, provider)) // iron covers down the street centrelines
     roadDetailMesh = detail
     roadDetailMesh.visible = getRoadDetail()
-    const waterMesh = buildWater(world.water, provider)
+    const waterMesh = buildWater(world.water, provider, world.waterHoles)
     // Cache each body's surface height once, so bubbles know how high to rise.
     waterLevels = world.water
       .filter((r) => r.length >= 3)

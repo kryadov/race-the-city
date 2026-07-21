@@ -125,6 +125,7 @@ Built from the real map around you:
   windows, doors and signage, and **glowing windows at night**.
 - **Water** — rivers (incl. big multipolygon rivers like the Neva), reservoirs, and a flat sea
   along the coast, with **boats, ships, yachts and sailing boats** sized to the water available.
+  **Islands** in a river or lake read as land — the water is cut around them, not painted over.
 - **Greenery** — parks, woods and grass, with **trees whose kind follows latitude** (palms in
   the Mediterranean band, firs up north) and a **real spread of heights** — saplings and shrubs
   through to the odd giant, so a stand reads as a mix rather than one cloned size — plus fountains,

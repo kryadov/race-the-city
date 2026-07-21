@@ -52,6 +52,11 @@ export interface WorldData {
   roads: Road[]
   buildings: Building[]
   water: Vec2[][]
+  /** Islands within water bodies — the `inner` rings of water multipolygons. Cut
+   * as holes in the water surface so the island's ground shows instead of being
+   * painted over. Kept apart from `water` (which stays outer-rings-only) so boats,
+   * pedestrians and the barriers that consume `water` are untouched. */
+  waterHoles: Vec2[][]
   green: Vec2[][]
   /** Wooded tracts (`natural=wood`, `landuse=forest`) — a subset of `green`, so
    * the ground still tints under them; carried apart so greenery.ts can fill them
