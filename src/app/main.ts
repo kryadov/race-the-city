@@ -35,6 +35,7 @@ import { createMinimap } from '../ui/minimap'
 import { createRoadLabels } from '../ui/roadLabels'
 import { createTouchControls } from '../ui/touchControls'
 import { createPauseButton } from '../ui/pauseButton'
+import { createMenuButton } from '../ui/menuButton'
 import { createHelpOverlay } from '../ui/helpOverlay'
 import { pickRandomCity } from './cities'
 import { createAutopilot } from './autopilot'
@@ -1491,6 +1492,8 @@ const menu = createMenu(
   },
 )
 theme.onChange = (m) => menu.setViewMode(m)
+// A ☰ button to open the menu — the only way in on touch, where there's no Esc.
+createMenuButton(ui, () => menu.toggle())
 
 /**
  * Whether a building stands between the car and the camera. Walks the sight line

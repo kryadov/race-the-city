@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.143.4 — a ☰ button to open the menu (mobile fix)
+- **BUG (mobile):** there was no way to open the menu on a touch device — it opened only with **Esc**,
+  which a phone doesn't have, and everything (settings, city, mode, About) lives inside the menu. A
+  **☰ button** now sits in the top-right corner, next to the pause and ? buttons, and opens the menu
+  on a tap. Esc still works on desktop; close the menu from its own Resume/Play as before.
+- 👀 On a phone (or any browser), the top-right corner now has three buttons — ⏸, ?, ☰ — and ☰ opens
+  the menu.
+
 ## v0.143.3 — parked cars are solid too
 - Completing the sweep: **parked cars** (the ones filling car parks) were solid to the AI but not to
   you — you drove straight through them. Each now has a car-sized solid box in the physics grid, so
