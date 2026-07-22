@@ -82,4 +82,10 @@ describe.runIf(asset)('the shipped demo asset (public/demo/paris.json)', () => {
     const n = asset!.segments + 1
     expect(asset!.heights.length).toBe(n * n)
   })
+
+  it('names the Seine, so crossing it shows the river label', () => {
+    const demo = parseDemoAsset(asset!)
+    const world = parseOsm(demo.osm, new Projector(demo.center))
+    expect(world.waterNames.some((w) => /seine/i.test(w.name))).toBe(true)
+  })
 })

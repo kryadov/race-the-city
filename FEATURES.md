@@ -183,6 +183,8 @@ Built from the real map around you:
 
 - **Speedometer / HUD** — km/h gauge, odometer, km or miles; sized to match the minimap.
 - **Minimap** of roads, buildings, water and greenery around you.
+- **Street & river names** float over the world near you (toggle in Settings) — road names in white,
+  river and lake names in soft blue, so crossing a bridge in Paris shows *La Seine*.
 - **Settings menu** (⚙) with collapsible groups: city, vehicle, weather, quality, shadows,
   camera zoom, road detail, HUD, road labels, units, language, and more.
 - **Language** — English, Russian, Spanish, German and French, picked from the menu or auto-detected

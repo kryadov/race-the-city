@@ -83,4 +83,13 @@ export interface WorldData {
   busStops: Vec2[]
   /** Signposted points of interest: cafés, fuel stations and landmarks. */
   pois: Poi[]
+  /** Named water bodies (rivers, lakes) — a name and a label anchor (the body's
+   *  centroid), so a crossing can be labelled "La Seine". One entry per name. */
+  waterNames: NamedPlace[]
+}
+
+/** A named place with a single anchor point — a river/lake label sits here. */
+export interface NamedPlace {
+  name: string
+  at: Vec2
 }

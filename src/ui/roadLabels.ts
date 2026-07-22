@@ -1,19 +1,22 @@
 import * as THREE from 'three'
-import type { Road } from '../geo/types'
+import type { NamedPlace, Road } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import type { DeckIndex } from '../world/bridge'
 
 const MAX_DIST = 220 // metres from the car to show a label
 const MAX_LABELS = 14 // cap concurrently drawn labels
 const LABEL_UP = 1 // metres above the surface the name floats
+const ROAD_COLOR = '#fff'
+const WATER_COLOR = '#bfe3ff' // a soft blue, so a river name reads as water, not a street
 
 interface Label {
   name: string
   pos: THREE.Vector3
+  color: string
 }
 
 export interface RoadLabels {
-  setWorld(roads: Road[], provider: ElevationProvider, decks?: DeckIndex): void
+  setWorld(roads: Road[], provider: ElevationProvider, decks?: DeckIndex, waterNames?: NamedPlace[]): void
   setEnabled(on: boolean): void
   update(camera: THREE.Camera, carX: number, carZ: number): void
 }
@@ -54,7 +57,7 @@ export function createRoadLabels(root: HTMLElement): RoadLabels {
   const ndc = new THREE.Vector3()
 
   return {
-    setWorld(roads, provider, decks) {
+    setWorld(roads, provider, decks, waterNames = []) {
       const byName = new Map<string, Label>()
       for (const road of roads) {
         if (!road.name || road.points.length < 2 || byName.has(road.name)) continue
@@ -62,6 +65,18 @@ export function createRoadLabels(root: HTMLElement): RoadLabels {
         byName.set(road.name, {
           name: road.name,
           pos: new THREE.Vector3(mid.x, labelHeight(road, mid.x, mid.z, provider, decks), mid.z),
+          color: ROAD_COLOR,
+        })
+      }
+      // River/lake names float over the water at their anchor (a soft blue so they
+      // read as water). A road of the same name wins the slot — the street you
+      // drive is the one you want named.
+      for (const w of waterNames) {
+        if (byName.has(w.name)) continue
+        byName.set(w.name, {
+          name: w.name,
+          pos: new THREE.Vector3(w.at.x, provider.heightAt(w.at.x, w.at.z) + LABEL_UP, w.at.z),
+          color: WATER_COLOR,
         })
       }
       labels = [...byName.values()]
@@ -95,7 +110,7 @@ export function createRoadLabels(root: HTMLElement): RoadLabels {
         ctx.lineWidth = 3
         ctx.strokeStyle = 'rgba(0,0,0,.7)'
         ctx.strokeText(l.name, sx, sy)
-        ctx.fillStyle = '#fff'
+        ctx.fillStyle = l.color
         ctx.fillText(l.name, sx, sy)
       }
     },

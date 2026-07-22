@@ -244,6 +244,76 @@ describe('parseOsm — water islands (inner rings)', () => {
   })
 })
 
+describe('parseOsm — named water', () => {
+  const world = parseOsm(
+    {
+      elements: [
+        // A named lake as a closed way.
+        { type: 'node', id: 41, lat: 41.70, lon: 44.80 },
+        { type: 'node', id: 42, lat: 41.70, lon: 44.81 },
+        { type: 'node', id: 43, lat: 41.71, lon: 44.81 },
+        { type: 'node', id: 44, lat: 41.71, lon: 44.80 },
+        { type: 'way', id: 401, nodes: [41, 42, 43, 44, 41], tags: { natural: 'water', name: 'Lake Test' } },
+        // A named river as a water multipolygon relation (how big rivers arrive).
+        { type: 'node', id: 51, lat: 41.72, lon: 44.80 },
+        { type: 'node', id: 52, lat: 41.72, lon: 44.83 },
+        { type: 'node', id: 53, lat: 41.73, lon: 44.83 },
+        { type: 'node', id: 54, lat: 41.73, lon: 44.80 },
+        { type: 'way', id: 501, nodes: [51, 52, 53, 54, 51] },
+        {
+          type: 'relation', id: 601,
+          members: [{ type: 'way', ref: 501, role: 'outer' }],
+          tags: { natural: 'water', type: 'multipolygon', name: 'Big River' },
+        },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+
+  it('names both a water way and a water relation, each anchored inside its own body', () => {
+    expect(world.waterNames.map((w) => w.name).sort()).toEqual(['Big River', 'Lake Test'])
+    for (const w of world.waterNames) {
+      const inSomeBody = world.water.some((ring) => pointInPolygon(w.at.x, w.at.z, ring))
+      expect(inSomeBody, w.name).toBe(true) // the label anchor sits on the water
+    }
+  })
+
+  it('does not name a tiny water body (a fountain basin), only rivers and lakes', () => {
+    // A ~6m-wide named "fountain" tagged natural=water: below the span gate.
+    const w = parseOsm(
+      {
+        elements: [
+          { type: 'node', id: 71, lat: 41.7000, lon: 44.8000 },
+          { type: 'node', id: 72, lat: 41.7000, lon: 44.80007 },
+          { type: 'node', id: 73, lat: 41.70005, lon: 44.80007 },
+          { type: 'node', id: 74, lat: 41.70005, lon: 44.8000 },
+          { type: 'way', id: 70, nodes: [71, 72, 73, 74, 71], tags: { natural: 'water', name: 'Fontaine' } },
+        ],
+      } as OverpassResponse,
+      projector,
+    )
+    expect(w.water.length).toBe(1) // it's still water…
+    expect(w.waterNames).toEqual([]) // …but too small to earn a floating name
+  })
+
+  it('leaves unnamed water out of the name list', () => {
+    const w = parseOsm(
+      {
+        elements: [
+          { type: 'node', id: 1, lat: 0, lon: 0 },
+          { type: 'node', id: 2, lat: 0, lon: 0.01 },
+          { type: 'node', id: 3, lat: 0.01, lon: 0.01 },
+          { type: 'node', id: 4, lat: 0.01, lon: 0 },
+          { type: 'way', id: 10, nodes: [1, 2, 3, 4, 1], tags: { natural: 'water' } },
+        ],
+      } as OverpassResponse,
+      projector,
+    )
+    expect(w.water.length).toBe(1)
+    expect(w.waterNames).toEqual([])
+  })
+})
+
 describe('classifySurface', () => {
   it('maps cropland tags to farmland', () => {
     expect(classifySurface({ landuse: 'farmland' })).toBe('farmland')

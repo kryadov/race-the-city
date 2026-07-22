@@ -247,6 +247,9 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
   const surfaces: Surface[] = []
   const coast: Vec2[][] = []
   const railWays: { nodes: number[]; tram: boolean; tunnel: boolean }[] = []
+  // Named water bodies, first anchor per name — a river is often many ways/one
+  // relation sharing "La Seine"; we label it once, at that first body's centroid.
+  const waterNamed = new Map<string, Vec2>()
 
   for (const el of json.elements) {
     if (el.type !== 'way' || !el.nodes || el.nodes.length < 2) continue
@@ -276,7 +279,12 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       coast.push(points) // linear boundary between land and sea
     } else if (isWater(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
-      if (ring.length >= 3) water.push(ring)
+      if (ring.length >= 3) {
+        water.push(ring)
+        if (tags.name && span(ring) >= MIN_NAMED_WATER_SPAN && !waterNamed.has(tags.name)) {
+          waterNamed.set(tags.name, centroid(ring))
+        }
+      }
     } else if (isParking(tags)) {
       const ring = points.length > 2 ? points.slice(0, closedRingLength(points)) : points
       if (ring.length >= 3) parking.push(ring)
@@ -350,14 +358,23 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       if (mem.role === 'inner') inners.push(ns)
       else if (!mem.role || mem.role === 'outer') outers.push(ns)
     }
+    const relWaterPts: Vec2[] = [] // outer points of this water relation, for its label anchor
     for (const ringIds of stitchRings(outers)) {
       const pts = ringToPoints(ringIds, nodes)
       if (!pts) continue
-      if (asWater) water.push(pts)
+      if (asWater) {
+        water.push(pts)
+        for (const p of pts) relWaterPts.push(p)
+      }
       if (asForest) {
         green.push(pts)
         forests.push(pts)
       }
+    }
+    // Big rivers (the Seine, the Neva) arrive as one named relation — label it at
+    // the centroid of its outer rings, once per name.
+    if (asWater && tags.name && span(relWaterPts) >= MIN_NAMED_WATER_SPAN && !waterNamed.has(tags.name)) {
+      waterNamed.set(tags.name, centroid(relWaterPts))
     }
     // Islands: an inner ring of a WATER body is land the surface must not paint
     // over, so carry it as a hole to cut. (Forest clearings are left for now — a
@@ -397,7 +414,8 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     )
   }
 
-  return { roads, buildings, water, waterHoles, green, forests, parking, pitches, fields, surfaces, trees, props, coast, railways, benches, busStops, pois }
+  const waterNames = [...waterNamed.entries()].map(([name, at]) => ({ name, at }))
+  return { roads, buildings, water, waterHoles, green, forests, parking, pitches, fields, surfaces, trees, props, coast, railways, benches, busStops, pois, waterNames }
 }
 
 /** Skip a relation with more members than this — a whole-river monster. */
@@ -422,6 +440,23 @@ function centroid(points: Vec2[]): Vec2 {
     cz += p.z
   }
   return { x: cx / points.length, z: cz / points.length }
+}
+
+/**
+ * The wider of a ring's bounding-box sides, metres. Used to tell a river or lake
+ * (hundreds of metres) from a named fountain basin (a few metres) so only the
+ * former earns a floating name — a labelled fountain every few paces is clutter.
+ */
+const MIN_NAMED_WATER_SPAN = 40
+function span(points: Vec2[]): number {
+  let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity
+  for (const p of points) {
+    if (p.x < minX) minX = p.x
+    if (p.x > maxX) maxX = p.x
+    if (p.z < minZ) minZ = p.z
+    if (p.z > maxZ) maxZ = p.z
+  }
+  return Math.max(maxX - minX, maxZ - minZ)
 }
 
 /** Drop points that share a grid cell, keeping the first seen — a cheap spatial

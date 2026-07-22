@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.142.0 — rivers and lakes get their names
+- **Named water bodies now show their name** — floating over the water in a soft blue (so it reads as
+  water, not a street), on the same labels layer as the road names (toggle: Settings → Street names).
+  In the Paris demo, crossing the river now shows **La Seine**. Big rivers that arrive as a single OSM
+  multipolygon relation (the Seine, the Neva) are named as well as simple lake ways. Tiny named
+  "water" (fountain basins) is left unlabelled — only bodies wider than ~40m earn a name.
+- 👀 With street names on, drive over a bridge in the Paris demo: **La Seine** should appear over the river.
+
 ## v0.141.2 — pedestrians walk the river islands again
 - **BUG:** the walk logic counted an island inside a river as water (it read only the outer outline),
   so pedestrians on an island in the middle of a water body — the whole **Île de la Cité** in the

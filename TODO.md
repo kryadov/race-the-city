@@ -474,8 +474,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [x] Railways, bridges, tunnels — done in v0.15.0 (bridges are decorative raised decks; you still drive on terrain)
 - [x] **Drivable bridges** — profiled decks that meet the ground at both ends, with railings and
       piers; markings and lamps ride the deck — done in v0.69.0
-- [ ] **Name the rivers** — `roadLabels` only labels roads; a bridge is worth crossing when you
-      can see what it crosses. Waiting on relation-mapped rivers arriving at all (above).
+- [x] **Name the rivers** — ✅ SHIPPED v0.142.0: `parse.ts` collects named water bodies (ways +
+      multipolygon relations like the Seine) into `WorldData.waterNames` (name + centroid anchor, span
+      ≥40m so fountains are skipped); `roadLabels.setWorld` draws them in soft blue over the water. The
+      Paris demo shows **La Seine**. Tested (parse extraction + a demo-asset "names the Seine" guard).
 - [x] **Bridge road labels sit on the terrain** — ✅ v0.133.1: `roadLabels.ts` `labelHeight(road, x, z,
       provider, decks)` uses the bridge DECK height for a bridge road (falling back to ground where no
       deck covers the point), so a bridge's name rides its carriageway instead of floating below. `setWorld`
