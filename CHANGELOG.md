@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.143.3 — parked cars are solid too
+- Completing the sweep: **parked cars** (the ones filling car parks) were solid to the AI but not to
+  you — you drove straight through them. Each now has a car-sized solid box in the physics grid, so
+  you bump them like anything else, and it's height-gated so a jump still clears one. Nothing on the
+  map you can see is a ghost anymore.
+- 👀 Drive into a car park: you should knock against the parked cars, not glide through them.
+
 ## v0.143.2 — bot motorcycles and cyclists are solid too
 - Following the buses: **bot motorcycles and cyclists were also ghosts** you drove straight through.
   Both now carry a solid collision circle, so you bump them like any other vehicle instead of passing

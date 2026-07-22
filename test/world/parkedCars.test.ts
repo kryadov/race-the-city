@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import {
-  buildParkedCars, collectParkedCars, PARKED_CAR_CAP, PER_LOT_CAP, BODY_Y,
+  buildParkedCars, collectParkedCars, parkedCarColliders, PARKED_CAR_CAP, PER_LOT_CAP, BODY_Y, PARKED_CAR_TOP,
 } from '../../src/world/parkedCars'
 import { bayLines } from '../../src/world/parking'
 import { pointInPolygon } from '../../src/physics/collide'
@@ -91,6 +91,35 @@ describe('collectParkedCars', () => {
 
   it('parks nothing without a lot', () => {
     expect(collectParkedCars([], testRng(7))).toEqual([])
+  })
+})
+
+describe('parkedCarColliders', () => {
+  const cars = [
+    { x: 10, z: 20, angle: 0, tint: 0 },
+    { x: -30, z: 5, angle: Math.PI / 3, tint: 1 },
+  ]
+
+  it('makes one solid box per parked car, each around its own car', () => {
+    const { footprints, tops } = parkedCarColliders(cars)
+    expect(footprints.length).toBe(cars.length)
+    expect(tops.length).toBe(cars.length)
+    for (let i = 0; i < cars.length; i++) {
+      expect(footprints[i].length).toBe(4) // a rectangle
+      expect(pointInPolygon(cars[i].x, cars[i].z, footprints[i])).toBe(true) // the car sits inside its box
+      expect(tops[i]).toBe(PARKED_CAR_TOP) // height-gated so a jump clears it
+    }
+  })
+
+  it('sizes the box to the car — a point a whole car-length away is outside it', () => {
+    const [box] = parkedCarColliders([{ x: 0, z: 0, angle: 0, tint: 0 }]).footprints
+    expect(pointInPolygon(0, 0, box)).toBe(true)
+    expect(pointInPolygon(10, 0, box)).toBe(false) // 10m off, well clear of a 4.4m car
+    expect(pointInPolygon(0, 10, box)).toBe(false)
+  })
+
+  it('is empty for no cars', () => {
+    expect(parkedCarColliders([]).footprints).toEqual([])
   })
 })
 

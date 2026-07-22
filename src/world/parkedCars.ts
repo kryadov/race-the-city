@@ -82,6 +82,35 @@ export interface ParkedCar {
  * Bays already sit inside their polygon (bayLines rejects any that don't), so a
  * placed car is inside by construction.
  */
+/** A jumping car clears a parked one — the collider is height-gated to this. */
+export const PARKED_CAR_TOP = 1.5
+
+/**
+ * A solid footprint (a rotated rectangle the car's own size) per parked car, plus
+ * each one's clearance height, for the physics grid — so the player collides with
+ * parked cars instead of driving through them (the bots already avoid them), while
+ * a jump still clears one. Pure, so it's tested without the grid.
+ */
+export function parkedCarColliders(cars: ParkedCar[]): { footprints: Vec2[][]; tops: number[] } {
+  const footprints: Vec2[][] = []
+  const tops: number[] = []
+  const hl = CAR_L / 2
+  const hw = CAR_W / 2
+  for (const c of cars) {
+    const cos = Math.cos(c.angle)
+    const sin = Math.sin(c.angle)
+    // Local rectangle corners (±half-length along the car, ±half-width across),
+    // rotated by its yaw into world space.
+    const corner = (lx: number, lz: number): Vec2 => ({
+      x: c.x + lx * cos - lz * sin,
+      z: c.z + lx * sin + lz * cos,
+    })
+    footprints.push([corner(hl, hw), corner(hl, -hw), corner(-hl, -hw), corner(-hl, hw)])
+    tops.push(PARKED_CAR_TOP)
+  }
+  return { footprints, tops }
+}
+
 export function collectParkedCars(parking: Vec2[][], rand: () => number): ParkedCar[] {
   const cars: ParkedCar[] = []
   for (const ring of parking) {

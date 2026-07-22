@@ -133,7 +133,7 @@ import { createDip, stepDip, makeHoleQuery, type DipState } from '../vehicle/pot
 import { buildWater, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
 import { buildPitches } from '../world/pitches'
-import { buildParkedCars, collectParkedCars, makeRng as parkedRng, SEED as PARKED_SEED } from '../world/parkedCars'
+import { buildParkedCars, collectParkedCars, parkedCarColliders, makeRng as parkedRng, SEED as PARKED_SEED } from '../world/parkedCars'
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery, type TreePerch } from '../world/greenery'
 import { buildStreetFurniture } from '../world/streetFurniture'
@@ -711,10 +711,13 @@ async function loadCity(query: string): Promise<void> {
     // Buildings a road/rail cuts through are already replaced by their carved
     // remainders in `archways.footprints`/`.tops` (parallel), so the corridor is
     // open in the grid while the rest of the building stays solid.
+    // Parked cars are solid to the player too (bots already avoid them) — a
+    // rotated box each, height-gated so a jump clears them.
+    const parkedColliders = parkedCarColliders(parkedCarList)
     grid = new SpatialGrid(
-      archways.footprints.concat(propFootprints(world.props), piers.footprints),
+      archways.footprints.concat(propFootprints(world.props), piers.footprints, parkedColliders.footprints),
       25,
-      archways.tops.concat(propTops(world.props, provider), piers.tops),
+      archways.tops.concat(propTops(world.props, provider), piers.tops, parkedColliders.tops),
     )
     // On the nearest road, not on the spot the geocoder named: a geocoder names
     // a place, and Tokyo's is a building — you started inside it, against a wall.
