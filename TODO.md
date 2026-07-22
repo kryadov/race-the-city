@@ -104,9 +104,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **BUG — car can drive through the waterfront railing** — the new embankment railing (набережная)
       looks great and bubbles are great, but the railing/curb has no collision; add a soft one-way
       barrier so the car can't cross into the water (but can drive back out if it got in).
-- [ ] **Birds — varied natural colours + rare white crow** — give birds a range of natural plumage
-      colours (not all one), and occasionally spawn a white crow/raven.
-- [ ] **Motorcycle bots** — add bot motorcycles to the traffic.
+- [x] **Birds — varied natural colours + rare white crow** — ✅ ALREADY DONE: `birds.ts` `pickPlumage`
+      picks from an 8-tone natural palette (sparrow brown, slate, crow black, dun…) with a ~4.5% white
+      crow; pure + tested (`test/app/birds.test.ts`).
+- [x] **Motorcycle bots** — ✅ ALREADY DONE: `createMotorcycles` (src/app/motorcycles.ts) runs bot
+      motorbikes through the traffic, wired in main.ts alongside cars/buses/cyclists.
 - [ ] **Shopfronts / storefront windows** — render shop and service-business frontages on ground
       floors of buildings (glazed retail fronts, signage) where OSM tags a shop/amenity.
 
