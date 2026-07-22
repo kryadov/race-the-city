@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createTraffic, lightClearance, MAX_WAIT_S, type SignalSource } from '../../src/app/traffic'
+import { createTraffic, lightClearance, oncomingFlinch, MAX_WAIT_S, type SignalSource } from '../../src/app/traffic'
 import { createPedestrians } from '../../src/app/pedestrians'
 import { buildDecks, createDeckIndex } from '../../src/world/bridge'
 import type { Road, Vec2 } from '../../src/geo/types'
@@ -69,6 +69,49 @@ describe('traffic', () => {
     expect(scene.children.length).toBe(1)
     t.dispose()
     expect(scene.children.length).toBe(0)
+  })
+})
+
+describe('oncomingFlinch — the head-on reaction rule', () => {
+  // Player at the origin driving +x (heading 0) at speed. An oncoming car faces -x
+  // (yaw = π). "Ahead" is +x; the player's right is +z.
+  const FAST = 15
+  const PI = Math.PI
+
+  it('flinches an oncoming car close ahead in your path', () => {
+    const push = oncomingFlinch(0, 0, 0, FAST, 20, 1, PI) // 20m ahead, 1m to the right, facing back
+    expect(push).not.toBeNull()
+    // the nudge is purely sideways (perpendicular to the +x heading), not fore/aft
+    expect(Math.abs(push!.pushX)).toBeLessThan(1e-9)
+    expect(Math.abs(push!.pushZ)).toBeGreaterThan(0)
+    // and toward the side it already leans (right, +z)
+    expect(push!.pushZ).toBeGreaterThan(0)
+  })
+
+  it('leaves a car going the same way as you alone', () => {
+    expect(oncomingFlinch(0, 0, 0, FAST, 20, 0, 0)).toBeNull() // yaw 0 = same direction
+  })
+
+  it('ignores a car behind you', () => {
+    expect(oncomingFlinch(0, 0, 0, FAST, -20, 0, PI)).toBeNull()
+  })
+
+  it('ignores a car well off to the side (another lane over)', () => {
+    expect(oncomingFlinch(0, 0, 0, FAST, 20, 12, PI)).toBeNull()
+  })
+
+  it('ignores a car too far ahead to matter yet', () => {
+    expect(oncomingFlinch(0, 0, 0, FAST, 200, 0, PI)).toBeNull()
+  })
+
+  it('does nothing when you are crawling — you must be bearing down on it', () => {
+    expect(oncomingFlinch(0, 0, 0, 2, 20, 1, PI)).toBeNull()
+  })
+
+  it('pushes a dead-ahead car to one side rather than not at all', () => {
+    const push = oncomingFlinch(0, 0, 0, FAST, 20, 0, PI) // exactly on the line
+    expect(push).not.toBeNull()
+    expect(Math.abs(push!.pushZ)).toBeGreaterThan(0)
   })
 })
 

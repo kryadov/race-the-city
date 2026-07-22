@@ -1089,6 +1089,9 @@ async function loadCity(query: string): Promise<void> {
         // (not last frame's) when it decides whether to hold at a junction.
         trafficLights?.update(dt)
         traffic?.update(dt, car.x, car.z, night, trains?.obstacles())
+        // Oncoming cars flinch aside when you barrel head-on at them (only the
+        // player drives, so this is off during attract/replay/pause).
+        if (!frozen) traffic?.reactToDriver(car.x, car.z, car.heading, fwd)
         people?.update(dt, car.x, car.z)
         boats?.update(dt)
         livingParking?.update(dt)

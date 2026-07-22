@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.143.0 — oncoming traffic flinches out of your way
+- **Bear down head-on on an oncoming car and it now flinches aside** — nudging toward its own kerb to
+  get out of your path, rather than holding its line to a crash. It only reacts when you're genuinely
+  driving at it (fast enough, close ahead, roughly on its line, and it's facing back toward you), so a
+  car you're merely following never twitches. The reaction rides the same eased knockback a ram uses,
+  so it's smooth — and since the bot cars are one instanced draw, this (not a headlight flash) is the
+  cue that reads.
+- 👀 On a two-way street, aim straight at an oncoming car at speed: it should swerve a little toward
+  the kerb as you close, then carry on.
+
 ## v0.142.0 — rivers and lakes get their names
 - **Named water bodies now show their name** — floating over the water in a soft blue (so it reads as
   water, not a street), on the same labels layer as the road names (toggle: Settings → Street names).

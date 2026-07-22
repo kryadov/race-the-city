@@ -139,6 +139,44 @@ const MAX_KNOCK = 3
 const SHOVE_REACH = 6
 
 /**
+ * Oncoming cars flinch aside when you bear down on them head-on. Bot cars are one
+ * InstancedMesh, so a per-car headlight flash is out; the reaction rides the same
+ * knockback offset a shove uses (tx/tz), nudging the car toward its own kerb so it
+ * gets out of your way. It fires only when you're actually driving AT an oncoming
+ * car — fast enough, close ahead, roughly in its path, and it's facing back toward
+ * you — so a car you're merely following never twitches.
+ */
+const FLINCH_MIN_SPEED = 9 // m/s (~32 km/h): below this you aren't bearing down
+const FLINCH_REACH = 34 // how far ahead an oncoming car reacts, metres
+const FLINCH_WIDTH = 4.5 // how far off your line it can be and still flinch, metres
+const FLINCH_ONCOMING = 0.2 // headings must oppose by more than this (dot < -0.2 ≈ >100° apart)
+const FLINCH_PUSH = 0.9 // metres of sideways nudge added to its knockback target
+
+/**
+ * How an oncoming bot at (ax,az,ayaw) flinches from a driver at (px,pz) heading
+ * `ph` at `speed` — the sideways push to add to its knockback, or null if it has
+ * no business reacting (you're slow, it's behind you, off to the side, or driving
+ * the same way as you). Pure, so the head-on rule is tested without the sim.
+ */
+export function oncomingFlinch(
+  px: number, pz: number, ph: number, speed: number,
+  ax: number, az: number, ayaw: number,
+): { pushX: number; pushZ: number } | null {
+  if (!(speed >= FLINCH_MIN_SPEED)) return null
+  const fx = Math.cos(ph), fz = Math.sin(ph)
+  const relx = ax - px, relz = az - pz
+  const ahead = relx * fx + relz * fz
+  if (ahead <= 0 || ahead > FLINCH_REACH) return null // behind you, or too far ahead
+  const rx = -fz, rz = fx // the driver's right
+  const lateral = relx * rx + relz * rz
+  if (Math.abs(lateral) > FLINCH_WIDTH) return null // not in your path
+  const bfx = Math.cos(ayaw), bfz = Math.sin(ayaw)
+  if (fx * bfx + fz * bfz > -FLINCH_ONCOMING) return null // same-ish way: not oncoming
+  const side = lateral >= 0 ? 1 : -1 // shove further to whichever side it already leans
+  return { pushX: rx * side * FLINCH_PUSH, pushZ: rz * side * FLINCH_PUSH }
+}
+
+/**
  * What a street actually looks like: mostly white, silver, grey and black, with
  * the odd colour. A rank of primary-coloured cars reads as a toy box.
  */
@@ -193,6 +231,13 @@ export interface Traffic {
    * traffic agents, so they're untouched by construction.
    */
   scatter(x: number, z: number, radius: number, strength: number): void
+  /**
+   * The player is driving at `speed` from (x,z) heading `heading`: oncoming cars
+   * close ahead in their path flinch aside (via the same eased knockback as a
+   * shove). Returns how many reacted this call, so the caller can react in turn
+   * (e.g. a honk). Same-direction and out-of-path cars are left alone.
+   */
+  reactToDriver(x: number, z: number, heading: number, speed: number): number
   setEnabled(on: boolean): void
   dispose(): void
 }
@@ -589,6 +634,23 @@ export function createTraffic(
           a.tz *= MAX_KNOCK / k
         }
       }
+    },
+    reactToDriver(x, z, heading, speed) {
+      let flinched = 0
+      for (const a of agents) {
+        const p = place(a)
+        const push = oncomingFlinch(x, z, heading, speed, p.x + a.kx, p.z + a.kz, a.yaw)
+        if (!push) continue
+        a.tx += push.pushX
+        a.tz += push.pushZ
+        const k = Math.hypot(a.tx, a.tz)
+        if (k > MAX_KNOCK) {
+          a.tx *= MAX_KNOCK / k
+          a.tz *= MAX_KNOCK / k
+        }
+        flinched++
+      }
+      return flinched
     },
     setEnabled(on) {
       group.visible = on

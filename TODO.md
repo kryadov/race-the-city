@@ -288,10 +288,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [x] **Fuel-consumption setting + per-vehicle thirst** — ✅ v0.116.0 per-vehicle thirst (`THIRST` +
       `thirstOf`) + ✅ v0.119.0 burn-rate control (⚙ Options fuel button cycles off/×0.5/×1/×1.6 via
       `getFuelRate`/`setFuelRate`, scaling `burn`). Tested in `fuel.test.ts` + `prefs.test.ts`.
-- [ ] **Oncoming traffic reacts to you** — a car approaching head-on in the opposite lane can
-      **flash its headlights and give a honk** as it passes (occasionally, not every time). Needs
-      `traffic.ts` to spot a car closing on the player in the oncoming lane and fire a brief
-      headlight-flash + a horn sound (reuse the audio bus).
+- [x] **Oncoming traffic reacts to you** — ✅ SHIPPED v0.143.0 (flinch): `traffic.reactToDriver` +
+      pure `oncomingFlinch` nudge an oncoming car aside when you bear down head-on (fast, close ahead,
+      on its line, facing back). Rides the shove knockback; main.ts calls it each frame (not frozen).
+      NOTE headlight-flash is blocked (bot cars are one InstancedMesh); honk deferred (a bot honk wants
+      spatial audio at the bot, not the player's horn) — the flinch is the InstancedMesh-safe cue.
 - [ ] **More realistic helicopter/hover vehicle** — the hover/helicopter (🛸/🚁) should look and
       behave more like a real helicopter: a proper body + spinning main & tail rotors, nose-down tilt
       when moving, a little bob at hover. Vehicle model (`vehicle/models`) + hover physics/visual.
