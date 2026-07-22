@@ -45,6 +45,9 @@ interface Placed {
   x: number
   z: number
   yaw: number
+  /** Force a seated figure regardless of the random occupancy roll — the waterside
+   *  benches are there to be sat on (watching the water). Undefined → roll for it. */
+  seated?: boolean
 }
 
 /** Squared distance from (x,z) to segment a-b. */
@@ -122,12 +125,16 @@ export function buildStreetFurniture(
   rand: () => number = Math.random,
   water: Vec2[][] = [],
   waterHoles: Vec2[][] = [],
+  waterside: { x: number; z: number; yaw: number }[] = [],
 ): THREE.Group {
   const group = new THREE.Group()
   // Drop anything mapped out over the water — a bench that sits in the river reads
   // as floating. Ones on the bank or on an island (a water hole) are kept.
   const dry = (spots: Vec2[]): Vec2[] => spots.filter((s) => !isOverWater(s.x, s.z, water, waterHoles))
-  const placedBenches = place(dry(benches), roads, BENCH_CAP, rand)
+  // Waterside benches come pre-placed (facing the water) and always occupied — add
+  // them to the street benches so they share the one instanced draw.
+  const watersideSeats: Placed[] = waterside.map((w) => ({ x: w.x, z: w.z, yaw: w.yaw, seated: true }))
+  const placedBenches = [...place(dry(benches), roads, BENCH_CAP, rand), ...watersideSeats]
   const placedStops = place(dry(busStops), roads, BUSSTOP_CAP, rand)
   if (placedBenches.length) addBenches(group, placedBenches, provider, rand)
   if (placedStops.length) addBusStops(group, placedStops, provider)
@@ -161,7 +168,7 @@ function addBenches(group: THREE.Group, benches: Placed[], provider: ElevationPr
   for (let i = 0; i < n; i++) {
     const b = benches[i]
     const yaw = b.yaw // parallel to the road when roadside, else free (see `place`)
-    const sit = rand() < OCCUPANCY
+    const sit = b.seated ?? rand() < OCCUPANCY // waterside benches are always occupied
     q.setFromAxisAngle(UP, yaw)
     pos.set(b.x, provider.heightAt(b.x, b.z), b.z)
     m.compose(pos, q, one)

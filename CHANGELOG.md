@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.144.0 — benches along the water, with people watching it
+- **Embankment benches** now line the water's edge — down the Seine, round a lake — each set back on
+  the bank, facing out over the water, **with someone sitting on it** enjoying the view. They ride the
+  same instanced draw as the street benches (no extra cost), are kept on dry land (never in the water,
+  and an island counts as land), and are capped so a long river doesn't get a solid rank of seats.
+- The full "walk up and sit down" is a follow-up; this places the benches and the people on them.
+- 👀 In the Paris demo, drive the riverside: benches facing the Seine, each with a figure sat watching.
+
 ## v0.143.4 — a ☰ button to open the menu (mobile fix)
 - **BUG (mobile):** there was no way to open the menu on a touch device — it opened only with **Esc**,
   which a phone doesn't have, and everything (settings, city, mode, About) lives inside the menu. A

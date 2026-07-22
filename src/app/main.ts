@@ -138,6 +138,7 @@ import { buildParkedCars, collectParkedCars, parkedCarColliders, makeRng as park
 import { buildProps, propFootprints, propTops } from '../world/props'
 import { buildGreenery, type TreePerch } from '../world/greenery'
 import { buildStreetFurniture } from '../world/streetFurniture'
+import { watersideBenchSpots } from '../world/watersideBenches'
 import { buildInfill } from '../world/infill'
 import { buildPoiMarkers } from '../world/poiMarkers'
 import { buildSea } from '../world/sea'
@@ -651,7 +652,9 @@ async function loadCity(query: string): Promise<void> {
     // The exact fixed-seed set buildParkedCars just drew, so traffic can avoid them (same seed → same cars).
     const parkedCarList = collectParkedCars(world.parking, parkedRng(PARKED_SEED))
     const propsMesh = buildProps(world.props, provider)
-    const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider, Math.random, world.water, world.waterHoles)
+    // Benches along the embankments, facing the water — someone always sat on them.
+    const watersideBenches = watersideBenchSpots(world.water, world.waterHoles, RADIUS, Math.random)
+    const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider, Math.random, world.water, world.waterHoles, watersideBenches)
     const poiMesh = buildPoiMarkers(world.pois, provider)
     const { object: greenMesh, perches: greenPerches } = buildGreenery(world.green, world.trees, provider, center.lat, world.forests, world.props.map((p) => p.at)) // keep trees off statues/fountains
     // Fill the bare ground between buildings with the odd bench and clump of trees.

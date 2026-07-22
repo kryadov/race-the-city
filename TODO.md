@@ -196,9 +196,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [x] **BUG — pedestrians walk across the bottom of water** — people path straight through lakes/
       ponds instead of going around. Need the pedestrian walk in `people.ts`/`pedestrians` to treat
       water polygons as obstacles (avoid/route around), the way traffic avoids buildings.
-- [ ] **Bench-sitting by the water** — place benches beside lakes and have pedestrians **walk up,
-      sit down, sit a while, stand and leave** (a small state machine: approach → sit → idle → rise →
-      wander off). Ties into the water-avoidance work above and the existing `streetFurniture` benches.
+- [~] **Bench-sitting by the water** — PARTLY SHIPPED v0.144.0: `watersideBenchSpots` places benches
+      along the water's edge (on land via `isOverWater`, facing the water, capped), rendered by
+      `streetFurniture` as forced-occupied benches — so people sit by the water watching it. STILL OPEN
+      (follow-up): the **walk up → sit → idle → rise → wander off** state machine (currently the sitter
+      is static). Facing math is self-consistent + tested; confirm on-screen it reads right.
 - [ ] **BUG — birds sometimes perch in mid-air** — a perched bird occasionally floats with nothing
       under it. Likely a TREE perch (TREE_PERCH_H≈4.5m) with the render offset (ox/oz ±3.5m) putting
       the bird out beyond the canopy, worsened by PERCH_SCATTER snapping to distant/absent trees.

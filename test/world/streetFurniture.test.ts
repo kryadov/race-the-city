@@ -65,6 +65,16 @@ describe('buildStreetFurniture', () => {
     expect(inst(g, 'bench-frame')!.count).toBe(2)
   })
 
+  it('always seats a figure on the waterside benches, whatever the occupancy roll', () => {
+    // Two waterside benches, and an rng that always rolls EMPTY (0.99 > OCCUPANCY).
+    // A normal bench would carry no one; the waterside ones are there for the view,
+    // so both are occupied.
+    const waterside = [{ x: 10, z: 0, yaw: 0 }, { x: 20, z: 0, yaw: 1 }]
+    const g = buildStreetFurniture([], [], [], flat, () => 0.99, [], [], waterside)
+    expect(inst(g, 'bench-frame')!.count).toBe(2) // the two waterside benches
+    expect(inst(g, 'figure-torso')!.count).toBe(2) // both seated, despite the empty roll
+  })
+
   it('builds one instanced draw per part, sized to the inputs', () => {
     const g = buildStreetFurniture(grid(24), grid(9), [], flat, makeRng(1))
     expect(inst(g, 'bench-frame')!.count).toBe(24)
