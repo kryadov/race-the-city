@@ -28,6 +28,19 @@ describe('motorcycles', () => {
     expect(motoGroups(scene).length).toBeGreaterThan(0)
   })
 
+  it('exposes a solid obstacle circle per bike, at the bike, so the car cannot pass through', () => {
+    const scene = new THREE.Scene()
+    const m = createMotorcycles(scene, grid, flat, () => 0.5)
+    m.update(0.016, false)
+    const bikes = motoGroups(scene)
+    expect(m.obstacles().length).toBe(bikes.length)
+    // each circle sits on its bike
+    for (const g of bikes) {
+      const near = m.obstacles().some((c) => Math.hypot(c.x - g.position.x, c.z - g.position.z) < 0.01 && c.r > 0)
+      expect(near).toBe(true)
+    }
+  })
+
   it('survives a city with no roads at all', () => {
     const scene = new THREE.Scene()
     const m = createMotorcycles(scene, [], flat, () => 0.5)

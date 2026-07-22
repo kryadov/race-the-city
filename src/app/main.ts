@@ -939,6 +939,8 @@ async function loadCity(query: string): Promise<void> {
         const hazards: Circle[] = [
           ...(traffic?.obstacles() ?? []),
           ...(buses?.obstacles() ?? []),
+          ...(motorcycles?.obstacles() ?? []),
+          ...(cyclists?.obstacles() ?? []),
           ...(people?.obstacles() ?? []),
           ...(trains?.obstacles() ?? []),
         ].filter((h) => Math.abs(carY - provider.heightAt(h.x, h.z)) < HAZARD_CLEAR)

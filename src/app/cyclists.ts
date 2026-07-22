@@ -3,9 +3,12 @@ import type { Road } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { groundQuat } from '../terrain/slope'
 import { buildRoadGraph, nextNode, roomToDrive, type RoadGraph } from '../world/roadGraph'
+import type { Circle } from '../physics/collide'
 
 /** A few riders threading the city — quiet company on the kerb side, not a peloton. */
 const COUNT = 6
+/** A cyclist's solid radius — small, so the car clips rather than wall-stops on one. */
+const CYCLIST_R = 0.7
 /** How often a rider is started on a cycle lane when the city has any (0..1). Most
  *  of the time, so the riders read as belonging to the lanes; the rest fall on any
  *  road so a city with few marked lanes still has cyclists dotted about. */
@@ -99,6 +102,8 @@ const mat = (c: number): THREE.MeshStandardMaterial =>
 
 export interface Cyclists {
   update(dt: number, night: boolean): void
+  /** One small solid circle per rider, so the car can't drive through them. */
+  obstacles(): Circle[]
   dispose(): void
 }
 
@@ -349,6 +354,9 @@ export function createCyclists(
   const xAxis = new THREE.Vector3(1, 0, 0)
 
   return {
+    obstacles() {
+      return riders.map((r) => ({ x: r.group.position.x, z: r.group.position.z, r: CYCLIST_R }))
+    },
     dispose() {
       scene.remove(group)
       group.traverse((o) => {

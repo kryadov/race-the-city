@@ -3,9 +3,12 @@ import type { Road } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { groundQuat } from '../terrain/slope'
 import { buildRoadGraph, nextNode, roomToDrive, type RoadGraph } from '../world/roadGraph'
+import type { Circle } from '../physics/collide'
 
 /** A few bikes threading the city — nippier company for the traffic, not a pack. */
 const COUNT = 5
+/** A motorbike's solid radius — narrow and short, so one circle covers it. */
+const MOTORCYCLE_R = 1.0
 /**
  * Metres right of the centreline a bike keeps. Narrower than the cars' lane (see
  * traffic.ts) and much narrower than a bus's: a motorbike sits nearer the kerb
@@ -54,6 +57,8 @@ const mat = (c: number): THREE.MeshStandardMaterial =>
 
 export interface Motorcycles {
   update(dt: number, night: boolean): void
+  /** One solid circle per bike, so the car can't drive through them. */
+  obstacles(): Circle[]
   dispose(): void
 }
 
@@ -255,6 +260,9 @@ export function createMotorcycles(
   const xAxis = new THREE.Vector3(1, 0, 0)
 
   return {
+    obstacles() {
+      return bikes.map((b) => ({ x: b.group.position.x, z: b.group.position.z, r: MOTORCYCLE_R }))
+    },
     dispose() {
       scene.remove(group)
       group.traverse((o) => {

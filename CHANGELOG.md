@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.143.2 — bot motorcycles and cyclists are solid too
+- Following the buses: **bot motorcycles and cyclists were also ghosts** you drove straight through.
+  Both now carry a solid collision circle, so you bump them like any other vehicle instead of passing
+  through. Now every mover on the road — cars, buses, motorbikes, cyclists, pedestrians, trains —
+  is something you actually hit.
+- 👀 Aim at a bot motorbike or cyclist: you should clip it, not phase through.
+
 ## v0.143.1 — buses are solid now
 - **BUG:** buses had no collision at all — you drove clean through them and they through you, unlike
   the bot cars. Buses now block the car: an 11m bus is too long for a single circle, so it carries a

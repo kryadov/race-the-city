@@ -34,6 +34,19 @@ describe('cyclists', () => {
     const c = createCyclists(scene, [], flat, () => 0.5)
     expect(() => c.update(0.016, false)).not.toThrow()
     expect(cyclistGroups(scene).length).toBe(0)
+    expect(c.obstacles()).toEqual([]) // no riders → nothing solid
+  })
+
+  it('exposes a solid obstacle circle per rider so the car cannot pass through', () => {
+    const scene = new THREE.Scene()
+    const c = createCyclists(scene, grid, flat, () => 0.5)
+    c.update(0.016, false)
+    const riders = cyclistGroups(scene)
+    expect(riders.length).toBeGreaterThan(0)
+    expect(c.obstacles().length).toBe(riders.length)
+    for (const g of riders) {
+      expect(c.obstacles().some((o) => Math.hypot(o.x - g.position.x, o.z - g.position.z) < 0.01 && o.r > 0)).toBe(true)
+    }
   })
 
   it('rides them along the streets', () => {
