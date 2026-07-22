@@ -97,7 +97,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       2026-07-21): main.ts filters the moving hazards (traffic + people + trains) by
       `Math.abs(car.y − provider.heightAt(h.x,h.z)) < HAZARD_CLEAR` before resolving, so a bot ~10m below
       (you flying over it, or up on a bridge deck above the road) is dropped from collision.
-- [ ] **RPM tachometer dial** — above the speedometer, an engine-RPM dial (same round-gauge style),
+- [x] **RPM tachometer dial** — above the speedometer, an engine-RPM dial (same round-gauge style),
       driven from engine load/speed. (`src/ui/hud.ts` + a `hud.setRpm` wired in main.ts.)
 - [ ] **Pedestrians can walk the bridge decks** — let pedestrians route over bridge crossings/decks,
       not just ground roads (they currently stay on the ground under the bridge).
@@ -128,11 +128,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       a more natural palette (a few wood/painted tones) and add **a couple of different handle types**
       (knob, lever/bar) so doors read properly. (Door geometry lives with the building facades /
       entrances — `src/world/entrances.ts` / `buildings.ts`.)
-- [ ] **Fill the gaps between houses** — where there are no roads or other objects between buildings
+- [x] **Fill the gaps between houses** — where there are no roads or other objects between buildings
       it's bare; scatter at least **a couple of benches and some trees** into those empty inter-building
       gaps so the space isn't blank. Place only where nothing else already is (roads/props/water).
 
-- [ ] **BUG — nitro spawns beyond the map edge** — nitro (and probably fuel) pickups appear outside
+- [x] **BUG — nitro spawns beyond the map edge** — nitro (and probably fuel) pickups appear outside
       the drivable map. They scatter on road vertices (`pickups.ts` setSpots / pickSpot), and some
       roads run past the map bound — clamp candidate spots to within the world radius (drop or pull in
       any spot outside `RADIUS`/bounds) so no pickup sits off the edge.
@@ -142,7 +142,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       area is 4× the OSM + geometry, so it MUST stay performant — lean on the existing per-type caps,
       subsample/LOD distant detail, and cull. Ties into the São Paulo bbox/query work. Measure frame
       time before/after. Design carefully before building — likely a brainstorm item.
-- [ ] **BUG — benches gone from streets** — across several cities the user no longer sees any
+- [x] **BUG — benches gone from streets** — across several cities the user no longer sees any
       street benches (park ones may be ok). Regression suspect: `streetFurniture.ts` roadside
       placement caps/`nearestRoad`/ROADSIDE_DIST — check they're actually being placed and drawn
       (and that `world.benches` is populated from OSM `amenity=bench`). Not touched by any live agent.
@@ -193,7 +193,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       ROWBOAT_ROOM (14m) AND the 40m whole-map sampling grid stepped right over small ponds. Added a
       fine per-ring bbox rescue sweep down to a new `MIN_ROOM` (6m) floor when the coarse sweep finds
       nothing, so a genuine pond now floats a rowboat. `test/app/boats.test.ts` locks it.
-- [ ] **BUG — pedestrians walk across the bottom of water** — people path straight through lakes/
+- [x] **BUG — pedestrians walk across the bottom of water** — people path straight through lakes/
       ponds instead of going around. Need the pedestrian walk in `people.ts`/`pedestrians` to treat
       water polygons as obstacles (avoid/route around), the way traffic avoids buildings.
 - [ ] **Bench-sitting by the water** — place benches beside lakes and have pedestrians **walk up,
@@ -264,7 +264,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [ ] **Railway stations with platforms + boarding** — draw rail stops as a **platform** (OSM
       `railway=station`/`halt`/`platform`), with **people standing on it**; a train **pulls up** and
       people **board and alight**. Ties into trains.ts stop logic + pedestrians + a platform mesh.
-- [ ] **Bot buses that stop + board** — add **AI buses** that run routes and **stop at bus stops**
+- [x] **Bot buses that stop + board** — add **AI buses** that run routes and **stop at bus stops**
       (`highway=bus_stop`, already used for street furniture), where **people get on and off**. Bus
       as a traffic agent with dwell-at-stop behaviour + pedestrian board/alight.
 - [x] **Sports grounds** — ✅ v0.126.0: `src/world/pitches.ts` — `leisure=pitch` fields render a marked
@@ -311,7 +311,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [x] **Per-vehicle horn** — ✅ v0.117.0: `HornProfile`/`HORNS` table + `hornProfile(type)` in audio.ts
       (deep air-horn for haulers, sharp parp for sports, thin beep for bikes, soft EV tone, firm
       emergency); `setVehicle` swaps it in and `horn()` plays it. Tested in `audio.test.ts`.
-- [ ] **Collision knocks the OTHER guy back too** — hitting a pedestrian or bot car currently only
+- [x] **Collision knocks the OTHER guy back too** — hitting a pedestrian or bot car currently only
       bounces the PLAYER; the person/car should also be shoved/knocked back (a reaction impulse on the
       struck agent), not stand there immovable. Add a knockback to `people`/`traffic` when the player
       overlaps them at speed.
@@ -325,7 +325,7 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       footprint the car is within `STEP_UP` (0.35m, a wheel-radius) below, so you climb a kerb/ledge/roof
       step instead of hitting a wall; the surface fn then raises the car (ROOF_SNAP). Tested in `collide.test.ts`.
 - [x] **Smooth bot cornering** — v0.110.14: eased yaw toward the edge, arcs through junctions.
-- [ ] **BUG — bot cars drive through each other** — traffic cars overlap and pass straight through
+- [x] **BUG — bot cars drive through each other** — traffic cars overlap and pass straight through
       one another; they should not. Add car-to-car separation in `traffic.ts` — each car checks the
       few ahead on its edge/nearby and slows/holds (or nudges) to keep a gap, so they queue instead
       of merging. Keep it O(cars) (spatial bucket or per-edge ordering), no frame-rate hit. bot cars currently **snap 90° at intersections**; make them **turn
@@ -397,12 +397,12 @@ an effect we already have** — so it satisfies "must not cost frame rate" by co
       main.ts passes `season(new Date(), center.lat).grass`, so park/green lawns tint spring-green /
       summer / autumn-ochre / winter-grey per hemisphere. Vertex tint on the one ground mesh; tested.
       Tree crowns were already done (v0.110.21).
-- [ ] **Tree crowns by season** (already instanced) — spring: a few blossoming white/pink deciduous
+- [x] **Tree crowns by season** (already instanced) — spring: a few blossoming white/pink deciduous
       crowns; summer green; autumn yellow-orange-red; winter bare / snow-dusted. A material tint on
       the existing draw call.
 - [ ] **Snow cover on roofs/ground** in the cold season for northern cities — reuse the existing snow
       shader, switched on by **calendar** by default (not only the weather toggle).
-- [ ] **Pedestrian clothing by season** — the crowd already varies (skirts shipped). Seasonal
+- [x] **Pedestrian clothing by season** — the crowd already varies (skirts shipped). Seasonal
       palettes/sets: winter coats/hats/scarves; summer shorts/tees/sun-hats; rain → an optional
       umbrella prop for the high tier. Texture/colour swap on the existing instanced people, no
       physics change.
@@ -411,7 +411,7 @@ an effect we already have** — so it satisfies "must not cost frame rate" by co
       `surfaceOverrides` map and main.ts passes the seasonal meadow/farmland. Vertex tint, tested.
 
 **Calendar one-offs (date condition + existing assets):**
-- [ ] **New Year fireworks** — the lap-finish fireworks already exist; also trigger them on New
+- [x] **New Year fireworks** — the lap-finish fireworks already exist; also trigger them on New
       Year's night, including over the start screen.
 - [ ] **Halloween pumpkins** at entrances — same instancing pattern as the POI signs.
 - [ ] **Spring sakura** in southern latitudes — blossoming crowns (folds into tree-crowns-by-season).
