@@ -4,6 +4,7 @@ import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { groundQuat } from '../terrain/slope'
 import { buildRoadGraph, nextNode, roomToDrive, type RoadGraph } from '../world/roadGraph'
+import type { Circle } from '../physics/collide'
 
 /** A handful of buses for a whole city — a route or two you actually cross. */
 const COUNT = 4
@@ -63,7 +64,27 @@ const darker = (c: number): number => new THREE.Color(c).multiplyScalar(0.68).ge
 
 export interface Buses {
   update(dt: number, night: boolean): void
+  /** Solid circles for the player to collide with — an 11m bus is too long for
+   *  one, so it's a short row down its body. Without these the car drove clean
+   *  through a bus (and the bus through the car), unlike the bot cars. */
+  obstacles(): Circle[]
   dispose(): void
+}
+
+/** A bus's collision circle radius — a touch over the half-width, so its flanks
+ *  are solid. Three of them down the body cover the length a single car circle can't. */
+const BUS_COLLIDE_R = 1.7
+/** Where those circles sit along the 11m body (front, middle, rear), in metres. */
+const BUS_COLLIDE_OFFS = [-3.7, 0, 3.7]
+
+/**
+ * The solid circles for a bus at (x,z) facing `yaw` — a row down its length, so
+ * the whole body blocks the car, not just its middle. Pure, so it's tested.
+ */
+export function busObstacleCircles(x: number, z: number, yaw: number): Circle[] {
+  const fx = Math.cos(yaw)
+  const fz = Math.sin(yaw)
+  return BUS_COLLIDE_OFFS.map((o) => ({ x: x + fx * o, z: z + fz * o, r: BUS_COLLIDE_R }))
 }
 
 /** A stop, snapped to the road network it must be reached along. */
@@ -447,6 +468,14 @@ export function createBuses(
   const q = new THREE.Quaternion()
 
   return {
+    obstacles() {
+      const out: Circle[] = []
+      for (const b of buses) {
+        const pos = b.group.position
+        out.push(...busObstacleCircles(pos.x, pos.z, b.yaw))
+      }
+      return out
+    },
     dispose() {
       scene.remove(group)
       group.traverse((o) => {

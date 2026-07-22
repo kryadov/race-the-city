@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createBuses } from '../../src/app/buses'
+import { createBuses, busObstacleCircles } from '../../src/app/buses'
 import type { Road, Vec2 } from '../../src/geo/types'
 
 const v = (x: number, z: number): Vec2 => ({ x, z })
@@ -35,12 +35,44 @@ function figureGroups(scene: THREE.Scene): THREE.Group[] {
 
 const posOf = (g: THREE.Group): THREE.Vector3 => g.position.clone()
 
+describe('busObstacleCircles', () => {
+  it('lays a row of solid circles down the bus body along its heading', () => {
+    // Facing +x (yaw 0): three circles strung along x, all on z=0.
+    const cs = busObstacleCircles(10, 5, 0)
+    expect(cs.length).toBe(3)
+    for (const c of cs) {
+      expect(c.z).toBeCloseTo(5) // no lateral spread — all down the centreline
+      expect(c.r).toBeGreaterThan(1.2) // a touch wider than the half-width
+    }
+    const xs = cs.map((c) => c.x).sort((a, b) => a - b)
+    expect(xs[0]).toBeLessThan(10) // one behind the centre…
+    expect(xs[2]).toBeGreaterThan(10) // …one ahead — the body is covered end to end
+    expect(xs[2] - xs[0]).toBeGreaterThan(6) // spanning most of an 11m bus
+  })
+
+  it('turns the row with the heading', () => {
+    // Facing +z (yaw = π/2): the row runs along z instead, all on one x.
+    const cs = busObstacleCircles(0, 0, Math.PI / 2)
+    for (const c of cs) expect(Math.abs(c.x)).toBeLessThan(1e-6)
+    expect(Math.max(...cs.map((c) => c.z)) - Math.min(...cs.map((c) => c.z))).toBeGreaterThan(6)
+  })
+})
+
 describe('buses', () => {
   it('puts buses on the roads', () => {
     const scene = new THREE.Scene()
     const b = createBuses(scene, grid, [], flat, () => 0.5)
     b.update(0.016, false)
     expect(busGroups(scene).length).toBeGreaterThan(0)
+  })
+
+  it('exposes a solid obstacle circle-row per bus for the player to hit', () => {
+    const scene = new THREE.Scene()
+    const b = createBuses(scene, grid, [], flat, () => 0.5)
+    b.update(0.016, false)
+    const buses = busGroups(scene).length
+    expect(buses).toBeGreaterThan(0)
+    expect(b.obstacles().length).toBe(buses * 3) // three circles apiece
   })
 
   it('survives a city with no roads at all', () => {

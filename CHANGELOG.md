@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.143.1 — buses are solid now
+- **BUG:** buses had no collision at all — you drove clean through them and they through you, unlike
+  the bot cars. Buses now block the car: an 11m bus is too long for a single circle, so it carries a
+  short row of three down its body, and the car stops against it (and gets nudged aside if a bus
+  catches it). The bus, being a bus, isn't shoved back.
+- 👀 Drive into a bus: you should thud to a stop against it, not pass through.
+
 ## v0.143.0 — oncoming traffic flinches out of your way
 - **Bear down head-on on an oncoming car and it now flinches aside** — nudging toward its own kerb to
   get out of your path, rather than holding its line to a crash. It only reacts when you're genuinely

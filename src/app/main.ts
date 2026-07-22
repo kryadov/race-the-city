@@ -938,6 +938,7 @@ async function loadCity(query: string): Promise<void> {
         const carY = car.y // local const: a closure over the mutable `car` would de-narrow it
         const hazards: Circle[] = [
           ...(traffic?.obstacles() ?? []),
+          ...(buses?.obstacles() ?? []),
           ...(people?.obstacles() ?? []),
           ...(trains?.obstacles() ?? []),
         ].filter((h) => Math.abs(carY - provider.heightAt(h.x, h.z)) < HAZARD_CLEAR)
