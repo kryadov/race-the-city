@@ -725,7 +725,12 @@ async function loadCity(query: string): Promise<void> {
     )
     // On the nearest road, not on the spot the geocoder named: a geocoder names
     // a place, and Tokyo's is a building — you started inside it, against a wall.
-    const start = startPose(normalRoads, world.buildings.map((b) => b.footprint))
+    const start = startPose(
+      normalRoads,
+      world.buildings.map((b) => b.footprint),
+      world.water,
+      world.waterHoles,
+    )
     car = createCar(start?.x ?? 0, start?.z ?? 0)
     car.heading = start?.heading ?? 0
     car.y = provider.heightAt(car.x, car.z) + (HOVERS[vehicle] ? HOVER_H : 0)

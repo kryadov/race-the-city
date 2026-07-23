@@ -1,5 +1,6 @@
 import type { Road, Vec2 } from '../geo/types'
 import { pointInPolygon } from '../physics/collide'
+import { isOverWater } from './waterArea'
 
 /** Where a drive begins, and which way it is pointing. */
 export interface StartPose {
@@ -38,6 +39,12 @@ const DETOUR_PER_PENALTY = 25
 // Vertices past this much farther than the nearest aren't worth scoring: a clear
 // spot out there is too far from the centre to be worth the walk to reach it.
 const SEARCH_BAND = 120
+// A vertex that sits INSIDE a building or OUT OVER WATER is not a facing problem you
+// can turn away from — you are wedged in the wall, or afloat in the river. Weigh it
+// so heavily that any dry, clear-standing vertex within the band wins, yet keep it
+// finite so a map that offers nothing better still returns the least-bad spot rather
+// than null. 10 km dwarfs the ~120 m band and the ~50 m of facing detour combined.
+const SPOT_PENALTY = 10_000
 
 /** Reflect a heading 180°, kept in (-π, π]. */
 const opposite = (h: number): number => (h > 0 ? h - Math.PI : h + Math.PI)
@@ -56,13 +63,22 @@ const opposite = (h: number): number => (h > 0 ? h - Math.PI : h + Math.PI)
  * face-along-the-road pick.
  *
  * `buildings` are footprint rings (the caller passes each building's footprint).
+ * `water`/`holes` are the water bodies and their islands: a vertex out over open
+ * water is rejected outright — an OSM road can run onto a bridge deck or clip a
+ * riverbank, and dropping the car there floats it or sinks it. `holes` keeps an
+ * island in the water (Île de la Cité) counting as the dry land it is.
  * Returns null when there is nothing to start on; the caller keeps the origin,
  * which is no worse than it was.
  */
-export function startPose(roads: Road[], buildings: Vec2[][] = []): StartPose | null {
+export function startPose(
+  roads: Road[],
+  buildings: Vec2[][] = [],
+  water: Vec2[][] = [],
+  holes: Vec2[][] = [],
+): StartPose | null {
   // Every drivable, above-ground road vertex, with the way's own direction there
   // — the same set the old nearest-vertex pick drew from.
-  type Cand = { x: number; z: number; heading: number; dist: number }
+  type Cand = { x: number; z: number; heading: number; dist: number; bad: boolean }
   const cands: Cand[] = []
   let nearest = Infinity
   for (const road of roads) {
@@ -79,7 +95,7 @@ export function startPose(roads: Road[], buildings: Vec2[][] = []): StartPose | 
       const [a, b]: [Vec2, Vec2] = next === p ? [prev, p] : [p, next]
       const heading = Math.atan2(b.z - a.z, b.x - a.x)
       const dist = Math.hypot(p.x, p.z)
-      cands.push({ x: p.x, z: p.z, heading, dist })
+      cands.push({ x: p.x, z: p.z, heading, dist, bad: false })
       if (dist < nearest) nearest = dist
     }
   }
@@ -113,17 +129,36 @@ export function startPose(roads: Road[], buildings: Vec2[][] = []): StartPose | 
     return pen
   }
 
+  // Is this vertex a place you can't turn out of — standing in a wall, or afloat
+  // over open water? Computed once per candidate; it decides the band's centre and
+  // carries the heavy SPOT_PENALTY in the score below.
+  const hasWater = water.some((ring) => ring.length >= 3)
+  const spotBad = (x: number, z: number): boolean =>
+    insideAny(x, z) || (hasWater && isOverWater(x, z, water, holes))
+  for (const c of cands) c.bad = spotBad(c.x, c.z)
+
+  // Recentre the search band on the nearest CLEAN vertex, not the nearest vertex
+  // outright: when the geocoder drops you on a riverbank or in a wall, the nearest
+  // vertex is the bad one, and centring on it would band-out the dry road just past
+  // it. With no bad spots this is exactly `nearest`, so the old pick is unchanged.
+  let nearestClean = Infinity
+  for (const c of cands) {
+    if (!c.bad && c.dist < nearestClean) nearestClean = c.dist
+  }
+  const centre = Number.isFinite(nearestClean) ? nearestClean : nearest
+
   let best: StartPose | null = null
   let bestScore = Infinity
   for (const c of cands) {
-    if (c.dist > nearest + SEARCH_BAND) continue // too far from the centre to bother
+    if (c.dist > centre + SEARCH_BAND) continue // too far from the centre to bother
     // Try the way's own direction first; flip only if the reverse is strictly
     // clearer, so an open street keeps its natural heading (and an empty
     // `buildings` list reproduces the old face-along-the-road pick exactly).
     const penFwd = facingPenalty(c.x, c.z, c.heading)
     const penRev = facingPenalty(c.x, c.z, opposite(c.heading))
     const heading = penRev < penFwd ? opposite(c.heading) : c.heading
-    const score = c.dist + DETOUR_PER_PENALTY * Math.min(penFwd, penRev)
+    const score =
+      c.dist + DETOUR_PER_PENALTY * Math.min(penFwd, penRev) + (c.bad ? SPOT_PENALTY : 0)
     if (score < bestScore) {
       bestScore = score
       best = { x: c.x, z: c.z, heading }

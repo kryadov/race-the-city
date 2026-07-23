@@ -6,6 +6,20 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.144.1 — spawn on clear, dry road (start-position fix)
+- **BUG (from player reports):** the car sometimes spawned in a bad spot — nose wedged against a
+  house, sat out in the river, or with the view boxed in. The start-position picker avoided buildings
+  you *faced* but never rejected a vertex that sat **inside** a building or **out over water** — it
+  only probed a few metres ahead and behind, so a vertex right in a wall or in the Seine slipped
+  through, and it had no water data at all.
+- Now the picker knows the **water bodies** and each vertex's own ground: a spawn point standing in a
+  building or afloat over open water is weighed down so heavily that any dry, clear-standing vertex on
+  the road wins. An **island** in the water (Île de la Cité) still counts as the dry land it is. The
+  search band recentres on the nearest *clean* vertex, so the dry road just past a wet one isn't
+  filtered out. If a map truly offers nowhere dry, it still returns the least-bad spot (never null).
+- 👀 Load a riverside or dense-centre city (Paris demo): you should start on open road facing a clear
+  street, not stuffed into a wall or bobbing in the water.
+
 ## v0.144.0 — benches along the water, with people watching it
 - **Embankment benches** now line the water's edge — down the Seine, round a lake — each set back on
   the bank, facing out over the water, **with someone sitting on it** enjoying the view. They ride the

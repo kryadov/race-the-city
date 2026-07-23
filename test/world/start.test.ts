@@ -91,4 +91,32 @@ describe('startPose', () => {
     expect(p.x).toBeCloseTo(0)
     expect(p.z).toBeCloseTo(10)
   })
+
+  it('does not drop you out over open water', () => {
+    // The nearest vertex sits in the river; a dry one waits further down the road.
+    const roads: Road[] = [{ kind: 'residential', points: [v(10, 10), v(200, 10)] }]
+    const water: Vec2[][] = [box(-20, -20, 60, 60)] // swallows the (10,10) vertex
+    const p = startPose(roads, [], water)!
+    expect(inBox(p.x, p.z, -20, -20, 60, 60), 'must not spawn over water').toBe(false)
+  })
+
+  it('treats an island in the water as the dry land it is', () => {
+    // The whole area is "water", but the near vertex sits on an island cut out of
+    // it (a waterHole) — that is land, and a valid, close place to start.
+    const roads: Road[] = [{ kind: 'residential', points: [v(10, 10), v(200, 10)] }]
+    const water: Vec2[][] = [box(-100, -100, 300, 100)]
+    const holes: Vec2[][] = [box(0, 0, 40, 40)] // island holding the (10,10) vertex
+    const p = startPose(roads, [], water, holes)!
+    expect(p.x).toBeCloseTo(10)
+    expect(p.z).toBeCloseTo(10)
+  })
+
+  it('still returns the least-bad spot when every vertex is wet', () => {
+    // A map with nowhere dry: we must not hand back null (that keeps the origin,
+    // which may be worse) — pick a vertex and let the caller carry on.
+    const roads: Road[] = [{ kind: 'residential', points: [v(10, 10), v(30, 10)] }]
+    const water: Vec2[][] = [box(-1000, -1000, 1000, 1000)]
+    const p = startPose(roads, [], water)
+    expect(p).not.toBeNull()
+  })
 })
