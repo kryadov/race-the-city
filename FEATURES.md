@@ -130,6 +130,9 @@ Built from the real map around you:
 - **Water** — rivers (incl. big multipolygon rivers like the Neva), reservoirs, and a flat sea
   along the coast, with **boats, ships, yachts and sailing boats** sized to the water available.
   **Islands** in a river or lake read as land — the water is cut around them, not painted over.
+  A stone **embankment quay with a railing** edges the built shores, and the **railing is solid** —
+  you're stopped at the water's edge instead of sliding in — while **bridges stay clear** to drive
+  across and a **jump or hover** still carries you over into the water.
 - **Greenery** — parks, woods and grass, with **trees whose kind follows latitude** (palms in
   the Mediterranean band, firs up north) and a **real spread of heights** — saplings and shrubs
   through to the odd giant, so a stand reads as a mix rather than one cloned size — plus fountains,

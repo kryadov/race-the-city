@@ -6,6 +6,20 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.144.2 — the waterfront railing is solid now (with bridge gaps)
+- **BUG:** the embankment railing (набережная) along a river or lake looked the part but had **no
+  collision** — you drove clean through it and off into the water. The wall existed in code but was
+  kept switched OFF because an earlier version stood it **across bridges too**, an invisible wall you
+  hit driving onto a crossing.
+- It's back on, now that it **carves a gap wherever a road bridges across the shore**: a thin wall
+  runs along every embanked quay edge, EXCEPT the edges a drivable road cuts across (bridge, ramp,
+  slipway), which stay open. A road running *parallel* along the bank doesn't open it — only a genuine
+  crossing does. The wall is **height-gated to the rail's height**: a car on the ground is stopped at
+  the quay, but a **jump or a hover still sails over** into the water. A natural (unembanked) shore
+  stays open on purpose — you sink there, and the bubbles rise.
+- 👀 In the Paris demo, drive at the Seine's stone embankment: you're **stopped at the railing** now
+  instead of gliding through — but drive onto a **bridge** and the crossing is clear, no invisible wall.
+
 ## v0.144.1 — spawn on clear, dry road (start-position fix)
 - **BUG (from player reports):** the car sometimes spawned in a bad spot — nose wedged against a
   house, sat out in the river, or with the view boxed in. The start-position picker avoided buildings

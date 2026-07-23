@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Vec2 } from '../geo/types'
+import type { Road, Vec2 } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { roomAt } from './area'
 import { pointInPolygon } from '../physics/collide'
@@ -25,6 +25,24 @@ const EMB_LIP = 0.5
  */
 const BARRIER_W = 0.6
 const BARRIER_IN = 0.15
+/**
+ * How high the quayside wall stands above the BANK it sits on, metres. The grid
+ * gates on an absolute top and lets a car whose own height is at/above it through,
+ * so the wall has to clear the ground the car stands on RIGHT THERE — key it off the
+ * bank height, not the waterline, or a car parked on a tall embankment (bank metres
+ * above the water) would sit over a low wall and roll straight through into the
+ * river. Tall enough to stop a grounded car (well over the grid's STEP_UP), low
+ * enough that a JUMP or a HOVER still sails over — the wall is a kerb, not a ceiling.
+ */
+const BARRIER_WALL_H = 1.2
+/**
+ * A road that crosses the shore is a bridge or a ramp INTO the water — a slipway,
+ * a ford, a bridge approach. Walling it is the old "invisible wall across the
+ * bridge" bug, so any shore edge a drivable road cuts across gets no wall: the
+ * crossing stays open. Footpaths don't gap it (you don't drive a car onto a
+ * footbridge), matching the undrivable set the start-pose picker uses.
+ */
+const UNCROSSED = new Set(['path'])
 /**
  * Embankment stone — a warm grey tuned to sit with the grass and tarmac (NOT red
  * brick), with a darker band below the waterline reading as a wet tide-mark, so a
@@ -348,8 +366,84 @@ function embanksEdge(a: Vec2, b: Vec2, level: number, provider: ElevationProvide
  * the water, `BARRIER_W` onto the bank) so a car already a hair past the lip is
  * nudged back rather than trapped out over the water.
  */
-export function waterBarriers(water: Vec2[][], provider: ElevationProvider): Vec2[][] {
-  const bars: Vec2[][] = []
+/**
+ * Do the segments p1→p2 and p3→p4 properly cross? True only when each straddles
+ * the other's line (opposite-signed orientations at both ends) — a clean X, not a
+ * shared endpoint or a colinear touch. That is exactly "a road cuts across this
+ * shore edge": a bridge or ramp passing from bank to water. A road running PARALLEL
+ * along the bank never straddles a shore edge, so a riverside road doesn't gap the
+ * wall — only a genuine crossing does.
+ */
+function segmentsCross(p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2): boolean {
+  const side = (a: Vec2, b: Vec2, c: Vec2): number =>
+    (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x)
+  const d1 = side(p3, p4, p1)
+  const d2 = side(p3, p4, p2)
+  const d3 = side(p1, p2, p3)
+  const d4 = side(p1, p2, p4)
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))
+}
+
+/**
+ * Solid footprints walling off the quayside, and how high each stands: one thin
+ * quad per embanked shore edge, for the physics grid to push the car out of so it
+ * can't cross the railing into the water. For each water ring we walk its edges
+ * and, on exactly the edges that carry the stone embankment (`embanksEdge` — the
+ * bank stands proud there), lay a rectangle a few decimetres deep along the edge on
+ * the BANK side of the waterline. Edges where the bank sits at or below the water
+ * get nothing, so a natural open-water shore stays drivable into — the car sinks
+ * and the bubbles rise, which we keep.
+ *
+ * `roads` carve the gaps that made this safe to switch on at last: any shore edge a
+ * drivable road (a bridge, a ramp, a slipway) crosses is LEFT OPEN, so the wall no
+ * longer stands invisibly across a bridge — the regression that took it out before.
+ *
+ * `tops[i]` is the absolute height of `footprints[i]`'s wall (the local bank height
+ * + BARRIER_WALL_H): the grid gates on it, so a grounded car is stopped but a jump or
+ * a hover clears it — and, keyed off the bank, a tall embankment walls just as well.
+ *
+ * Pure and deterministic — plain arrays, no THREE, no elevation beyond the reads
+ * `embanksEdge`/`waterLevel` make. The quad straddles the waterline (`BARRIER_IN`
+ * into the water, `BARRIER_W` onto the bank) so a car already a hair past the lip is
+ * nudged back rather than trapped out over the water.
+ */
+export function waterBarriers(
+  water: Vec2[][],
+  provider: ElevationProvider,
+  roads: Road[] = [],
+): { footprints: Vec2[][]; tops: number[] } {
+  // Every drivable road segment, once — a shore edge that any of these cross is a
+  // crossing (bridge/ramp) and gets no wall. Bounded by its own bbox for a cheap
+  // reject before the exact straddle test.
+  type Seg = { a: Vec2; b: Vec2; minX: number; maxX: number; minZ: number; maxZ: number }
+  const segs: Seg[] = []
+  for (const road of roads) {
+    if (UNCROSSED.has(road.kind)) continue
+    for (let i = 0; i + 1 < road.points.length; i++) {
+      const a = road.points[i]
+      const b = road.points[i + 1]
+      segs.push({
+        a,
+        b,
+        minX: Math.min(a.x, b.x),
+        maxX: Math.max(a.x, b.x),
+        minZ: Math.min(a.z, b.z),
+        maxZ: Math.max(a.z, b.z),
+      })
+    }
+  }
+  const crossedByRoad = (a: Vec2, b: Vec2): boolean => {
+    const minX = Math.min(a.x, b.x), maxX = Math.max(a.x, b.x)
+    const minZ = Math.min(a.z, b.z), maxZ = Math.max(a.z, b.z)
+    for (const s of segs) {
+      if (s.maxX < minX || s.minX > maxX || s.maxZ < minZ || s.minZ > maxZ) continue
+      if (segmentsCross(a, b, s.a, s.b)) return true
+    }
+    return false
+  }
+
+  const footprints: Vec2[][] = []
+  const tops: number[] = []
   for (const ring of water) {
     if (ring.length < 3) continue
     const level = waterLevel(ring, provider)
@@ -368,6 +462,7 @@ export function waterBarriers(water: Vec2[][], provider: ElevationProvider): Vec
       const a = ring[i]
       const b = ring[(i + 1) % ring.length]
       if (!embanksEdge(a, b, level, provider)) continue
+      if (crossedByRoad(a, b)) continue // a bridge/ramp runs across here — leave it open
       // Outward-pointing unit normal (away from the water interior), fixed by the
       // winding: rotate the edge direction a quarter turn, the way `orient` says.
       const dx = b.x - a.x
@@ -377,13 +472,17 @@ export function waterBarriers(water: Vec2[][], provider: ElevationProvider): Vec
       const oz = (orient * -dx) / len
       // A rectangle hugging the edge: back into the water by BARRIER_IN, out onto
       // the bank by BARRIER_W, wound around the two shifted edge endpoints.
-      bars.push([
+      footprints.push([
         { x: a.x - ox * BARRIER_IN, z: a.z - oz * BARRIER_IN },
         { x: b.x - ox * BARRIER_IN, z: b.z - oz * BARRIER_IN },
         { x: b.x + ox * BARRIER_W, z: b.z + oz * BARRIER_W },
         { x: a.x + ox * BARRIER_W, z: a.z + oz * BARRIER_W },
       ])
+      // Stand the wall above the higher of the edge's two bank ends, so it clears
+      // the ground a car drives up on — a tall quay walls as surely as a low one.
+      const bank = Math.max(provider.heightAt(a.x, a.z), provider.heightAt(b.x, b.z))
+      tops.push(bank + BARRIER_WALL_H)
     }
   }
-  return bars
+  return { footprints, tops }
 }

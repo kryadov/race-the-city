@@ -131,7 +131,7 @@ import { buildBridges, pierFootprints, type PierCollider } from '../world/bridge
 import { buildRoadDetail, LAMP_MAT, POOL_MAT } from '../world/roadDetail'
 import { buildManholes, openManholesOf } from '../world/manholes'
 import { createDip, stepDip, makeHoleQuery, type DipState } from '../vehicle/pothole'
-import { buildWater, waterLevel } from '../world/water'
+import { buildWater, waterBarriers, waterLevel } from '../world/water'
 import { buildParking } from '../world/parking'
 import { buildPitches } from '../world/pitches'
 import { buildParkedCars, collectParkedCars, parkedCarColliders, makeRng as parkedRng, SEED as PARKED_SEED } from '../world/parkedCars'
@@ -705,13 +705,15 @@ async function loadCity(query: string): Promise<void> {
     // Fountains and statues are as solid as walls; the grid takes polygons. It
     // takes their heights too, so a car with a jump in it can clear a bungalow
     // instead of being stopped in mid-air by ground it is nowhere near.
-    // NOTE: waterfront-railing collision (waterBarriers) is intentionally NOT in
-    // the grid — it walled off whole riverbanks and bridge approaches (invisible
-    // walls). See TODO: it needs road-crossing gaps + to match the drawn rail
-    // before it goes back in. Driving into open water stays allowed for now.
     // Bridge piers are solid to a car on the road BELOW, but not to one on the deck
     // above — pierFootprints caps each at the deck underside and the grid height-gates it.
     const piers = pierFootprints((bridgesMesh.userData.piers ?? []) as PierCollider[])
+    // Waterfront railing collision, switched back on now it carves road-crossing
+    // gaps: a thin wall along every embanked shore edge, EXCEPT where a road bridges
+    // across (no more invisible wall over a bridge). Height-gated to the rail's
+    // height, so a grounded car is stopped at the quay but a jump/hover still sails
+    // over into the water. A natural (unembanked) shore stays open — you sink there.
+    const waterWalls = waterBarriers(world.water, provider, world.roads)
     // Buildings a road/rail cuts through are already replaced by their carved
     // remainders in `archways.footprints`/`.tops` (parallel), so the corridor is
     // open in the grid while the rest of the building stays solid.
@@ -719,9 +721,19 @@ async function loadCity(query: string): Promise<void> {
     // rotated box each, height-gated so a jump clears them.
     const parkedColliders = parkedCarColliders(parkedCarList)
     grid = new SpatialGrid(
-      archways.footprints.concat(propFootprints(world.props), piers.footprints, parkedColliders.footprints),
+      archways.footprints.concat(
+        propFootprints(world.props),
+        piers.footprints,
+        parkedColliders.footprints,
+        waterWalls.footprints,
+      ),
       25,
-      archways.tops.concat(propTops(world.props, provider), piers.tops, parkedColliders.tops),
+      archways.tops.concat(
+        propTops(world.props, provider),
+        piers.tops,
+        parkedColliders.tops,
+        waterWalls.tops,
+      ),
     )
     // On the nearest road, not on the spot the geocoder named: a geocoder names
     // a place, and Tokyo's is a building — you started inside it, against a wall.

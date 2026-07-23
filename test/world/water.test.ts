@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { waterLevel, buildWater, waterBarriers } from '../../src/world/water'
-import type { Vec2 } from '../../src/geo/types'
+import type { Road, Vec2 } from '../../src/geo/types'
 
 const v = (x: number, z: number): Vec2 => ({ x, z }) as Vec2
 
@@ -116,10 +116,11 @@ describe('waterBarriers', () => {
     // level, so the east bank stands proud (embanked) while the west bank is
     // drowned (open water). Only the east edge should get a wall.
     const provider = { heightAt: (x: number) => (x >= 0 ? 5 : -5) }
-    const bars = waterBarriers([basin], provider)
-    expect(bars.length).toBe(1)
+    const { footprints, tops } = waterBarriers([basin], provider)
+    expect(footprints.length).toBe(1)
+    expect(tops.length).toBe(1)
 
-    const quad = bars[0]
+    const quad = footprints[0]
     expect(quad.length).toBe(4) // a rectangle
     // It hugs the east edge (x≈100), on the BANK side — outside the water body,
     // whose interior reaches only to x=100.
@@ -130,24 +131,64 @@ describe('waterBarriers', () => {
     const zs = quad.map((p) => p.z)
     expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(1) // a few decimetres
     expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(200) // spans the edge
+    // The wall stands above the BANK it sits on (east bank ground = 5), not the
+    // waterline, so a car on a tall quay can't sit over it — grounded car stopped,
+    // jump/hover clears. BARRIER_WALL_H = 1.2m over the 5m bank.
+    expect(tops[0]).toBeCloseTo(5 + 1.2)
   })
 
   it('leaves a flush shore unwalled so the car can sink into open water', () => {
     // Ground level with the water everywhere: no bank stands proud, so it is all
     // open water — nothing to wall, and the sinking/bubbles stay reachable.
-    expect(waterBarriers([basin], flat)).toEqual([])
+    expect(waterBarriers([basin], flat)).toEqual({ footprints: [], tops: [] })
   })
 
   it('walls every side of a body sunk into raised ground', () => {
     // A basin dug into a plateau, low only along a thin cross through the middle
     // that sets the water level; all four banks stand well above it.
     const provider = { heightAt: (x: number, z: number) => (Math.abs(x) < 20 || Math.abs(z) < 20 ? -30 : 40) }
-    const bars = waterBarriers([basin], provider)
-    expect(bars.length).toBe(4) // one wall per shore edge
-    for (const quad of bars) expect(quad.length).toBe(4)
+    const { footprints, tops } = waterBarriers([basin], provider)
+    expect(footprints.length).toBe(4) // one wall per shore edge
+    expect(tops.length).toBe(4)
+    for (const quad of footprints) expect(quad.length).toBe(4)
+  })
+
+  it('leaves a gap where a road bridges across the shore', () => {
+    // Every bank stands proud, so bare walls would ring all four edges. A road
+    // runs from the east bank OUT over the water, crossing the east shore edge —
+    // that edge is a bridge approach and must be left open, not walled shut. This
+    // is the old "invisible wall across the bridge" regression, now fixed.
+    const provider = { heightAt: (x: number, z: number) => (Math.abs(x) < 20 || Math.abs(z) < 20 ? -30 : 40) }
+    const bridge: Road = { kind: 'residential', points: [v(130, 0), v(60, 0)] } // crosses x=100 edge
+    const { footprints } = waterBarriers([basin], provider, [bridge])
+    expect(footprints.length).toBe(3) // the east crossing edge is dropped; the other three stand
+    // None of the surviving walls sit on the east edge (x≈100) the bridge crosses.
+    for (const quad of footprints) {
+      const cx = quad.reduce((s, p) => s + p.x, 0) / 4
+      expect(cx).toBeLessThan(90) // west, or a wall on a north/south edge — never the bridged east
+    }
+  })
+
+  it('does NOT gap for a road running parallel along the bank', () => {
+    // A riverside road runs ALONGSIDE the east bank (never crossing the shore) —
+    // it must not delete the wall, or a whole embankment would open up. Only a
+    // genuine crossing gaps it.
+    const provider = { heightAt: (x: number) => (x >= 0 ? 5 : -5) }
+    const quay: Road = { kind: 'residential', points: [v(110, -80), v(110, 80)] } // parallel, on the bank
+    const { footprints } = waterBarriers([basin], provider, [quay])
+    expect(footprints.length).toBe(1) // the east wall still stands
+  })
+
+  it('a footpath does not gap the wall', () => {
+    // You don't drive a car onto a footbridge, so a path crossing keeps its wall
+    // (matching the undrivable set elsewhere).
+    const provider = { heightAt: (x: number, z: number) => (Math.abs(x) < 20 || Math.abs(z) < 20 ? -30 : 40) }
+    const foot: Road = { kind: 'path', points: [v(130, 0), v(60, 0)] }
+    const { footprints } = waterBarriers([basin], provider, [foot])
+    expect(footprints.length).toBe(4) // all four walls stand
   })
 
   it('ignores degenerate rings', () => {
-    expect(waterBarriers([[v(0, 0), v(1, 1)]], flat)).toEqual([])
+    expect(waterBarriers([[v(0, 0), v(1, 1)]], flat)).toEqual({ footprints: [], tops: [] })
   })
 })

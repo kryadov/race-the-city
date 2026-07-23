@@ -101,9 +101,12 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       driven from engine load/speed. (`src/ui/hud.ts` + a `hud.setRpm` wired in main.ts.)
 - [ ] **Pedestrians can walk the bridge decks** — let pedestrians route over bridge crossings/decks,
       not just ground roads (they currently stay on the ground under the bridge).
-- [ ] **BUG — car can drive through the waterfront railing** — the new embankment railing (набережная)
-      looks great and bubbles are great, but the railing/curb has no collision; add a soft one-way
-      barrier so the car can't cross into the water (but can drive back out if it got in).
+- [x] **BUG — car can drive through the waterfront railing** — ✅ FIXED v0.144.2. `waterBarriers`
+      (already built, kept OUT of the grid because it walled off bridges) now carves road-crossing gaps
+      (segment-intersection: a road that *crosses* a shore edge gaps it; one running *parallel* along
+      the bank doesn't) and returns per-wall `tops` keyed off the BANK height (not the waterline, so a
+      tall quay walls too). Wired into the static grid in main.ts; height-gated so a grounded car is
+      stopped but a jump/hover clears. Natural (unembanked) shores stay open — sink + bubbles kept.
 - [x] **Birds — varied natural colours + rare white crow** — ✅ ALREADY DONE: `birds.ts` `pickPlumage`
       picks from an 8-tone natural palette (sparrow brown, slate, crow black, dun…) with a ~4.5% white
       crow; pure + tested (`test/app/birds.test.ts`).
@@ -146,11 +149,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       street benches (park ones may be ok). Regression suspect: `streetFurniture.ts` roadside
       placement caps/`nearestRoad`/ROADSIDE_DIST — check they're actually being placed and drawn
       (and that `world.benches` is populated from OSM `amenity=bench`). Not touched by any live agent.
-- [ ] **BUG — water floats above the ground** in places (screenshot): a river/lake plane sits higher
-      than the terrain of its bank, hovering with a visible edge. Suspect `waterLevel(ring, provider)`
-      in `src/world/water.ts` picking too high a level (e.g. a max instead of the bank minimum), or
-      the water plane not being lowered to the bed. Measure the sampled level vs the surrounding
-      ground, then seat the surface at/just below the bank. (Water module — free of the live agents.)
+- [x] **BUG — water floats above the ground** — ✅ VERIFIED ALREADY DONE (2026-07-23). `waterLevel`
+      samples the bed inside the outline+map and floats at a low quantile (`BED_QUANTILE` 0.15) + a
+      small offset — not a max — and `buildWater` drops a `SKIRT_DROP` vertical skirt from the
+      perimeter down past the ground so there's no daylight under a surface over a sloping bank. Both
+      are unit-tested (`test/world/water.test.ts` — centroid-on-bank, basin-follows-terrain, skirt).
 - [ ] **Waterfront railings + curb** — where a lake/river has an **embankment/quay (набережная)**,
       fence it with a **railing** and a **curb the car can't cross into the water**; but if the car
       DID get in, it can drive back out (one-way soft barrier). Ties into the pedestrian water-avoid
@@ -201,11 +204,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       `streetFurniture` as forced-occupied benches — so people sit by the water watching it. STILL OPEN
       (follow-up): the **walk up → sit → idle → rise → wander off** state machine (currently the sitter
       is static). Facing math is self-consistent + tested; confirm on-screen it reads right.
-- [ ] **BUG — birds sometimes perch in mid-air** — a perched bird occasionally floats with nothing
-      under it. Likely a TREE perch (TREE_PERCH_H≈4.5m) with the render offset (ox/oz ±3.5m) putting
-      the bird out beyond the canopy, worsened by PERCH_SCATTER snapping to distant/absent trees.
-      Measure where floaters perch; fix by keeping the offset within the canopy for tree perches (or
-      only tree-perch when a real tree/canopy is there). birds.ts — free of agents.
+- [x] **BUG — birds sometimes perch in mid-air** — ✅ VERIFIED ALREADY DONE (2026-07-23). `birds.ts`
+      carries each tree perch's crown height on the perch itself (fixes the VERTICAL float over a short
+      tree) and clamps the formation offset to `CANOPY_R` so a bird can't sit out past its canopy (the
+      HORIZONTAL float); a perch with no real tree near falls back to the roof/ground under it. Both
+      failure modes are locked by tests (`test/app/birds.test.ts` — crown-height + within-canopy).
 - [x] **Flowerbed stems** — v0.108.7: blooms on varied-length stems (dome + jitter).
 - [x] **Flowerbed colours + flower shape** — ✅ already shipped (petalled blooms + blue/violet/azure, commit 051b082); regression tests added this session. the blooms currently read as **mushrooms**; give them
       actual **flower shapes** (a small petalled head — a ring of petals around a centre, not a plain
