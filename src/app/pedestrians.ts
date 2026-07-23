@@ -18,6 +18,12 @@ const FAR = 620
 const SPAWN_MIN = 380
 const SPAWN_MAX = 600
 const KERB = 4.4 // metres off the centreline — the pavement, not the carriageway
+/**
+ * How far a walker keeps back from a passing train's body, metres. Added to the
+ * train's own circle radius: within that, the walker stops on the kerb and waits.
+ * A whisker over a stride so someone doesn't drift onto the tracks in a single frame.
+ */
+const TRAIN_CLEAR = 2.5
 const MAX_HOPS = 8
 const SPEED_MIN = 1.1 // m/s: a walk
 const SPEED_MAX = 1.8
@@ -95,8 +101,29 @@ export function dressForSeason(hex: number, name: SeasonName): number {
   return c.getHex()
 }
 
+/**
+ * Is (x, z) within a passing train's reach — its solid circle plus `clear` metres
+ * of standing room? Pure, so the "wait at the crossing, don't walk through the
+ * train" rule is tested on its own. With no trains it's always false and the crowd
+ * walks exactly as before.
+ */
+export function nearTrain(x: number, z: number, trains: Circle[], clear: number): boolean {
+  for (const t of trains) {
+    const dx = x - t.x
+    const dz = z - t.z
+    const reach = t.r + clear
+    if (dx * dx + dz * dz < reach * reach) return true
+  }
+  return false
+}
+
 export interface Pedestrians {
-  update(dt: number, camX: number, camZ: number): void
+  /**
+   * Advance and draw the crowd. `trains` are the passing trains' solid circles
+   * (from `Trains.obstacles()`); a walker whose next step would put it under one
+   * holds on the kerb until the train has gone by, instead of strolling through it.
+   */
+  update(dt: number, camX: number, camZ: number, trains?: Circle[]): void
   /** Where they are, for the player to collide with. */
   obstacles(): Circle[]
   /**
@@ -434,10 +461,28 @@ export function createPedestrians(
       walkers.length = 0
       solidAt.length = 0
     },
-    update(dt, camX, camZ) {
+    update(dt, camX, camZ, trains = []) {
       clock += dt
       solidAt.length = 0
       walkers.forEach((w, i) => {
+        // Hold at the kerb while a train is on top of you: a walker whose CURRENT
+        // spot is within a passing train's reach freezes rather than strolling
+        // through it (level crossings). Their current pavement position is the same
+        // base the shove/render use — advance only when the way is clear. Cheap:
+        // only tested when trains passed any at all, and skipped once a train is far.
+        if (trains.length > 0) {
+          const A0 = graph.nodes[w.at]
+          const B0 = graph.nodes[w.to]
+          const l0 = Math.hypot(B0.x - A0.x, B0.z - A0.z) || 1
+          const f0 = Math.min(1, w.s / l0)
+          const ang0 = Math.atan2(B0.z - A0.z, B0.x - A0.x)
+          const wx = A0.x + (B0.x - A0.x) * f0 + Math.sin(ang0) * KERB * w.side + w.kx
+          const wz = A0.z + (B0.z - A0.z) * f0 - Math.cos(ang0) * KERB * w.side + w.kz
+          if (nearTrain(wx, wz, trains, TRAIN_CLEAR)) {
+            solidAt.push({ x: wx, z: wz, r: 0.4 }) // still solid to the car while they wait
+            return
+          }
+        }
         w.s += w.speed * dt
         // Walk by arc length, carrying the overshoot on — see the note in
         // traffic.ts: a fixed arrival radius fires instantly on the short edges

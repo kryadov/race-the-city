@@ -564,7 +564,10 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
       speed that stays high instead of falling off like the truck's — v0.91.0
 - [x] **Petrol cans** to pick up, in the nitro's style; run low on fuel and the car slows — the
       pickup engine is shared with the nitro rather than copied — v0.89.0
-- [ ] **People walk through trains** — they should wait at the crossing and let them pass
+- [x] **People walk through trains** — ✅ FIXED v0.144.3. `pedestrians.update` now takes the passing
+      trains' solid circles (`Trains.obstacles()`); a walker whose current spot is within a train's
+      reach (`nearTrain` — pure, tested) holds on the kerb (skips its arc-length advance) until the
+      train has passed, staying solid to the car meanwhile. Costs nothing when no train is near.
 - [x] **Benches, empty and with people sitting on them; bus stops** — from OSM `amenity=bench`
       and `highway=bus_stop`; instanced benches (~2 in 5 with a blocky seated figure) and
       two-post bus shelters, neon-styled with the road furniture — v0.96.0

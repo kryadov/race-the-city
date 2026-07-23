@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createPedestrians, dressForSeason } from '../../src/app/pedestrians'
+import { createPedestrians, dressForSeason, nearTrain } from '../../src/app/pedestrians'
 import { buildDecks, createDeckIndex } from '../../src/world/bridge'
 import type { Road, Vec2 } from '../../src/geo/types'
 import type { SeasonName } from '../../src/world/season'
@@ -154,5 +154,61 @@ describe('walking an island in a river', () => {
     const p = createPedestrians(scene, road, flat, () => 0.5, 6, river, 0, undefined, island)
     p.update(0, 0, 0)
     expect(visibleBodies(scene)).toBeGreaterThan(0) // the island is dry land → they stay
+  })
+})
+
+describe('nearTrain', () => {
+  it('is false with no trains — the crowd walks as before', () => {
+    expect(nearTrain(0, 0, [], 2.5)).toBe(false)
+  })
+
+  it('flags a point inside a train circle plus its clearance, and clears once past', () => {
+    const train = [{ x: 10, z: 0, r: 3 }]
+    expect(nearTrain(10, 0, train, 2.5)).toBe(true) // dead on it
+    expect(nearTrain(14.9, 0, train, 2.5)).toBe(true) // 4.9 < r+clear = 5.5
+    expect(nearTrain(16.1, 0, train, 2.5)).toBe(false) // 6.1 > 5.5 — clear
+  })
+})
+
+describe('waiting for a train at a crossing', () => {
+  const v = (x: number, z: number): Vec2 => ({ x, z })
+  const flat = { heightAt: () => 0 }
+  // A long straight road so walkers have room to advance along it.
+  const road: Road[] = [{ points: [v(-300, 0), v(0, 0), v(300, 0)], kind: 'residential' }]
+
+  /** Every walker's current (x,z), read off the solid circles the update exposes. */
+  const spots = (p: ReturnType<typeof createPedestrians>): Vec2[] =>
+    p.obstacles().map((c) => ({ x: c.x, z: c.z }))
+
+  it('holds a walker in place while a train sits on it, then it is free to move', () => {
+    const scene = new THREE.Scene()
+    // A train circle blanketing the whole road, so every walker is under one.
+    const train = [{ x: 0, z: 0, r: 1000 }]
+
+    // Free crowd: identical seed, no train — it advances over the same second.
+    const free = createPedestrians(new THREE.Scene(), road, flat, () => 0.5, 6)
+    free.update(0, 0, 0)
+    const freeStart = spots(free)
+    free.update(1, 0, 0)
+    const freeMoved = spots(free)
+
+    // Held crowd: same seed, but a train covers the road — nobody advances.
+    const held = createPedestrians(scene, road, flat, () => 0.5, 6)
+    held.update(0, 0, 0)
+    const heldStart = spots(held)
+    held.update(1, 0, 0, train)
+    const heldSame = spots(held)
+
+    // The free crowd walked; the held crowd stayed put on its kerb.
+    const moved = freeStart.some((s, i) => Math.hypot(s.x - freeMoved[i].x, s.z - freeMoved[i].z) > 0.5)
+    expect(moved, 'the free crowd should have walked in a second').toBe(true)
+    for (let i = 0; i < heldStart.length; i++) {
+      expect(
+        Math.hypot(heldStart[i].x - heldSame[i].x, heldStart[i].z - heldSame[i].z),
+        'a walker under a train must not advance',
+      ).toBeLessThan(1e-6)
+    }
+    // Held walkers are still solid to the car while they wait.
+    expect(held.obstacles().length).toBe(heldStart.length)
   })
 })

@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.144.3 — people wait for the train instead of walking through it
+- **BUG:** at a level crossing, pedestrians strolled **straight through a passing train** — they had
+  no idea it was there. Now a walker whose spot is under a passing train's body **holds on the kerb**
+  until the train has gone by, then walks on. They stay solid to your car while they wait.
+- It keys off the trains' own collision circles (the same ones your car hits), plus a couple of metres
+  of standing room, so it costs nothing extra and does nothing away from the tracks — the crowd walks
+  exactly as before everywhere else.
+- 👀 Find a **railway level crossing** and watch as a train comes: the people on the pavement stop and
+  wait at the tracks rather than clipping through the carriages.
+
 ## v0.144.2 — the waterfront railing is solid now (with bridge gaps)
 - **BUG:** the embankment railing (набережная) along a river or lake looked the part but had **no
   collision** — you drove clean through it and off into the water. The wall existed in code but was

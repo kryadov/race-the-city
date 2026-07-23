@@ -151,7 +151,8 @@ Built from the real map around you:
 - **Archways** — where a road or railway runs straight through a building, the passage is opened
   (drivable — the car and bots go through, not into a wall) and a **stone arch** stands over it.
 - **Railways** with **trains** — freight, intercity, commuter — running the real lines out of
-  and into tunnel mouths.
+  and into tunnel mouths. At a **level crossing**, people on the pavement **wait for a passing
+  train** instead of walking through it.
 - **Traffic and pedestrians** walking the road graph and pavements around you; **livestock** on
   farmland; **aircraft** crossing the sky (airliner, bizjet, turboprop, helicopter); **birds**
   wheeling in a flock and perching.
