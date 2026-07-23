@@ -99,8 +99,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       (you flying over it, or up on a bridge deck above the road) is dropped from collision.
 - [x] **RPM tachometer dial** — above the speedometer, an engine-RPM dial (same round-gauge style),
       driven from engine load/speed. (`src/ui/hud.ts` + a `hud.setRpm` wired in main.ts.)
-- [ ] **Pedestrians can walk the bridge decks** — let pedestrians route over bridge crossings/decks,
-      not just ground roads (they currently stay on the ground under the bridge).
+- [x] **Pedestrians can walk the bridge decks** — ✅ VERIFIED ALREADY DONE (2026-07-23). `pedestrians.ts`
+      builds its graph from ALL roads (bridges included), recovers which welded edges are bridges
+      (`bridgeEdges`/`onBridge`), and seats a walker on a bridge segment up on the DECK (`decks.heightAt`
+      at the centreline), not the ground under it. Locked by test "seats a walker on a bridge road up on
+      the deck, not the ground under it" (`test/app/pedestrians.test.ts`).
 - [x] **BUG — car can drive through the waterfront railing** — ✅ FIXED v0.144.2. `waterBarriers`
       (already built, kept OUT of the grid because it walled off bridges) now carves road-crossing gaps
       (segment-intersection: a road that *crosses* a shore edge gaps it; one running *parallel* along
