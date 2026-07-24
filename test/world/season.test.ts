@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { season, type SeasonName } from '../../src/world/season'
+import { season, snowCover, type SeasonName } from '../../src/world/season'
 
 /** The season name for a 0-based month at a latitude. Day-of-month is irrelevant
  * — meteorological seasons run on whole calendar months — so we pick the 15th. */
@@ -140,5 +140,32 @@ describe('season() blossom, snow and grass', () => {
     const [, sSat] = hsl(summer.pasture)
     const [, wSat] = hsl(of(0).pasture)
     expect(wSat).toBeLessThan(sSat)
+  })
+})
+
+describe('snowCover', () => {
+  const jan = (lat: number): ReturnType<typeof season> => season(new Date(2026, 0, 15), lat)
+  const jul = (lat: number): ReturnType<typeof season> => season(new Date(2026, 6, 15), lat)
+
+  it('lies no snow outside winter, whatever the latitude', () => {
+    expect(snowCover(jul(60), 60)).toBe(0) // July, far north — high summer, bare
+  })
+
+  it('buries a far-northern winter and spares a warm one', () => {
+    const helsinki = snowCover(jan(60), 60) // deep in the snow band
+    const rome = snowCover(jan(41.9), 41.9) // just inside the ramp — a dusting at most
+    const cairo = snowCover(jan(30), 30) // below the band — bare
+    expect(helsinki).toBeGreaterThan(0.5)
+    expect(cairo).toBe(0)
+    expect(rome).toBeGreaterThan(0)
+    expect(rome).toBeLessThan(helsinki)
+  })
+
+  it('gates by the MAGNITUDE of latitude — a cold southern winter snows too', () => {
+    // July south of 55°S is a proper cold winter; the gate reads |lat|.
+    const ushuaia = snowCover(jul(-55), -55)
+    const saoPaulo = snowCover(jul(-23.5), -23.5) // winter, but subtropical — bare
+    expect(ushuaia).toBeGreaterThan(0.5)
+    expect(saoPaulo).toBe(0)
   })
 })

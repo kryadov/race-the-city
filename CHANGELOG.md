@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.146.0 — snow on the winter ground (northern cities)
+- **Winter now lies snow on the ground** — the bare earth, the park lawns and the fields all come up
+  dusted white, driven by the **calendar** (not only the weather toggle). It's **latitude-gated**: a
+  white Helsinki or Moscow in January, a bare Barcelona in the very same week, and nothing at all in
+  the subtropics — the cover ramps out between ~40° and ~55°, read by the *magnitude* of latitude so a
+  cold southern winter (Ushuaia in July) snows too while São Paulo stays green.
+- The roads laid over the top stay dark, so the streets read as plowed. Reuses the one ground mesh —
+  no extra geometry or draw. **Snow on the roofs is the next step** (this covers the ground).
+- 👀 Load a far-northern city (Helsinki, Moscow, Reykjavík) — the ground is snow-dusted. A summer
+  scene, or a warm-latitude city, looks exactly as before.
+
 ## v0.145.0 — multipolygon buildings (Boston & São Paulo fill in)
 - **BUG:** dense downtowns like **Boston and São Paulo came up almost bare** — roads but hardly any
   buildings. A real share of a big city's footprints are mapped as OSM **building *relations***

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { buildGround, SURFACE_COLORS } from '../../src/world/ground'
+import { buildGround, snowed, SURFACE_COLORS } from '../../src/world/ground'
 import { FlatProvider } from '../../src/terrain/flat'
 import type { Surface, Vec2 } from '../../src/geo/types'
 
@@ -127,5 +127,66 @@ describe('buildGround land-use surfaces', () => {
     const mesh = buildGround(provider, HALF, [rect(-40, -90, -20, 90)], surfaces, SEGMENTS)
     expect(mesh).toBeInstanceOf(THREE.Mesh)
     expect((mesh.material as THREE.MeshStandardMaterial).vertexColors).toBe(true)
+  })
+})
+
+describe('snowed', () => {
+  it('leaves a colour untouched at amount 0, whitens it at 1', () => {
+    const grass = new THREE.Color(0x4c7a42)
+    expect(snowed(grass, 0).getHex()).toBe(grass.getHex())
+    const full = snowed(grass, 1)
+    // At full cover it is (near) the cool snow white — bright on every channel.
+    // (three stores colour linearly, so the sRGB white ~0xf2f4f8 reads ~0.87.)
+    expect(full.r).toBeGreaterThan(0.8)
+    expect(full.g).toBeGreaterThan(0.8)
+    expect(full.b).toBeGreaterThan(0.8)
+  })
+
+  it('does not mutate the input colour', () => {
+    const base = new THREE.Color(0x4c7a42)
+    const hex = base.getHex()
+    snowed(base, 1)
+    expect(base.getHex()).toBe(hex) // the module constants must never be clobbered
+  })
+
+  it('rises monotonically toward white with more snow', () => {
+    const grass = new THREE.Color(0x4c7a42)
+    const light = snowed(grass, 0.3)
+    const heavy = snowed(grass, 0.8)
+    expect(heavy.r).toBeGreaterThan(light.r)
+    expect(heavy.g).toBeGreaterThan(light.g)
+    expect(heavy.b).toBeGreaterThan(light.b)
+  })
+})
+
+describe('buildGround snow cover', () => {
+  it('dusts the whole ground toward white when snow is on', () => {
+    const green: Vec2[][] = [rect(-90, -90, 0, 90)]
+    const surfaces: Surface[] = [{ kind: 'farmland', ring: rect(10, -90, 90, 90) }]
+    const bare = buildGround(provider, HALF, green, surfaces, SEGMENTS)
+    const snowy = buildGround(provider, HALF, green, surfaces, SEGMENTS, new THREE.Color(0x4c7a42), {}, 0.7)
+
+    // None of the bare (summer) tints survive under a heavy snow — base ground,
+    // lawn and field are all lerped toward white.
+    expect(hasColor(snowy, new THREE.Color(0x5a7d4f)), 'bare ground tint gone').toBe(false)
+    expect(hasColor(snowy, new THREE.Color(0x4c7a42)), 'summer grass gone').toBe(false)
+    expect(hasColor(snowy, SURFACE_COLORS.farmland), 'summer farmland gone').toBe(false)
+    // Every snowed colour is brighter than its bare original: overall the mesh
+    // lightened. Compare the mean luminance across all vertices.
+    const meanLum = (m: THREE.Mesh): number => {
+      const col = colorOf(m)
+      let s = 0
+      for (let i = 0; i < col.count; i++) s += col.getX(i) + col.getY(i) + col.getZ(i)
+      return s / col.count
+    }
+    expect(meanLum(snowy)).toBeGreaterThan(meanLum(bare))
+  })
+
+  it('is exactly the bare ground at snow 0 (summer leaves it untouched)', () => {
+    const green: Vec2[][] = [rect(-90, -90, 90, 90)]
+    const a = buildGround(provider, HALF, green, [], SEGMENTS)
+    const b = buildGround(provider, HALF, green, [], SEGMENTS, new THREE.Color(0x4c7a42), {}, 0)
+    expect(distinctColors(a)).toEqual(distinctColors(b))
+    expect(hasColor(b, new THREE.Color(0x4c7a42))).toBe(true) // summer grass intact
   })
 })

@@ -5,6 +5,18 @@ import { pointInPolygon } from '../physics/collide'
 
 const GROUND = new THREE.Color(0x5a7d4f)
 const GREEN = new THREE.Color(0x4c7a42)
+const SNOW = new THREE.Color(0xf2f4f8) // a faintly cool white, not a pure 0xffffff glare
+
+/**
+ * A colour under `amount` (0..1) of snow: the base lerped toward a cool white, so
+ * winter dusts a lawn or a field pale and a full cover buries it. Pure and returns
+ * a fresh colour (the inputs are module constants — never mutate them). `amount` 0
+ * is the colour untouched, so a snow-free season leaves every ground tint as it was.
+ */
+export function snowed(base: THREE.Color, amount: number): THREE.Color {
+  const a = Math.max(0, Math.min(1, amount))
+  return base.clone().lerp(SNOW, a)
+}
 
 /**
  * Flat land-use tints, each a single vertex colour painted over the base ground —
@@ -60,6 +72,10 @@ function boundBox(ring: Vec2[], color: THREE.Color): Box {
  * @param surfaceOverrides seasonal tints for land-use kinds (farmland, meadow),
  *   merged over the year-round {@link SURFACE_COLORS}. Only the kinds given change;
  *   the rest keep their base colour. Omitted → every surface uses its base tint.
+ * @param snow 0..1 winter snow cover: every ground colour — bare earth, lawns,
+ *   fields — is lerped toward a cool white by this much, so a northern city in
+ *   winter comes up dusted (the roads laid over the top stay dark, plowed). 0 (the
+ *   default) leaves the ground exactly as the season painted it.
  */
 export function buildGround(
   provider: ElevationProvider,
@@ -69,25 +85,31 @@ export function buildGround(
   segments = 128,
   grass: THREE.Color = GREEN,
   surfaceOverrides: Partial<Record<SurfaceKind, THREE.Color>> = {},
+  snow = 0,
 ): THREE.Mesh {
-  const surfaceColor = (kind: SurfaceKind): THREE.Color => surfaceOverrides[kind] ?? SURFACE_COLORS[kind]
+  const surfaceColor = (kind: SurfaceKind): THREE.Color =>
+    snowed(surfaceOverrides[kind] ?? SURFACE_COLORS[kind], snow)
   const geo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, segments, segments)
   geo.rotateX(-Math.PI / 2) // XY plane -> XZ ground plane
   const pos = geo.attributes.position as THREE.BufferAttribute
 
   // Surfaces first, park green after: first match wins, so the order is the
-  // priority. Both fold into the one boxes list — a single per-vertex scan.
+  // priority. Both fold into the one boxes list — a single per-vertex scan. Snow
+  // dusts the lawns along with everything else.
+  const snowyGrass = snowed(grass, snow)
   const boxes: Box[] = [
     ...surfaces.map((s) => boundBox(s.ring, surfaceColor(s.kind))),
-    ...green.map((ring) => boundBox(ring, grass)),
+    ...green.map((ring) => boundBox(ring, snowyGrass)),
   ]
+  // The bare-earth base under it all, dusted the same.
+  const baseGround = snowed(GROUND, snow)
 
   const colors = new Float32Array(pos.count * 3)
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i)
     const z = pos.getZ(i)
     pos.setY(i, provider.heightAt(x, z))
-    let c = GROUND
+    let c = baseGround
     for (const b of boxes) {
       if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ && pointInPolygon(x, z, b.ring)) {
         c = b.color

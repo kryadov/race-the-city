@@ -152,6 +152,27 @@ export function season(date: Date, lat: number): Season {
   return SEASONS[nameOf(month)]
 }
 
+// Where winter snow starts and where it's total, degrees of latitude (either
+// hemisphere — `lat` is used by magnitude). Below LO the winters don't lie snow
+// (Rome, Lisbon); above HI they're properly white (Moscow, Helsinki); between, it
+// ramps. So a JULY southern city that `season()` calls winter only gets snow if
+// it's far enough south to be cold — São Paulo (−23°) stays bare, Ushuaia doesn't.
+const SNOW_LAT_LO = 40
+const SNOW_LAT_HI = 55
+
+/**
+ * How thickly snow lies on the ground/roofs here, 0..1: the season's own snow
+ * amount ({@link Season.snow}, non-zero in winter only) scaled down toward the
+ * warmer latitudes so it's calendar-driven but geography-gated — a white Helsinki,
+ * a bare Barcelona, in the very same week. Pure, so the gate is tested on its own.
+ */
+export function snowCover(s: Season, lat: number): number {
+  if (s.snow <= 0) return 0
+  const mag = Math.abs(lat)
+  const ramp = Math.max(0, Math.min(1, (mag - SNOW_LAT_LO) / (SNOW_LAT_HI - SNOW_LAT_LO)))
+  return s.snow * ramp
+}
+
 /** month 0-11 (already hemisphere-flipped) -> season name. */
 function nameOf(month: number): SeasonName {
   if (month <= 1 || month === 11) return 'winter' // Dec, Jan, Feb

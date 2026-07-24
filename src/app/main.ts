@@ -121,7 +121,7 @@ import { griddedProvider } from '../terrain/gridded'
 import type { Vec2, LatLon } from '../geo/types'
 import type { ElevationProvider } from '../terrain/provider'
 import { buildGround } from '../world/ground'
-import { season } from '../world/season'
+import { season, snowCover } from '../world/season'
 import { startPose } from '../world/start'
 import { buildBuildings } from '../world/buildings'
 import { buildArchways, type DrivableWay } from '../world/archways'
@@ -582,7 +582,10 @@ async function loadCity(query: string): Promise<void> {
     const szn = season(new Date(), center.lat)
     const grass = new THREE.Color(szn.grass)
     const seasonalSurfaces = { meadow: new THREE.Color(szn.pasture), farmland: new THREE.Color(szn.crop) }
-    const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS, grass, seasonalSurfaces)
+    // Winter snow cover, calendar-driven and latitude-gated: a white Helsinki in
+    // January, a bare Barcelona in the same week (snowCover ramps out by latitude).
+    const snow = snowCover(szn, center.lat)
+    const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS, grass, seasonalSurfaces, snow)
     facades?.dispose() // the outgoing city's facade textures
     const { mesh: buildingsMesh, footprints, tops, facades: newFacades } = buildBuildings(world.buildings, provider)
     facades = newFacades
