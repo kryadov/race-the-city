@@ -17,6 +17,16 @@ colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfron
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
 ### 🔧 Bugs in shipped features (fix next)
+- [x] **Invisible wall across an ordinary road** — ✅ FIXED v0.148.1. Screenshot 2026-07-25 (Paris —
+      Île de la Cité, paused at x 154.1 z -87.6, heading 297°): "перед игроком обычная полоса, а
+      проехать нельзя". MEASURED in headless Chrome against the real city (Overpass pinned, session
+      pose restored): nothing static blocks there — the physics grid holds only buildings + props, and
+      the car drives away from that exact pose freely — so the blocker had to be a moving obstacle
+      circle. ROOT CAUSE: bots/walkers seated on bridge decks published circles with no height, and
+      main.ts judged each circle by the TERRAIN under it, so one on a deck was solid to a car on the
+      street below (and NOT solid to a car up on the deck). Measured live in Paris: 5–15 such
+      obstacles airborne at any moment. Fix: `Circle.y` + `hittable()`. NOTE: the screenshot's own
+      spot has no deck within 60m, so if a wall recurs there, re-report with the paused x/z.
 - [x] **Out-of-bounds must-reach markers** — ✅ v0.119.1: taxi fares + time-trial gates were drawn from
       ALL road vertices, incl. those past ±RADIUS → unreachable pickups/gates. Both now filter to a
       drivable half-extent (`REACH_BOUND` = soft edge − 20). AUDIT of other spawners: nitro/cans/car-

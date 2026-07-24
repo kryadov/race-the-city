@@ -479,7 +479,13 @@ export function createPedestrians(
           const wx = A0.x + (B0.x - A0.x) * f0 + Math.sin(ang0) * KERB * w.side + w.kx
           const wz = A0.z + (B0.z - A0.z) * f0 - Math.cos(ang0) * KERB * w.side + w.kz
           if (nearTrain(wx, wz, trains, TRAIN_CLEAR)) {
-            solidAt.push({ x: wx, z: wz, r: 0.4 }) // still solid to the car while they wait
+            // Still solid to the car while they wait — and at the height they are
+            // standing at, deck included, so a walker held on a bridge is not a
+            // wall on the road beneath it.
+            const waitY = w.bridge
+              ? decks.heightAt(A0.x + (B0.x - A0.x) * f0, A0.z + (B0.z - A0.z) * f0) ?? provider.heightAt(wx, wz)
+              : provider.heightAt(wx, wz)
+            solidAt.push({ x: wx, z: wz, r: 0.4, y: waitY })
             return
           }
         }
@@ -553,7 +559,6 @@ export function createPedestrians(
         x += w.kx
         z += w.kz
 
-        solidAt.push({ x, z, r: 0.4 })
         // A gentle bob, out of step with the next person, so a crowd doesn't march.
         const stride = clock * w.speed * 4 + w.phase
         const bob = Math.sin(stride * 2) * 0.025
@@ -563,6 +568,9 @@ export function createPedestrians(
         // on the deck however far the kerb offset pushes them toward its edge. Fall
         // back to the ground if there's somehow no deck here (or none were passed).
         const groundY = w.bridge ? decks.heightAt(baseX, baseZ) ?? provider.heightAt(x, z) : provider.heightAt(x, z)
+        // Solid at the height they are drawn at: someone on a bridge deck is not
+        // a wall on the road running underneath it.
+        solidAt.push({ x, z, r: 0.4, y: groundY })
         pos.set(x, groundY + bob, z)
         q.setFromAxisAngle(up, -angle)
         m.compose(pos, q, one)

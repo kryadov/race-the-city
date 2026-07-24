@@ -894,6 +894,10 @@ export function createTrains(
               x: p.x + Math.cos(p.angle) * tr.k.len * along,
               z: p.z + Math.sin(p.angle) * tr.k.len * along,
               r: 2.4,
+              // Solid where the carriage is drawn — the mean of its two ends, the
+              // same height its body sits at — so a car under a viaduct isn't
+              // stopped by a train crossing it overhead.
+              y: (yBack + yFront) / 2,
             })
           }
           car.traverse((o) => {

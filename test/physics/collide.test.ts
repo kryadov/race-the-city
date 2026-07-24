@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pointInPolygon, resolveCircle, roofUnder, STEP_UP } from '../../src/physics/collide'
+import { hittable, pointInPolygon, resolveCircle, roofUnder, STEP_UP } from '../../src/physics/collide'
 import { SpatialGrid } from '../../src/physics/grid'
 import type { Vec2 } from '../../src/geo/types'
 
@@ -104,5 +104,31 @@ describe('roofUnder', () => {
 
   it('will not land you on something of unstated height', () => {
     expect(roofUnder(-5, 0, new SpatialGrid([low], 25))).toBeNull()
+  })
+})
+
+describe('hittable', () => {
+  // A bot up on a bridge deck and one on the street below it, at the same spot
+  // in plan. Which of the two you can hit is decided by how high YOU are.
+  const onDeck = { x: 0, z: 0, r: 2, y: 8 }
+  const onStreet = { x: 0, z: 0, r: 2, y: 0 }
+  const ground = (): number => 0
+
+  it('leaves out the one overhead — a bot on the deck is not a wall on the street', () => {
+    expect(hittable([onDeck], 0, 3, ground)).toEqual([])
+  })
+
+  it('keeps the one you are level with', () => {
+    expect(hittable([onStreet], 0, 3, ground)).toEqual([onStreet])
+  })
+
+  it('is the deck one you hit when you are up there yourself', () => {
+    expect(hittable([onDeck, onStreet], 8, 3, ground)).toEqual([onDeck])
+  })
+
+  it('falls back to the ground beneath one that never said how high it is', () => {
+    const mute = { x: 0, z: 0, r: 2 }
+    expect(hittable([mute], 0, 3, () => 0)).toEqual([mute])
+    expect(hittable([mute], 0, 3, () => 9)).toEqual([])
   })
 })

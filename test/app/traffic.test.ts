@@ -940,3 +940,41 @@ describe('bots on a bridge', () => {
     }
   })
 })
+
+describe('what a bot is solid at', () => {
+  // The invisible wall: a bot lifted onto a bridge deck went on publishing its
+  // collision circle with no height, and main.ts judged the circle by the TERRAIN
+  // under it — so a car on the street below was stopped dead by a bot five metres
+  // over its roof, with nothing to see. The circle has to carry the height the bot
+  // is actually drawn at.
+  const span: Road[] = [
+    { points: [v(-200, 0), v(-100, 0), v(0, 0), v(100, 0), v(200, 0)], kind: 'residential', bridge: true, layer: 2 },
+  ]
+
+  it('is the deck it rides, not the ground under the bridge', () => {
+    const decks = createDeckIndex(buildDecks(span, flat))
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, span, flat, () => 0.5, 4, [], decks)
+    const bodies = (scene.children[0] as THREE.Group).children[0] as THREE.InstancedMesh
+    t.update(1 / 60, 0, 0, 0)
+
+    const drawn = positions(bodies)
+    const solid = t.obstacles()
+    expect(solid.length).toBeGreaterThan(0)
+    for (const c of solid) {
+      // pair each circle with the car drawn at that spot
+      const car = drawn.find((p) => Math.hypot(p.x - c.x, p.z - c.z) < 0.5)
+      expect(car, 'a solid circle with no car drawn at it').toBeTruthy()
+      expect(c.y, 'the circle never said how high it is').toBeTypeOf('number')
+      expect(Math.abs(c.y! - car!.y), 'solid at one height, drawn at another').toBeLessThan(0.5)
+    }
+    expect(Math.max(...solid.map((c) => c.y ?? 0)), 'no bot was up on the deck at all').toBeGreaterThan(3)
+  })
+
+  it('is the ground for a bot on a plain road', () => {
+    const scene = new THREE.Scene()
+    const t = createTraffic(scene, grid, { heightAt: () => 12 }, () => 0.5, 6)
+    t.update(1 / 60, 0, 0, 0)
+    for (const c of t.obstacles()) expect(c.y).toBeCloseTo(12, 5)
+  })
+})

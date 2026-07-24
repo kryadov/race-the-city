@@ -77,6 +77,33 @@ export interface Circle {
   x: number
   z: number
   r: number
+  /**
+   * How high it actually sits, in absolute metres — a bot on a bridge deck is up
+   * on the deck, not on the riverbed its (x,z) lands on. Left out by anything
+   * that only ever stands on the ground; `hittable` then reads the terrain.
+   */
+  y?: number
+}
+
+/**
+ * The circles a body at height `y` can actually hit.
+ *
+ * The circles are flat, so without this you would clip a bot while flying ten
+ * metres over it — or, worse, be stopped dead by one you cannot even see: a bot
+ * riding a bridge deck leaves its circle at the same (x,z) as the street below,
+ * and judging that circle by the ground under it made it a wall across a road
+ * with nothing on it. Each circle says how high it is; only the ones within
+ * `clear` metres of you are yours to hit.
+ *
+ * @param groundY the terrain height, for a circle that never said how high it is
+ */
+export function hittable(
+  circles: Circle[],
+  y: number,
+  clear: number,
+  groundY: (x: number, z: number) => number,
+): Circle[] {
+  return circles.filter((c) => Math.abs(y - (c.y ?? groundY(c.x, c.z))) < clear)
 }
 
 /**

@@ -146,7 +146,7 @@ import { rectBounds, confineToBounds } from '../world/bounds'
 import { createMistWall } from '../world/mistWall'
 import { SpatialGrid } from '../physics/grid'
 import { roofUnder } from '../physics/collide'
-import { pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../physics/collide'
+import { hittable, pointInPolygon, resolveAgainstCircles, bounce, type Circle } from '../physics/collide'
 import { createCar, stepCar, type CarState } from '../vehicle/car'
 import { Keyboard, hotkeyFor } from '../vehicle/input'
 import { VEHICLES, LEANS, HOVERS, HOVER_H, thirstOf, type VehicleType } from '../vehicle/vehicles'
@@ -961,16 +961,23 @@ async function loadCity(query: string): Promise<void> {
         // Everything solid that moves: traffic, people, trains — but only those at
         // roughly the car's height. The circles are 2D, so without this you'd hit a
         // bot while flying 10m over it, or one on the road below while up on a bridge
-        // deck. Bots sit on the terrain, so gauge the gap against the ground beneath.
+        // deck. Each says how high it IS (bots and walkers ride bridge decks, so the
+        // ground under them is the wrong answer — that was an invisible wall across
+        // the street beneath a bridge); the terrain is only the fallback.
         const carY = car.y // local const: a closure over the mutable `car` would de-narrow it
-        const hazards: Circle[] = [
-          ...(traffic?.obstacles() ?? []),
-          ...(buses?.obstacles() ?? []),
-          ...(motorcycles?.obstacles() ?? []),
-          ...(cyclists?.obstacles() ?? []),
-          ...(people?.obstacles() ?? []),
-          ...(trains?.obstacles() ?? []),
-        ].filter((h) => Math.abs(carY - provider.heightAt(h.x, h.z)) < HAZARD_CLEAR)
+const hazards: Circle[] = hittable(
+          [
+            ...(traffic?.obstacles() ?? []),
+            ...(buses?.obstacles() ?? []),
+            ...(motorcycles?.obstacles() ?? []),
+            ...(cyclists?.obstacles() ?? []),
+            ...(people?.obstacles() ?? []),
+            ...(trains?.obstacles() ?? []),
+          ],
+          carY,
+          HAZARD_CLEAR,
+          (x, z) => provider.heightAt(x, z),
+        )
         // The demo drives with the same three inputs a player has, through the
         // same physics — so it drifts, it hits things, and it sounds right. Any
         // touch of the controls hands the wheel straight back. It reads the
@@ -1666,3 +1673,4 @@ document.addEventListener('visibilitychange', () => {
 })
 window.addEventListener('focus', () => void checkForUpdate())
 void checkForUpdate()
+

@@ -6,6 +6,19 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.148.1 — invisible walls under a bridge
+- **Fixed: an ordinary road you could not drive along.** Bots ride bridge decks (since v0.112.0), but
+  every bot went on publishing its collision circle with **no height** — and the game judged those
+  circles by the *terrain underneath* them. So a bot crossing a bridge five metres over your head was
+  solid to you down on the street: an invisible wall sliding along an empty road, right under the
+  span. Pedestrians on a deck and a train on a viaduct did the same. The mirror image was just as
+  wrong: up on the deck yourself you drove straight **through** the bots sharing it, because they were
+  being measured against the riverbed far below.
+- Every moving obstacle now reports the height it is actually drawn at, and the "can I hit this?" test
+  (`hittable`, `physics/collide.ts`) reads that instead of the ground under it.
+- 👀 Drive the street **under** a bridge or flyover that has traffic on it — nothing stops you now.
+  Then drive **on** that bridge: the bots up there are solid again, as they should be.
+
 ## v0.148.0 — five more languages (Armenian, Georgian, Japanese, Korean, Chinese)
 - The game now speaks **ten languages**: added **Հայերեն (Armenian)**, **ქართული (Georgian)**,
   **日本語 (Japanese)**, **한국어 (Korean)** and **简体中文 (Simplified Chinese)** alongside EN/RU/ES/DE/FR —

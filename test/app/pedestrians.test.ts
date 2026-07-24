@@ -212,3 +212,33 @@ describe('waiting for a train at a crossing', () => {
     expect(held.obstacles().length).toBe(heldStart.length)
   })
 })
+
+describe('what a walker is solid at', () => {
+  // Same story as the bots: a walker on a bridge deck must not be a wall on the
+  // road underneath, so the circle carries the height they are drawn at.
+  const bridgeSpan: Vec2[] = [
+    { x: -200, z: 0 }, { x: -100, z: 0 }, { x: 0, z: 0 }, { x: 100, z: 0 }, { x: 200, z: 0 },
+  ]
+
+  const flat = { heightAt: () => 0 } // terrain at y=0, so the bridge is what lifts them
+
+  it('is the deck they walk, not the ground under the bridge', () => {
+    const bridge: Road[] = [{ points: bridgeSpan, kind: 'primary', bridge: true, layer: 2 }]
+    const decks = createDeckIndex(buildDecks(bridge, flat))
+    const deckY = decks.heightAt(0, 0)!
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, bridge, flat, () => 0.5, 6, [], 0, decks)
+    p.update(0, 0, 0)
+    const solid = p.obstacles()
+    expect(solid.length).toBeGreaterThan(0)
+    for (const c of solid) expect(Math.abs((c.y ?? 0) - deckY), 'solid down on the riverbed').toBeLessThan(0.2)
+  })
+
+  it('is the ground for a walker on a plain road', () => {
+    const ground: Road[] = [{ points: bridgeSpan, kind: 'primary' }]
+    const scene = new THREE.Scene()
+    const p = createPedestrians(scene, ground, { heightAt: () => 7 }, () => 0.5, 6)
+    p.update(0, 0, 0)
+    for (const c of p.obstacles()) expect(c.y).toBeCloseTo(7, 1)
+  })
+})

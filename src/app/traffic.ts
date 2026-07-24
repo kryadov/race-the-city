@@ -795,13 +795,16 @@ export function createTraffic(
         const px = p.x + a.kx
         const pz = p.z + a.kz
 
-        solidAt.push({ x: px, z: pz, r: 2.0 })
         // On a bridge the car rides the deck, not the ground under it. The deck is
         // flat across its width, so its height at the centreline is its height at
         // the lane too; sampling the centreline (p.cx, p.cz) keeps the query on the
         // deck however far the lane offset pushes the car toward its edge. Fall
         // back to the ground if there's somehow no deck here (or none were passed).
         const y = a.bridge ? decks.heightAt(p.cx, p.cz) ?? provider.heightAt(px, pz) : provider.heightAt(px, pz)
+        // The circle goes out at the height the car is DRAWN at, not the ground
+        // under it: one up on a deck must not wall off the street beneath it, and
+        // must be solid to a player up there with it.
+        solidAt.push({ x: px, z: pz, r: 2.0, y })
         pos.set(px, y, pz)
         // Ease the drawn heading toward the edge's direction rather than taking
         // it whole. `place` snaps `angle` the instant a car crosses a junction
