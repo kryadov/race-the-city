@@ -136,8 +136,9 @@ Built from the real map around you:
   you're stopped at the water's edge instead of sliding in — while **bridges stay clear** to drive
   across and a **jump or hover** still carries you over into the water.
 - **Seasons on the ground** — parks, meadows and farmland take a **per-season colour** (spring green,
-  autumn ochre, winter frost), and a **northern winter lies snow** on the bare earth, lawns and fields,
-  calendar-driven and latitude-gated (white Helsinki, bare Barcelona; plowed-dark roads on top).
+  autumn ochre, winter frost), and a **northern winter lies snow** on the bare earth, lawns, fields
+  **and the rooftops**, calendar-driven and latitude-gated (white Helsinki, bare Barcelona; plowed-dark
+  roads on top).
 - **Greenery** — parks, woods and grass, with **trees whose kind follows latitude** (palms in
   the Mediterranean band, firs up north) and a **real spread of heights** — saplings and shrubs
   through to the odd giant, so a stand reads as a mix rather than one cloned size — plus fountains,

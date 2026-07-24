@@ -403,12 +403,12 @@ an effect we already have** — so it satisfies "must not cost frame rate" by co
 - [x] **Tree crowns by season** (already instanced) — spring: a few blossoming white/pink deciduous
       crowns; summer green; autumn yellow-orange-red; winter bare / snow-dusted. A material tint on
       the existing draw call.
-- [~] **Snow cover on roofs/ground** in the cold season for northern cities — GROUND ✅ SHIPPED
-      v0.146.0: `snowCover(season, lat)` (pure, latitude-gated ~40–55°, reads |lat| so cold southern
-      winters snow too) feeds a `snow` amount into `buildGround`, which lerps every ground colour (bare
-      earth, lawns, fields) toward a cool white via the pure `snowed()`. Calendar-driven, roads stay
-      dark (plowed). ROOFS still TODO — thread the same `snowCover` amount into `buildings.ts` roof
-      tinting (a follow-up; roofs carry their own colour there).
+- [x] **Snow cover on roofs/ground** in the cold season for northern cities — ✅ SHIPPED v0.146.0
+      (ground) + v0.146.1 (roofs). `snowCover(season, lat)` (pure, latitude-gated ~40–55°, reads |lat|
+      so cold southern winters snow too) feeds a `snow` amount into `buildGround` (lerps every ground
+      colour toward a cool white via the pure `snowed()`, roads stay dark = plowed) AND into
+      `buildBuildings` (whitens the roof caps only, not the walls). Calendar-driven, reuses the existing
+      meshes (no extra draw).
 - [x] **Pedestrian clothing by season** — the crowd already varies (skirts shipped). Seasonal
       palettes/sets: winter coats/hats/scarves; summer shorts/tees/sun-hats; rain → an optional
       umbrella prop for the high tier. Texture/colour swap on the existing instanced people, no

@@ -587,7 +587,7 @@ async function loadCity(query: string): Promise<void> {
     const snow = snowCover(szn, center.lat)
     const ground = buildGround(provider, RADIUS, world.green, world.surfaces, GROUND_SEGMENTS, grass, seasonalSurfaces, snow)
     facades?.dispose() // the outgoing city's facade textures
-    const { mesh: buildingsMesh, footprints, tops, facades: newFacades } = buildBuildings(world.buildings, provider)
+    const { mesh: buildingsMesh, footprints, tops, facades: newFacades } = buildBuildings(world.buildings, provider, snow)
     facades = newFacades
     const normalRoads = world.roads.filter((r) => !r.bridge && !r.tunnel)
     const bridgeRoads = world.roads.filter((r) => r.bridge)

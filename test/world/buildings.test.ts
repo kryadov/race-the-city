@@ -72,3 +72,37 @@ describe('shopfronts', () => {
     expect(shopfront(mesh), 'a house should get no shopfront').toBeUndefined()
   })
 })
+
+describe('roof snow', () => {
+  /** Mean vertex-colour luminance over every coloured volume mesh in the city. */
+  const meanLum = (root: THREE.Object3D): number => {
+    let sum = 0
+    let n = 0
+    root.traverse((o) => {
+      const m = o as THREE.Mesh
+      const col = m.geometry?.getAttribute?.('color') as THREE.BufferAttribute | undefined
+      if (!col) return
+      for (let i = 0; i < col.count; i++) {
+        sum += col.getX(i) + col.getY(i) + col.getZ(i)
+        n++
+      }
+    })
+    return n ? sum / n : 0
+  }
+
+  it('whitens the roofs in winter and leaves them alone otherwise', () => {
+    const bare = buildBuildings([box('house')], flat, 0)
+    const snowy = buildBuildings([box('house')], flat, 0.7)
+    // The roof caps lift toward white under snow, so the city's mean vertex
+    // luminance rises; with snow 0 nothing changes.
+    expect(meanLum(snowy.mesh)).toBeGreaterThan(meanLum(bare.mesh))
+  })
+
+  it('is identical geometry-wise — snow only recolours, adds no draw', () => {
+    // A fixed RNG seed means the two builds differ only in colour, not shape.
+    const bare = buildBuildings([box('office')], flat, 0)
+    const snowy = buildBuildings([box('office')], flat, 0.6)
+    expect(snowy.tops).toEqual(bare.tops)
+    expect(snowy.footprints.length).toBe(bare.footprints.length)
+  })
+})

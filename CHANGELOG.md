@@ -6,6 +6,13 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.146.1 — snow on the roofs too
+- Completing v0.146.0: the winter **rooftops now lie snow** as well as the ground. Only the roof caps
+  whiten (a wall sheds it), by the same calendar-driven, latitude-gated amount, so a northern city
+  reads snow-covered top to bottom instead of white ground under bare roofs.
+- Pure recolour of the roof vertices on the existing merged building mesh — no extra geometry or draw.
+- 👀 Helsinki/Moscow/Reykjavík in winter: the roofs are dusted white, matching the ground.
+
 ## v0.146.0 — snow on the winter ground (northern cities)
 - **Winter now lies snow on the ground** — the bare earth, the park lawns and the fields all come up
   dusted white, driven by the **calendar** (not only the weather toggle). It's **latitude-gated**: a

@@ -4,6 +4,7 @@ import type { ElevationProvider } from '../terrain/provider'
 import { BAY_W, createFacadeMaterials, type FacadeMaterials } from './facade'
 import { facadeUVs, storeysIn } from './facadeUv'
 import { buildEntrances } from './entrances'
+import { snowed } from './ground'
 import { pointInPolygon } from '../physics/collide'
 
 // A tight range of warm stones. Neighbours should read apart without the street
@@ -309,6 +310,7 @@ function buildShopfronts(buildings: Building[], provider: ElevationProvider): TH
 export function buildBuildings(
   buildings: Building[],
   provider: ElevationProvider,
+  snow = 0,
 ): { mesh: THREE.Object3D; footprints: Vec2[][]; tops: number[]; facades: FacadeMaterials } {
   const group = new THREE.Group()
   const footprints: Vec2[][] = []
@@ -352,7 +354,9 @@ export function buildBuildings(
     wall.setHex(COLORS[Math.floor(rng() * COLORS.length)])
     wall.offsetHSL((rng() - 0.5) * 0.015, (rng() - 0.5) * 0.05, (rng() - 0.5) * 0.06)
     roof.copy(wall).offsetHSL(0, -0.22, -0.12)
-    paintVolume(geo, wall, roof)
+    // In a northern winter the roofs lie snow — only the roof caps, never the walls
+    // (a wall sheds it). `snow` 0 (any other season) leaves the roof its own colour.
+    paintVolume(geo, wall, snow > 0 ? snowed(roof, snow) : roof)
     // Storeys fitted to this building and counted up from the seated ground
     // floor, so the roof never slices a window row and no row starts underground.
     facadeUVs(geo, max, b.height)
