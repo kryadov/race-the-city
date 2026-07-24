@@ -66,7 +66,7 @@ banks in corners.
 **19 vehicle types**, in a grouped, collapsible picker (by purpose): everyday cars, a leaning
 motorbike, off-roaders incl. a **jeep** (4×4 grip, high top speed), a truck and tanker, a
 tractor + tiller that **pulls a trailer with its driver on it**, and oddballs — crane, minivan,
-tracked ATV, hovercar, EV, retro, roller, combine.
+tracked ATV, a **hovercraft with spinning helicopter rotors** (main + tail), EV, retro, roller, combine.
 
 Each vehicle has:
 - its own **engine sound** (diesel / petrol / race / small / electric / turbine), which **fades

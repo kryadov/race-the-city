@@ -79,5 +79,26 @@ export function buildHover(): THREE.Group {
   g.add(lens(REAR_LIGHT_MAT, 1.3, 0.3, rx, 1.0, 0, -1)) // one bar
   g.add(lens(TURN_RIGHT_MAT, 0.2, 0.18, rx, 0.72, 0.8, -1), lens(TURN_LEFT_MAT, 0.2, 0.18, rx, 0.72, -0.8, -1))
   g.add(lens(TURN_RIGHT_MAT, 0.18, 0.16, fx, 0.7, 0.82, 1), lens(TURN_LEFT_MAT, 0.18, 0.16, fx, 0.7, -0.82, 1))
+
+  // A helicopter's rotors — the one thing that reads it apart from a plain
+  // hovercraft. A short mast rises from the cabin roof; the main rotor above it is
+  // its own group (hub + two long crossed blades) tagged `spinY`, and the tail
+  // rotor on the boom end is tagged `spinZ` — the render loop spins both by their
+  // tag, so they whirl whether you're parked or flat out.
+  g.add(box(0.16, 0.62, 0.16, 0x1c2733, -0.35, 1.95, 0)) // mast, above the canopy
+  const main = new THREE.Group()
+  main.position.set(-0.35, 2.3, 0)
+  main.userData.spinY = true
+  main.add(box(0.34, 0.18, 0.34, 0x11181f, 0, 0, 0)) // hub
+  main.add(box(6.6, 0.05, 0.26, 0x2b3542, 0, 0.02, 0)) // blade along +x
+  main.add(box(0.26, 0.05, 6.6, 0x2b3542, 0, 0.02, 0)) // blade along +z (a crossing pair)
+  g.add(main)
+  g.add(box(0.9, 0.22, 0.22, body, -2.5, 1.2, 0)) // tail boom out to the rotor
+  const tail = new THREE.Group()
+  tail.position.set(-2.95, 1.2, 0.2)
+  tail.userData.spinZ = true
+  tail.add(box(1.1, 0.05, 0.05, 0x2b3542, 0, 0, 0)) // blade along x, spins in the x-y plane
+  tail.add(box(0.05, 1.1, 0.05, 0x2b3542, 0, 0, 0)) // crossing blade along y
+  g.add(tail)
   return g
 }

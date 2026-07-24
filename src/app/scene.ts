@@ -147,6 +147,12 @@ const RIGHT_AXIS = new THREE.Vector3(0, 0, 1)
 /** How far a steered wheel turns at full lock, radians. */
 const MAX_STEER_YAW = 0.5
 
+// Helicopter rotor spin, radians/second. Fast enough to read as a whirl, slow
+// enough to dodge the strobe a true ~40 rad/s would flicker into at 60fps; the tail
+// rotor runs faster than the main, as a real one does.
+const MAIN_ROTOR_RATE = 16
+const TAIL_ROTOR_RATE = 34
+
 export function syncCamera(
   stage: Stage,
   car: CarState,
@@ -187,9 +193,13 @@ export function syncCamera(
   // right is +z, so a right lock without this points the wheels left.
   const yaw = -steer * MAX_STEER_YAW
   stage.carMesh.traverse((o) => {
-    const d = o.userData as { wheelRadius?: number; steers?: boolean }
+    const d = o.userData as { wheelRadius?: number; steers?: boolean; spinY?: boolean; spinZ?: boolean }
     if (d.wheelRadius) o.rotation.z -= (forward / d.wheelRadius) * dt
     if (d.steers) o.rotation.y = yaw
+    // Helicopter rotors: a constant whirl, not tied to ground speed — the main
+    // rotor about its vertical mast, the tail rotor in its own vertical plane.
+    if (d.spinY) o.rotation.y += MAIN_ROTOR_RATE * dt
+    if (d.spinZ) o.rotation.z += TAIL_ROTOR_RATE * dt
   })
 
   const d = stage.camDist * stage.camDistScale

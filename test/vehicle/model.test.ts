@@ -84,6 +84,32 @@ describe('buildVehicleMesh', () => {
     expect(wheels).toBe(0)
   })
 
+  it('gives the helicopter a spinnable main rotor and tail rotor', () => {
+    // syncCamera whirls anything tagged spinY (main rotor) / spinZ (tail rotor);
+    // without the tags the blades would sit dead still and it'd read as a slab.
+    let spinY = 0
+    let spinZ = 0
+    buildVehicleMesh('hover').traverse((o) => {
+      const d = o.userData as { spinY?: boolean; spinZ?: boolean }
+      if (d.spinY) spinY++
+      if (d.spinZ) spinZ++
+    })
+    expect(spinY, 'one main rotor').toBe(1)
+    expect(spinZ, 'one tail rotor').toBe(1)
+  })
+
+  it('never tags a rotor spin on a wheeled vehicle', () => {
+    // the rotor whirl is the helicopter's alone; a car with a spinning box is a bug
+    for (const type of VEHICLE_TYPES) {
+      if (HOVERS[type]) continue
+      buildVehicleMesh(type).traverse((o) => {
+        const d = o.userData as { spinY?: boolean; spinZ?: boolean }
+        expect(d.spinY, type).toBeFalsy()
+        expect(d.spinZ, type).toBeFalsy()
+      })
+    }
+  })
+
   it('gives the jeep exactly four wheels, the front pair steering', () => {
     // the tailgate spare reuses wheel() for its look but is stripped of the
     // wheelRadius tag, so it must not be counted as a fifth wheel here

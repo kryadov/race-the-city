@@ -6,6 +6,15 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.147.0 — the hovercraft grows rotors (reads as a helicopter)
+- The 🛸 hover vehicle now has **spinning helicopter rotors** — a main rotor whirling on a mast above
+  the cabin and a **tail rotor** on a boom, both turning constantly whether you're parked or flat out
+  (the tail runs faster than the main, as a real one does). It reads as a helicopter now, not a bare
+  sci-fi slab.
+- The spin rides the same per-frame model traverse the wheels use (tagged nodes) — no new update loop.
+  **Nose-down tilt when moving** and a **bob at hover** are the next step; this lands the rotors.
+- 👀 Pick the 🛸 hover vehicle: the rotor blades spin up top and on the tail.
+
 ## v0.146.1 — snow on the roofs too
 - Completing v0.146.0: the winter **rooftops now lie snow** as well as the ground. Only the roof caps
   whiten (a wall sheds it), by the same calendar-driven, latitude-gated amount, so a northern city

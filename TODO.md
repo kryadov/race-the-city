@@ -132,10 +132,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       varied type; drive into one to become it. v0.113.2 excludes your current type + neon-flips them.
 - [x] **Combine harvester mows fields** — ✅ v0.124.0 (see above; `crops.ts`): mown-grid stubble under
       the combine + capped hay bales in the cut strip.
-- [ ] **Doors — natural colour + varied handles** — the door brown looks unnatural; replace it with
-      a more natural palette (a few wood/painted tones) and add **a couple of different handle types**
-      (knob, lever/bar) so doors read properly. (Door geometry lives with the building facades /
-      entrances — `src/world/entrances.ts` / `buildings.ts`.)
+- [x] **Doors — natural colour + varied handles** — ✅ VERIFIED ALREADY DONE (2026-07-24).
+      `entrances.ts` `DOOR_COLOR` is a natural per-class palette (honey oak, slate blue-grey, glazing,
+      heritage green, steel shutter — no mud brown), and handles come in two types split by class
+      (`LEVER_KINDS` → a wide lever bar for retail/office/industrial; a round knob for house/apartments/
+      civic), one unit box scaled two ways. Tested (`test/world/entrances.test.ts`, 9 cases).
 - [x] **Fill the gaps between houses** — where there are no roads or other objects between buildings
       it's bare; scatter at least **a couple of benches and some trees** into those empty inter-building
       gaps so the space isn't blank. Place only where nothing else already is (roads/props/water).
@@ -298,9 +299,13 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       on its line, facing back). Rides the shove knockback; main.ts calls it each frame (not frozen).
       NOTE headlight-flash is blocked (bot cars are one InstancedMesh); honk deferred (a bot honk wants
       spatial audio at the bot, not the player's horn) — the flinch is the InstancedMesh-safe cue.
-- [ ] **More realistic helicopter/hover vehicle** — the hover/helicopter (🛸/🚁) should look and
-      behave more like a real helicopter: a proper body + spinning main & tail rotors, nose-down tilt
-      when moving, a little bob at hover. Vehicle model (`vehicle/models`) + hover physics/visual.
+- [~] **More realistic helicopter/hover vehicle** — ROTORS ✅ SHIPPED v0.147.0: `buildHover`
+      (`vehicle/models/exotic.ts`) gained a mast + main rotor (tagged `spinY`) and a tail-boom tail
+      rotor (tagged `spinZ`); `syncCamera` whirls both by tag at MAIN_ROTOR_RATE/TAIL_ROTOR_RATE (tail
+      faster), constant, not tied to ground speed. Tested (model has one spinY + one spinZ; no wheeled
+      vehicle gets a spin tag). STILL TODO: nose-down tilt when moving + a bob at hover — both are
+      render tweaks in syncCamera gated on `level` (the hover flag); tilt = a pitch about RIGHT_AXIS
+      from forward speed, bob = a small y-sine at low speed (needs a time accumulator threaded in).
 - [ ] **Pickable car-objects on the map** — occasionally a real, selectable vehicle sits parked on
       the map that the player can **walk/drive up to and switch into** (choose it as their car).
       Rare spawns tied to parking/roadside; reuses the vehicle roster + `selectVehicle`.
