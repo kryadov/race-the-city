@@ -59,6 +59,7 @@ function buildingsQuery(b: BBox): string {
   return `[out:json][timeout:${TIMEOUT_S}];
 (
   way["building"](${box});
+  relation["building"](${box});
 );
 out body;
 >;

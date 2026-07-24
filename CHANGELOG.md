@@ -6,6 +6,19 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.145.0 — multipolygon buildings (Boston & São Paulo fill in)
+- **BUG:** dense downtowns like **Boston and São Paulo came up almost bare** — roads but hardly any
+  buildings. A real share of a big city's footprints are mapped as OSM **building *relations***
+  (courtyard blocks, church/complex outlines, anything with a hole or several outlines), and we read
+  only `way["building"]` — so all of those were dropped.
+- The buildings query now also asks for `relation["building"]`, and the parser **stitches a building
+  relation's outer rings into footprints** (mirroring how big rivers and forests already arrive),
+  taking height and type from the relation's tags. A courtyard fills solid for now (a footprint has no
+  hole) — far better than the whole block missing.
+- **Note:** this changes the OSM query, so each city **re-fetches once** on next load (fresh data with
+  the new buildings). Offline still works — a stale cached copy is served if the network's away.
+- 👀 Load **Boston** or **São Paulo**: the skyline fills in with the blocks that used to be missing.
+
 ## v0.144.3 — people wait for the train instead of walking through it
 - **BUG:** at a level crossing, pedestrians strolled **straight through a passing train** — they had
   no idea it was there. Now a walker whose spot is under a passing train's body **holds on the kerb**

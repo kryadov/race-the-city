@@ -338,16 +338,21 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
     }
   }
 
-  // Multipolygon relations: the only way big rivers (the Neva, the Moskva) and
-  // large forest tracts (a лесомассив) are mapped — they never arrive as a single
-  // closed way. A wood is filed as greenery too (so the ground tints under it) and
-  // as a forest (so greenery.ts plants it densely), exactly as the way loop does.
+  // Multipolygon relations: the only way big rivers (the Neva, the Moskva), large
+  // forest tracts (a лесомассив), and complex buildings (courtyard blocks, church
+  // complexes, anything with a hole or many outlines) are mapped — they never
+  // arrive as a single closed way. A dense downtown like Boston or São Paulo maps a
+  // real share of its footprints this way, and reading only `way["building"]`
+  // dropped them, so the city came up almost bare. A wood is filed as greenery too
+  // (so the ground tints under it) and as a forest (so greenery.ts plants it
+  // densely); a building outer ring becomes a Building, exactly as the way loop does.
   for (const el of json.elements) {
     if (el.type !== 'relation' || !el.members) continue
     const tags = el.tags ?? {}
     const asWater = isWater(tags)
     const asForest = isForest(tags)
-    if (!asWater && !asForest) continue
+    const asBuilding = !!tags.building
+    if (!asWater && !asForest && !asBuilding) continue
     if (el.members.length > MAX_RELATION_MEMBERS) continue // a whole-river monster
     const outers: number[][] = []
     const inners: number[][] = [] // islands (water) / clearings — cut from the surface
@@ -369,6 +374,12 @@ export function parseOsm(json: OverpassResponse, projector: Projector): WorldDat
       if (asForest) {
         green.push(pts)
         forests.push(pts)
+      }
+      // A building relation's outer ring is a footprint. A courtyard (inner ring) is
+      // left uncut — Building has no holes, so the yard fills solid, which reads far
+      // better than the whole block missing. Height/kind come off the relation tags.
+      if (asBuilding && pts.length >= 3) {
+        buildings.push({ footprint: pts, height: buildingHeight(tags), kind: classifyBuilding(tags) })
       }
     }
     // Big rivers (the Seine, the Neva) arrive as one named relation — label it at

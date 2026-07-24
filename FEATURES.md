@@ -126,7 +126,9 @@ Built from the real map around you:
 - **Roads** with lane markings, kerbs, street lamps, signs; **drivable bridges** (profiled decks
   with railings, piers, lamps) that meet the ground at both ends; tunnels the camera pulls into.
 - **Buildings** read by type — houses, apartments, retail, office, industrial, civic — with
-  windows, doors and signage, and **glowing windows at night**.
+  windows, doors and signage, and **glowing windows at night**. Complex footprints mapped as
+  **multipolygon relations** (courtyard blocks, church and civic complexes) render too, so dense
+  downtowns like Boston and São Paulo fill in instead of coming up bare.
 - **Water** — rivers (incl. big multipolygon rivers like the Neva), reservoirs, and a flat sea
   along the coast, with **boats, ships, yachts and sailing boats** sized to the water available.
   **Islands** in a river or lake read as land — the water is cut around them, not painted over.

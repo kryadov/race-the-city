@@ -153,6 +153,50 @@ describe('wooded areas', () => {
   })
 })
 
+describe('multipolygon buildings (Boston/São Paulo)', () => {
+  // A dense downtown maps a real share of its footprints as building RELATIONS
+  // (courtyard blocks, complexes) — reading only way["building"] dropped them and
+  // the city came up almost bare. The relation's outer ring must become a Building.
+  const world = parseOsm(
+    {
+      elements: [
+        // a plain way-building, for the baseline
+        { type: 'node', id: 1, lat: 42.3601, lon: -71.0589 },
+        { type: 'node', id: 2, lat: 42.3601, lon: -71.0579 },
+        { type: 'node', id: 3, lat: 42.3606, lon: -71.0579 },
+        { type: 'node', id: 4, lat: 42.3606, lon: -71.0589 },
+        { type: 'way', id: 100, nodes: [1, 2, 3, 4, 1], tags: { building: 'yes' } },
+        // a building mapped as a multipolygon relation: the tag is on the RELATION,
+        // its outer ring on an untagged member way (so the way loop skips it).
+        { type: 'node', id: 11, lat: 42.3611, lon: -71.0599 },
+        { type: 'node', id: 12, lat: 42.3611, lon: -71.0589 },
+        { type: 'node', id: 13, lat: 42.3616, lon: -71.0589 },
+        { type: 'node', id: 14, lat: 42.3616, lon: -71.0599 },
+        { type: 'way', id: 200, nodes: [11, 12, 13, 14, 11] },
+        {
+          type: 'relation',
+          id: 300,
+          members: [{ type: 'way', ref: 200, role: 'outer' }],
+          tags: { type: 'multipolygon', building: 'apartments', 'building:levels': '6' },
+        },
+      ],
+    } as OverpassResponse,
+    projector,
+  )
+
+  it('extracts buildings from both ways and relations', () => {
+    expect(world.buildings.length).toBe(2)
+    for (const b of world.buildings) expect(b.footprint.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('carries the relation building’s height off its tags', () => {
+    // The relation is 6 levels; the way-building fell back to the default height.
+    const heights = world.buildings.map((b) => b.height).sort((a, b) => a - b)
+    expect(heights[1]).toBeGreaterThan(heights[0]) // the 6-storey relation is the taller
+    expect(heights[1]).toBeCloseTo(18) // 6 levels × 3m (buildingHeight)
+  })
+})
+
 describe('isPedestrianArea', () => {
   it('paves a plaza — a closed pedestrian way, or one tagged area=yes', () => {
     expect(isPedestrianArea({ highway: 'pedestrian' }, true)).toBe(true)

@@ -83,9 +83,11 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       MeshStandardMaterials to wireframe+emissive (white car, amber bots). v0.113.2 completed coverage:
       traffic, buses, motos, cyclists, pedestrians, trains, boats, livestock, birds, aircraft, arcade pickups.
 - [ ] **Bigger map ×2, adaptive** — see note below. Brainstorm.
-- [ ] **Relation-buildings (Boston)** — parse multipolygon `relation["building"]`. NOTE: adding it to
-      the Overpass query changes the cache-key hash and evicts every cached city — hold until the
-      rate-limit situation is comfortable, since cache is the offline lifeline right now.
+- [x] **Relation-buildings (Boston)** — ✅ DONE v0.145.0. `buildingsQuery` now also asks
+      `relation["building"]`; `parseOsm`'s multipolygon loop stitches a building relation's outer rings
+      into footprints (height/kind off the relation tags), alongside the water/forest relations.
+      Courtyards fill solid (Building has no hole). Cache-key hash changes → cities re-fetch once, but
+      `cacheGetStale` still serves the old copy offline, so the lifeline holds.
 
 - [ ] **Cancel button on the "загружаю карту OSM" overlay** — add a localized **Отмена/Cancel**
       button to the loading plate that aborts the in-flight load (fetchOsm now takes an AbortSignal —
@@ -164,23 +166,16 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
 - [x] **Boats: better hull + rower** — ✅ v0.111.0: tapered double-ender hull + rowing figure. make the rowboat **more boat-shaped** and give it a **little
       figure rowing with oars** (animated stroke). `boats.ts` rowboat model + a per-boat oar animation
       in the update loop; keep it cheap.
-- [ ] **BUG — Boston: sparse roads but ZERO buildings.** Roads render (sparse), buildings don't —
-      so the fetch partly works. Diagnosis: the OLD combined Overpass query, truncated under load,
-      streams `highway` (first in the query) then gets cut off before `building` → roads survive,
-      buildings don't. v0.110.10's split buildings query SHOULD fix it — **verify on a reloaded
-      build (the app itself is cached)**. If Boston is STILL empty on v0.110.10: (a) add
-      `relation["building"]` to `buildingsQuery` AND parse **multipolygon buildings** (parse.ts today
-      handles relation multipolygons for WATER only — `way["building"]` misses courtyard/complex
-      buildings), and/or (b) handle `building:part`. Measure Boston's real OSM building count first.
-- [ ] **BUG — São Paulo (and maybe other dense cities) render almost no buildings.** FINDINGS so
-      far: the geocode is FINE — "São Paulo" → -23.5507,-46.6334, dense downtown, RADIUS 1000m, so
-      buildings exist in OSM there. The suspect is `src/geo/overpass.ts` `overpassQuery`: ONE heavy
-      combined query (highway+building+water+greenery+tourism/historic+…) at `[timeout:25]`. On a very
-      dense city that likely **times out or gets truncated**, dropping most buildings. NEXT: measure
-      in headless — run the real `fetchOsm` for São Paulo, log the building element count and whether
-      Overpass returns an error/partial. Likely fix: **split buildings into their own query** (and/or
-      raise the timeout, add a retry, or shrink the bbox for dense areas). Hold until the
-      landmark-marker agent frees overpass.ts.
+- [x] **BUG — Boston: sparse roads but ZERO buildings.** ✅ ADDRESSED v0.145.0 — split-buildings query
+      (v0.110.10) handled the truncation half; v0.145.0 adds `relation["building"]` + multipolygon
+      building parsing, which is what a courtyard/complex-heavy downtown like Boston needs (a big share
+      of its footprints are relations, previously all dropped). `building:part` still not handled (rare;
+      a follow-up if a glass-tower downtown still reads thin). Verify on a reloaded build on the laptop.
+- [x] **BUG — São Paulo (and maybe other dense cities) render almost no buildings.** ✅ ADDRESSED
+      v0.145.0. The split-buildings query (own request, `[timeout:90]`) already fixed the timeout/
+      truncation half; v0.145.0 adds `relation["building"]` + multipolygon parsing so relation-mapped
+      footprints (a real share of a dense downtown) stop being dropped. Verify on a reloaded build on
+      the laptop; if a specific glass-tower CBD still reads thin, `building:part` is the next lever.
 
 > **Hard constraint on every item below: it must not cost frame rate.** New ambience/props are
 > instanced or capped and culled; anything per-frame (crowd AI, water tests, weather) stays O(few)
