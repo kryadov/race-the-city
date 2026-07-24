@@ -577,10 +577,11 @@ built as a swarm and released one-by-one. Design docs land in `docs/superpowers/
 - [x] **Benches, empty and with people sitting on them; bus stops** — from OSM `amenity=bench`
       and `highway=bus_stop`; instanced benches (~2 in 5 with a blocky seated figure) and
       two-post bus shelters, neon-styled with the road furniture — v0.96.0
-- [x] **A couple more languages** (localization) — ✅ SHIPPED v0.137.0: added **Spanish, German and
-      French** to `src/i18n/i18n.ts` (full string map each), so EN/RU/ES/DE/FR. `detect()` now
-      matches the browser's primary language subtag against what ships. A parity test
-      (`messageKeys`) enforces every language has the exact same key set — no half-translated ship.
+- [x] **A couple more languages** (localization) — ✅ SHIPPED v0.137.0 (ES/DE/FR) + v0.148.0 (Armenian
+      hy, Georgian ka, Japanese ja, Korean ko, Simplified Chinese zh) → **ten languages** (EN/RU/ES/DE/
+      FR/HY/KA/JA/KO/ZH). Each a full native string map in `src/i18n/i18n.ts`; `detect()` matches the
+      browser's primary subtag; the `messageKeys` parity test enforces every language covers the exact
+      same key set — no half-translated ship. Front-screen language row wraps for ten codes.
 - [x] **Fly over anything you are above** — the physics grid carries each obstacle's roof
       height now, so a jump clears a bungalow, a fountain or a statue instead of being
       cancelled in mid-air by ground the car is nowhere near — v0.86.0

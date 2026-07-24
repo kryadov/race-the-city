@@ -302,14 +302,17 @@ export function createMenu(root: HTMLElement, cb: MenuCallbacks, initial: MenuIn
   continueBtn.style.cssText += 'padding:11px;background:#1d6a3a;'
   continueBtn.addEventListener('click', () => cb.onContinue())
 
-  // Language quick-toggle — EN / RU right on the front screen.
+  // Language quick-toggle right on the front screen. Ten languages now, so the row
+  // WRAPS rather than squeezing ten 2-letter codes into one line on a phone; each
+  // button takes a sensible minimum width and the extras flow onto a second line.
   const langRow = document.createElement('div')
-  langRow.style.cssText = 'display:flex;gap:6px;justify-content:center;margin-top:2px'
+  langRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:2px'
   const langBtns = new Map<string, HTMLButtonElement>()
   for (const lang of LANGS) {
     const lb = mkBtn(lang.toUpperCase())
     lb.dataset.lang = lang
-    lb.style.flex = '1'
+    lb.style.flex = '1 1 auto'
+    lb.style.minWidth = '2.4em'
     lb.addEventListener('click', () => setLang(lang))
     langBtns.set(lang, lb)
     langRow.appendChild(lb)

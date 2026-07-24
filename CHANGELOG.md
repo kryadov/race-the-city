@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.148.0 — five more languages (Armenian, Georgian, Japanese, Korean, Chinese)
+- The game now speaks **ten languages**: added **Հայերեն (Armenian)**, **ქართული (Georgian)**,
+  **日本語 (Japanese)**, **한국어 (Korean)** and **简体中文 (Simplified Chinese)** alongside EN/RU/ES/DE/FR —
+  a full native translation of every UI string (menus, modes, vehicles, loading, help, HUD units).
+- Your browser's language is **auto-detected** (a `ja-JP` browser starts in Japanese, `zh-CN` in
+  Chinese, …), and the front-screen language row now **wraps** so ten codes fit on a phone. A parity
+  test enforces every language covers the exact same keys — no half-translated screens.
+- 👀 Open the menu → Language (or the front-screen row): pick 日本語 / 한국어 / 中文 / Հայերեն / ქართული and
+  the whole UI switches.
+
 ## v0.147.1 — the helicopter leans and bobs
 - Completing v0.147.0: the hover craft now **pitches nose-down into its travel** (a real helicopter tips
   the disc the way it flies), by a small speed-scaled angle that caps so a fast run never stands it on

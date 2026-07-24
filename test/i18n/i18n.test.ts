@@ -59,6 +59,24 @@ describe('i18n', () => {
     expect(got).toBe('ru')
   })
 
+  it('ships the five added scripts, each genuinely translated (not English)', () => {
+    // Armenian, Georgian, Japanese, Korean, Chinese — all present in LANGS and
+    // carrying their own wording, not an English echo, for a spread of keys.
+    const added = ['hy', 'ka', 'ja', 'ko', 'zh'] as const
+    for (const lang of added) {
+      expect(LANGS, `${lang} in LANGS`).toContain(lang)
+      setLang(lang)
+      for (const key of ['start.play', 'menu.title', 'weather.snow', 'vehicle.car']) {
+        const en = (setLang('en'), t(key))
+        setLang(lang)
+        const val = t(key)
+        expect(val, `${lang}/${key} present`).not.toBe(key) // not the raw key
+        expect(val, `${lang}/${key} translated`).not.toBe(en) // not the English word
+      }
+    }
+    setLang('en')
+  })
+
   it('labels every vehicle and group in every language', () => {
     for (const lang of LANGS) {
       setLang(lang)

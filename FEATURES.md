@@ -198,9 +198,9 @@ Built from the real map around you:
   river and lake names in soft blue, so crossing a bridge in Paris shows *La Seine*.
 - **Settings menu** (⚙) with collapsible groups: city, vehicle, weather, quality, shadows,
   camera zoom, road detail, HUD, road labels, units, language, and more.
-- **Language** — English, Russian, Spanish, German and French, picked from the menu or auto-detected
-  from your browser. The whole UI — start menu (title included), settings, HUDs and loading screens —
-  switches on the fly.
+- **Language** — ten in all: English, Russian, Spanish, German, French, Armenian, Georgian, Japanese,
+  Korean and Simplified Chinese, picked from the menu or auto-detected from your browser. The whole UI
+  — start menu (title included), settings, HUDs and loading screens — switches on the fly.
 - **Pause** (Esc), **controls help** (?), a **version badge**, and an **update notice** when a
   new build deploys (dismiss sticks).
 
