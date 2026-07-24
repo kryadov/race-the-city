@@ -6,6 +6,14 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.147.1 — the helicopter leans and bobs
+- Completing v0.147.0: the hover craft now **pitches nose-down into its travel** (a real helicopter tips
+  the disc the way it flies), by a small speed-scaled angle that caps so a fast run never stands it on
+  its nose — and it **bobs gently at a hover**, the wobble fading out as it picks up speed and the
+  lean takes over. Only the floating vehicles do this; the wheeled ones are untouched.
+- 👀 Fly the 🛸 hover: it noses down as you accelerate, noses up in reverse, and hangs with a soft bob
+  when you let off.
+
 ## v0.147.0 — the hovercraft grows rotors (reads as a helicopter)
 - The 🛸 hover vehicle now has **spinning helicopter rotors** — a main rotor whirling on a mast above
   the cabin and a **tail rotor** on a boom, both turning constantly whether you're parked or flat out

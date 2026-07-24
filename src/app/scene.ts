@@ -153,6 +153,41 @@ const MAX_STEER_YAW = 0.5
 const MAIN_ROTOR_RATE = 16
 const TAIL_ROTOR_RATE = 34
 
+// Hover flight feel. The craft pitches nose-DOWN into its travel (a real helicopter
+// tips the disc the way it goes), by a small angle that grows with speed and caps;
+// and it BOBS gently while near a standstill, the wobble fading out as it picks up
+// speed and the tilt takes over. Tuned by eye — small, so it reads as life, not sway.
+const HOVER_TILT_PER_SPEED = 0.012 // radians of pitch per m/s of forward speed
+const HOVER_TILT_MAX = 0.26 // ~15° cap, so a fast run doesn't stand it on its nose
+const HOVER_BOB_AMP = 0.12 // metres of vertical wobble at a dead hover
+const HOVER_BOB_RATE = 2.4 // radians/second — an unhurried breath
+const HOVER_BOB_FADE = 4 // m/s at which the bob has faded to nothing
+
+/**
+ * The hover craft's nose-down pitch for a given forward speed (m/s): negative about
+ * RIGHT_AXIS is nose-down (positive there flips the nose up — see tumble), so this
+ * returns the negative of the capped speed-scaled angle. Pure, for the test.
+ */
+export function hoverTilt(forward: number): number {
+  const raw = forward * HOVER_TILT_PER_SPEED
+  const capped = Math.max(-HOVER_TILT_MAX, Math.min(HOVER_TILT_MAX, raw))
+  return -capped
+}
+
+/**
+ * The hover craft's vertical bob offset (metres) at time `clock` and forward speed
+ * `forward`: a slow sine that's full at a standstill and fades to nothing by
+ * HOVER_BOB_FADE m/s, so it wobbles at hover but rides steady once it's moving. Pure.
+ */
+export function hoverBob(clock: number, forward: number): number {
+  const fade = Math.max(0, 1 - Math.abs(forward) / HOVER_BOB_FADE)
+  return HOVER_BOB_AMP * Math.sin(clock * HOVER_BOB_RATE) * fade
+}
+
+// Accumulated hover time, for the bob's sine. Advanced only while a hover vehicle is
+// in play (see syncCamera), off the frame dt — no wall clock (that would break resume).
+let hoverClock = 0
+
 export function syncCamera(
   stage: Stage,
   car: CarState,
@@ -163,7 +198,13 @@ export function syncCamera(
   steer = 0,
   tumble = 0,
 ): void {
-  stage.carMesh.position.set(car.x, car.y, car.z)
+  // Forward ground speed — the wheels roll by it below, and the hover craft leans
+  // and bobs by it here.
+  const forward = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
+  // A hover vehicle bobs at rest; advance its own clock only while one is in play.
+  if (level) hoverClock += dt
+  const bob = level ? hoverBob(hoverClock, forward) : 0
+  stage.carMesh.position.set(car.x, car.y + bob, car.z)
 
   // Orient to the terrain: build a basis from the surface normal + heading so
   // the car pitches on hills and banks on side-slopes.
@@ -184,11 +225,13 @@ export function syncCamera(
   // Flip through a big jump: a pitch about the car's own right axis, on top of the
   // slope basis (which is held level while airborne, so the flip reads clean).
   if (tumble !== 0) stage.carMesh.quaternion.multiply(tumbleQuat.setFromAxisAngle(RIGHT_AXIS, tumble))
+  // Hover craft leans nose-down into its travel — the same right-axis pitch as the
+  // flip, but a small, speed-scaled one, and only for the floating vehicles.
+  if (level) stage.carMesh.quaternion.multiply(tumbleQuat.setFromAxisAngle(RIGHT_AXIS, hoverTilt(forward)))
 
   // Spin wheels by rolling distance (forward speed / radius), and point the
   // steered ones where the driver is asking. Both live on the same group: the
   // yaw is set outright, the roll accumulates.
-  const forward = car.vx * Math.cos(car.heading) + car.vz * Math.sin(car.heading)
   // Negated: a +y rotation swings the wheel's +x nose toward -z, but the model's
   // right is +z, so a right lock without this points the wheels left.
   const yaw = -steer * MAX_STEER_YAW
