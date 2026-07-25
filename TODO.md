@@ -17,15 +17,17 @@ colours + white crow, favicon, parked cars in lots, glazed shopfronts, waterfron
 holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+boarding, bot cyclists.)
 
 ### 🔧 Bugs in shipped features (fix next)
-- [ ] **Invisible wall — STILL OPEN, awaiting a paused readout** (report 2026-07-25, v0.148.1, Paris —
-      Île de la Cité, x -599.6 z -382.5 heading 89°, "отталкиваюсь"). NOT the deck-hazard bug fixed in
-      v0.148.1. MEASURED here with the same city/OSM/build: **zero colliders within 80 m** of that
-      spot and no quay wall within 200 m; the car drives 58 m off that pose freely. In this build the
-      point is INSIDE the Seine ring (nearest bank 74 m, nearest road 45 m), while the screenshot shows
-      a wide road — so the reporter's world differs from ours (cached OSM, or a flat/failed terrain
-      DEM: their horizon is dead flat and the river reads as a painted ribbon). v0.148.2 ships the
-      paused `solid:` readout to name the collider in THEIR session — next step is one screenshot of
-      it at the wall. Prime suspects, in order: `quay` (waterBarriers, re-enabled), `pier`, `parked`.
+- [x] **Invisible wall across an ordinary road** — ✅ FIXED v0.148.3 (waterfront barrier). Reported
+      2026-07-25 on v0.148.1, Paris — Île de la Cité, "отталкиваюсь". Named by the v0.148.2 pause
+      readout in the reporter's own session: `x -586.5 z -379.6 93° y 33.4 / solid: quay@1.3m top34.8`
+      — the quay wall, standing 1.4m over the car, with its drawn railing (seated at the WATERLINE)
+      buried ~4m under the road. `embanksEdge` had a lower bound only, so any bank above the waterline
+      was "embanked"; a coarse DEM puts the OSM water outline metres above the river all over a city.
+      Fix: the gate is now two-sided — a shore edge is embanked only while the railing rises out of
+      the ground, i.e. the same condition the mesh actually draws it under. Paris: 1593 walls -> 25.
+      NOTE for anyone touching waterBarriers again (third time this has bitten — see v0.110.52/58):
+      the invariant is **solid ⇒ visible**. If you want walls on tall quays back, the RAILING has to
+      be seated on the bank first, not the waterline.
 - [x] **Invisible wall across an ordinary road** — ✅ FIXED v0.148.1. Screenshot 2026-07-25 (Paris —
       Île de la Cité, paused at x 154.1 z -87.6, heading 297°): "перед игроком обычная полоса, а
       проехать нельзя". MEASURED in headless Chrome against the real city (Overpass pinned, session

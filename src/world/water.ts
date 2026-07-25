@@ -336,19 +336,35 @@ export function buildWater(water: Vec2[][], provider: ElevationProvider, holes: 
 /**
  * Does this shore edge carry the stone embankment — a dry bank standing proud of
  * the water, railed and walled — or is it open water the car may drive into and
- * sink? The mesh floats the surface at `level` and skirts the bank down from
- * `Math.min(level, ground)`: the bank is dry, and an embankment stands, exactly
- * where the ground clears the waterline. We ask for a full lip's worth of that
- * clearance (`EMB_LIP`, the same dry lip the stone is built to) at BOTH ends, so a
- * transitional edge — one foot on the shore, one in the water — stays open and
- * only true quayside is called embanked. This is the ONE definition of "embanked":
- * the barriers below key off it so they cannot drift from the embankment the mesh
- * draws (the stone skirt itself is laid on every edge regardless — it plugs the
- * daylight under a surface floating over a sloping bank, a separate job).
+ * sink?
+ *
+ * The bank has to stand proud of the waterline by a full lip (`EMB_LIP`, the same
+ * dry lip the stone is built to) at BOTH ends, so a transitional edge — one foot
+ * on the shore, one in the water — stays open. It must ALSO stay under the top of
+ * the railing, and that is the half this used to be missing: the lip and its rail
+ * are drawn at the WATERLINE (`level + EMB_LIP`, `RAIL_H` tall), so once the
+ * ground at the edge climbs past them the whole embankment is buried and there is
+ * nothing there to see — while the collision, which stands on the bank, went on
+ * walling the place off. That is an invisible wall, and a real one: an OSM water
+ * outline regularly runs across ground a coarse terrain tile puts metres above the
+ * waterline, and a player driving an ordinary street was shoved back by a rail
+ * four metres under his wheels (Paris, x -586.5 z -379.6, v0.148.1).
+ *
+ * So: embanked means the railing is genuinely there to be seen. Above its reach
+ * the edge is a mapping artefact, not a quayside, and gets nothing — you may drive
+ * in, fall, and sink, which is what happens on every other unwalled shore.
+ *
+ * This is the ONE definition of "embanked": the barriers key off it so they cannot
+ * drift from the embankment the mesh draws (the stone skirt itself is laid on
+ * every edge regardless — it plugs the daylight under a surface floating over a
+ * sloping bank, a separate job).
  */
 function embanksEdge(a: Vec2, b: Vec2, level: number, provider: ElevationProvider): boolean {
   const lip = level + EMB_LIP
-  return provider.heightAt(a.x, a.z) >= lip && provider.heightAt(b.x, b.z) >= lip
+  const railTop = lip + RAIL_H // above this the railing is underground: nothing to see
+  const ha = provider.heightAt(a.x, a.z)
+  const hb = provider.heightAt(b.x, b.z)
+  return ha >= lip && hb >= lip && ha < railTop && hb < railTop
 }
 
 /**

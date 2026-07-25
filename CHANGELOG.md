@@ -6,6 +6,22 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.148.3 — the invisible wall on the quay is gone
+- **Fixed: an ordinary road you could not drive along, and nothing to see.** The waterfront barrier
+  walled off a shore edge whenever the bank stood above the waterline — with **no upper bound**. But
+  the stone lip and its railing are drawn *at the waterline*, so as soon as the ground at that edge
+  climbed past them the whole embankment was **buried underground** while the collision, which stands
+  on the bank, went on blocking. An OSM water outline regularly runs across ground a coarse terrain
+  tile puts metres above the river, so a player on a perfectly ordinary street was shoved back by a
+  railing four metres under his wheels (reported in Paris at `x -586.5 z -379.6`, `y 33.4`, with the
+  new pause readout naming it: `solid: quay@1.3m top34.8`).
+- A shore edge is now embanked — and walled — only while the railing genuinely rises out of the
+  ground it stands on. Above that it is a mapping artefact, not a quayside, and gets nothing: you may
+  drive in, fall and sink, exactly as on every other open shore. In central Paris that takes the
+  barrier count from **1593 walls down to 25** — the 1568 that went were all invisible.
+- 👀 The spots that shoved you back near the river should just let you through now. Where a low
+  quayside railing IS drawn, it still stops the car — that is the one case you can see coming.
+
 ## v0.148.2 — the paused readout now names what is holding the car
 - An invisible wall is unfixable from a screenshot alone: the pose tells us *where*, never *what*. The
   **pause readout** (bottom-left) now adds the car's `y` and a second line naming every solid within
