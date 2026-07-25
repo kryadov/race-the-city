@@ -153,7 +153,9 @@ export function createHud(root: HTMLElement, initialUnits: Units = 'km'): Hud {
   const debug = document.createElement('div')
   debug.style.cssText =
     'font:11px ui-monospace,Consolas,monospace;color:rgba(120,230,160,.92);margin-top:3px;' +
-    'white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85);display:none'
+    // pre-line, not nowrap: the paused readout is two lines now — the pose, then
+    // what is solid around the car — and the second must not be swallowed.
+    'white-space:pre-line;text-shadow:0 1px 3px rgba(0,0,0,.85);display:none'
 
   const city = document.createElement('div')
   // Sits under the speedo now; a negative top pulls it up into the dial's empty

@@ -6,6 +6,18 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.148.2 — the paused readout now names what is holding the car
+- An invisible wall is unfixable from a screenshot alone: the pose tells us *where*, never *what*. The
+  **pause readout** (bottom-left) now adds the car's `y` and a second line naming every solid within
+  8 m by source and distance — `building`, `prop`, `pier`, `parked`, `quay` (the waterfront railing) —
+  with the height each stands to, plus a separate count of **movers** (traffic, people, trains) and the
+  height they sit at. If nothing at all is near, it says so — which is itself the answer.
+- Why: a reported invisible wall (Paris, x -599.6 z -382.5) could not be reproduced here — the same
+  city, the same OSM and the same build show **no collider within 80 m** of that spot, so the blocker
+  lives in something that differs between your session and mine (cached map data or terrain).
+- 👀 Drive into whatever stops you, hit **pause**, and screenshot the bottom-left readout. The second
+  line names the culprit — e.g. `solid: quay@0.8m top31.2 · building@6.4m | movers: 1@2.0m y36.5`.
+
 ## v0.148.1 — invisible walls under a bridge
 - **Fixed: an ordinary road you could not drive along.** Bots ride bridge decks (since v0.112.0), but
   every bot went on publishing its collision circle with **no height** — and the game judged those

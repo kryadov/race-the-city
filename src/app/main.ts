@@ -60,6 +60,7 @@ import { createTraffic, type Traffic } from './traffic'
 import { createPedestrians, type Pedestrians } from './pedestrians'
 import { createBoats, type Boats } from './boats'
 import { createLivingParking, type LivingParking } from './livingParking'
+import { describeSolids, type SolidSource } from './diagnose'
 import { createBuses, type Buses } from './buses'
 import { createTrafficLights, type TrafficLights } from '../world/trafficLights'
 import { createMotorcycles, type Motorcycles } from './motorcycles'
@@ -427,6 +428,9 @@ let occGrid = new SpatialGrid([], 25)
 const occHeight = new Map<import('../geo/types').Vec2[], number>()
 let car: CarState | null = null
 let grid = new SpatialGrid([], 25)
+// The same colliders the grid was fed, kept labelled by source so the paused HUD
+// can name what is holding the car (see describeSolids). References only.
+let solidSources: SolidSource[] = []
 let provider: ElevationProvider = new FlatProvider()
 // After grid and provider, never above them: this reads both, and a `let`
 // declared further down is still in its temporal dead zone at module scope. The
@@ -723,21 +727,30 @@ async function loadCity(query: string): Promise<void> {
     // Parked cars are solid to the player too (bots already avoid them) — a
     // rotated box each, height-gated so a jump clears them.
     const parkedColliders = parkedCarColliders(parkedCarList)
+    const propFps = propFootprints(world.props)
+    const propTps = propTops(world.props, provider)
     grid = new SpatialGrid(
       archways.footprints.concat(
-        propFootprints(world.props),
+        propFps,
         piers.footprints,
         parkedColliders.footprints,
         waterWalls.footprints,
       ),
       25,
       archways.tops.concat(
-        propTops(world.props, provider),
+        propTps,
         piers.tops,
         parkedColliders.tops,
         waterWalls.tops,
       ),
     )
+    solidSources = [
+      { name: 'building', polys: archways.footprints, tops: archways.tops },
+      { name: 'prop', polys: propFps, tops: propTps },
+      { name: 'pier', polys: piers.footprints, tops: piers.tops },
+      { name: 'parked', polys: parkedColliders.footprints, tops: parkedColliders.tops },
+      { name: 'quay', polys: waterWalls.footprints, tops: waterWalls.tops },
+    ]
     // On the nearest road, not on the spot the geocoder named: a geocoder names
     // a place, and Tokyo's is a building — you started inside it, against a wall.
     const start = startPose(
@@ -965,7 +978,7 @@ async function loadCity(query: string): Promise<void> {
         // ground under them is the wrong answer — that was an invisible wall across
         // the street beneath a bridge); the terrain is only the fallback.
         const carY = car.y // local const: a closure over the mutable `car` would de-narrow it
-const hazards: Circle[] = hittable(
+        const hazards: Circle[] = hittable(
           [
             ...(traffic?.obstacles() ?? []),
             ...(buses?.obstacles() ?? []),
@@ -1062,10 +1075,16 @@ const hazards: Circle[] = hittable(
         hud.setRpm(revs.rpm())
         odometer += Math.hypot(car.vx, car.vz) * dt // ground distance travelled
         hud.setDistance(odometer)
-        // Paused? Surface the exact pose so a bug screenshot is reproducible.
+        // Paused? Surface the exact pose so a bug screenshot is reproducible — and
+        // WHAT is solid around the car, by name. "I'm stuck and there's nothing
+        // there" is unfixable from a screenshot alone: this says whether a wall is
+        // holding you (and which kind — a quay rail reads very differently from a
+        // building) or a bot you cannot see, or genuinely nothing at all.
         hud.setDebug(
           pause.paused()
-            ? `x ${car.x.toFixed(1)}  z ${car.z.toFixed(1)}  ${Math.round((((car.heading * 180) / Math.PI) % 360 + 360) % 360)}°`
+            ? `x ${car.x.toFixed(1)}  z ${car.z.toFixed(1)}  ${Math.round((((car.heading * 180) / Math.PI) % 360 + 360) % 360)}°  y ${car.y.toFixed(1)}
+` +
+              describeSolids(car.x, car.z, solidSources, hazards)
             : null,
         )
         // Parked and hands off? The engine fades out after a few seconds.
