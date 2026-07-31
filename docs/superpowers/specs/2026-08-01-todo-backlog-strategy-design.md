@@ -150,7 +150,7 @@ scale, keep emergency vehicles.
 1 release. Flagged: bloom + water reflections are the frame-rate risks;
 measure before committing.
 
-#### Wave 7 — Structural: measurement & data
+#### Wave 6 — Structural: measurement & data
 - **Elevation exaggerated** (`:565`) — headless Chrome fetch comparing
   `heightAt` range vs known ground truth for SPb/Helsinki. Determines: source
   problem (Terrarium artifacts) vs look problem (flat-shading dramatises).
@@ -159,7 +159,7 @@ measure before committing.
 
 1 release. (Former Wave 7, renumbered after Wave 6 dissolved.)
 
-#### Wave 8 — Platform: offline
+#### Wave 7 — Platform: offline
 - **Offline packs / PWA** (`:463`) — service worker for app shell + on-demand
   offline cache of OSM (already IndexedDB) and terrain tiles. "Download for
   offline" action. ODbL question for store-build redistribution (on-demand
@@ -167,7 +167,7 @@ measure before committing.
 
 Separate release. Brainstorm first.
 
-#### Wave 9 — Platform: analytics + multiplayer
+#### Wave 8 — Platform: analytics + multiplayer
 - **Analytics backend** (`:209`) — brainstorm free-tier options (not
   necessarily AWS), privacy/GDPR, could double as multiplayer transport.
 - **LAN multiplayer** (`:483`) — WebRTC P2P + signaling, or optional local
@@ -185,9 +185,9 @@ Wave 0 (cleanup)
             └→ Wave 3 (city life)
                  └→ Wave 4 (map scale + emergency vehicles)
                       └→ Wave 5 (polish)
-                           └→ Wave 7 (measurement & data)
-                                └→ Wave 8 (offline/PWA)
-                                     └→ Wave 9 (analytics + multiplayer)
+                           └→ Wave 6 (measurement & data)
+                                └→ Wave 7 (offline/PWA)
+                                     └→ Wave 8 (analytics + multiplayer)
 ```
 
 ### Items not placed in any wave
@@ -203,5 +203,5 @@ Wave 0 (cleanup)
 ## Implementation
 
 Each wave gets its own spec → plan → implementation cycle. Wave 0 (cleanup)
-is documentation-only and proceeds directly to `writing-plans`. Waves 8 and 9
+is documentation-only and proceeds directly to `writing-plans`. Waves 7 and 8
 require a fresh brainstorm before spec.
