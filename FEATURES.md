@@ -49,7 +49,8 @@ banks in corners.
 ## Where you drive
 
 - **Search any city** by name, or `City, Country`, or `lat,lon` for an exact spot.
-- **🎲 Random city** — a curated list across the world's regions.
+- **🎲 Random city** — a curated list of over 100 cities, picked region-first so the whole world
+  gets a turn.
 - **Shareable link** — the city rides in the URL (`?city=…`), so a link drops someone into the
   same place.
 - **Session saved** — your city, car and pose are remembered; a reset-location button puts you
