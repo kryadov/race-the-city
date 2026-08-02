@@ -6,6 +6,17 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.149.0 — the dice reach further: 21 new cities
+- **The 🎲 random-city list grows from 85 to 106**, every region wider. Europe gains Valencia,
+  Naples, Hamburg, Stockholm and Berlin; Russia gains Nizhny Novgorod and Samara; Asia gains
+  Fukuoka, Guangzhou, Kolkata and Manila; the Middle East gains Riyadh, Muscat and Bishkek;
+  Africa gains Kigali, Dakar and Addis Ababa; the Americas gain Denver, Austin and Quito; Oceania
+  gains Perth.
+- The roll still picks a **region first**, so a longer list doesn't tilt the world — it just means
+  more places behind each region's turn.
+- 👀 Hit 🎲 a few times from the start menu: you should land somewhere new far more often, and
+  never twice in a row on the same continent-heavy handful.
+
 ## v0.148.3 — the invisible wall on the quay is gone
 - **Fixed: an ordinary road you could not drive along, and nothing to see.** The waterfront barrier
   walled off a shore edge whenever the bank stood above the waterline — with **no upper bound**. But

@@ -30,6 +30,27 @@ describe('the city list', () => {
   it('has no empty region', () => {
     for (const r of CITY_REGIONS) expect(r.length).toBeGreaterThan(0)
   })
+
+  it('has at least 100 cities across the regions', () => {
+    expect(RANDOM_CITIES.length).toBeGreaterThanOrEqual(100)
+  })
+
+  it('includes the newly added cities', () => {
+    for (const must of [
+      'Valencia, Spain',
+      'Hamburg, Germany',
+      'Nizhny Novgorod, Russia',
+      'Fukuoka, Japan',
+      'Kolkata, India',
+      'Riyadh, Saudi Arabia',
+      'Addis Ababa, Ethiopia',
+      'Denver, USA',
+      'Quito, Ecuador',
+      'Perth, Australia',
+    ]) {
+      expect(RANDOM_CITIES, must).toContain(must)
+    }
+  })
 })
 
 describe('pickRandomCity', () => {
