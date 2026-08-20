@@ -82,11 +82,17 @@ interface Room {
   v: 1
   city: string // the host's city query — the guest loads exactly this
   seed: number // world seed (see below)
-  weather: WeatherSetting
-  timeMode: TimeMode
+  weather: 'clear' | 'rain' | 'snow' | 'fog' // the host's RESOLVED weather, never 'auto'
+  timeMode: 'cycle' | 'day' | 'night'
+  time: number // day/night phase 0..1 when the code was made
   sdp: string // offer (room code) or answer (answer code)
 }
 ```
+
+The weather is resolved rather than passed as a `WeatherSetting`: `'auto'` cycles on a timer, so
+two clients sharing the *setting* would end up under different skies. `time` pins the sun to the
+same starting point for the same reason. The union is spelled out inside `src/net/roomCode.ts`
+rather than imported from `src/app/weather.ts`, because `src/net/` must not depend on `src/app/`.
 
 ## The shared world, via the seed
 
