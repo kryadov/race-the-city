@@ -161,6 +161,22 @@ import {
   TURN_LEFT_MAT,
   TURN_RIGHT_MAT,
 } from '../vehicle/model'
+import { randomSeed, stream } from './worldSeed'
+
+/**
+ * This session's world seed. A fresh random one when playing alone; replaced by
+ * the host's seed when joining a LAN room, so both players get the same scatter.
+ */
+let worldSeed = randomSeed()
+/** A per-layer generator. Layers are independent so a density difference can't desync them. */
+const rnd = (layer: string): (() => number) => stream(worldSeed, layer)
+/** Set before a city loads when joining a room. */
+function setWorldSeed(seed: number): void {
+  worldSeed = seed
+}
+// Not called yet — a later task wires this to the network "hello" handler. Referenced
+// here only to keep it live under `noUnusedLocals` until that call site lands.
+void setWorldSeed
 
 const RADIUS = 1000
 // The drivable edge. The world is built from a ±RADIUS *square* bbox, so the
@@ -263,11 +279,11 @@ let fuelUse = getFuelUse() // when off, the tank never drains — no running dry
 let fuelRate = getFuelRate() // a menu multiplier on the per-vehicle burn (1 = default)
 const flame = createNitroFlame()
 let density: Density = getDensity()
-const sky2 = createAircraft(stage.scene, Math.random, gapFor(density, 1))
+const sky2 = createAircraft(stage.scene, rnd('aircraft'), gapFor(density, 1))
 let lastPerches: TreePerch[] = []
 /** Where a bird may land: the ground, a tree, or a roof — all of which move city to city. */
 const makeBirds = (): ReturnType<typeof createBirds> =>
-  createBirds(stage.scene, Math.random, countFor(density, 8), provider, lastPerches, (x, z) =>
+  createBirds(stage.scene, rnd('birds'), countFor(density, 8), provider, lastPerches, (x, z) =>
     roofUnder(x, z, grid),
   )
 let trains: Trains | null = null
@@ -660,12 +676,12 @@ async function loadCity(query: string): Promise<void> {
     const parkedCarList = collectParkedCars(world.parking, parkedRng(PARKED_SEED))
     const propsMesh = buildProps(world.props, provider)
     // Benches along the embankments, facing the water — someone always sat on them.
-    const watersideBenches = watersideBenchSpots(world.water, world.waterHoles, RADIUS, Math.random)
-    const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider, Math.random, world.water, world.waterHoles, watersideBenches)
+    const watersideBenches = watersideBenchSpots(world.water, world.waterHoles, RADIUS, rnd('watersideBenches'))
+    const furnitureMesh = buildStreetFurniture(world.benches, world.busStops, world.roads, provider, rnd('streetFurniture'), world.water, world.waterHoles, watersideBenches)
     const poiMesh = buildPoiMarkers(world.pois, provider)
     const { object: greenMesh, perches: greenPerches } = buildGreenery(world.green, world.trees, provider, center.lat, world.forests, world.props.map((p) => p.at)) // keep trees off statues/fountains
     // Fill the bare ground between buildings with the odd bench and clump of trees.
-    const infillMesh = buildInfill(world.buildings, world.roads, world.trees, world.water, provider, Math.random)
+    const infillMesh = buildInfill(world.buildings, world.roads, world.trees, world.water, provider, rnd('infill'))
     const seaMesh = buildSea(world.coast, RADIUS, provider)
     ground.receiveShadow = true
     roadsMesh.receiveShadow = true
@@ -793,28 +809,28 @@ async function loadCity(query: string): Promise<void> {
     carPickups.setSpots(scatterOn, provider, car.x, car.z) // pickable cars for arcade mode
     hud.setDistance(odometer)
     trains?.dispose() // the outgoing city's trains ran on its railways
-    trains = createTrains(stage.scene, world.railways, provider, Math.random, countFor(density, 5), world.roads)
+    trains = createTrains(stage.scene, world.railways, provider, rnd('trains'), countFor(density, 5), world.roads)
     // Traffic lights first: the traffic reads them so a bot holds at a red and
     // goes on green (the light phase is a free-running function of the clock, plus
     // a per-car max-wait fail-safe, so a mistimed signal can't gridlock the city).
     trafficLights?.dispose()
-    trafficLights = createTrafficLights(stage.scene, world.roads, provider, Math.random, countFor(density, 5))
+    trafficLights = createTrafficLights(stage.scene, world.roads, provider, rnd('trafficLights'), countFor(density, 5))
     traffic?.dispose()
-    traffic = createTraffic(stage.scene, world.roads, provider, Math.random, crowdFor(density, 16), parkedCarList, decks, trafficLights)
+    traffic = createTraffic(stage.scene, world.roads, provider, rnd('traffic'), crowdFor(density, 16), parkedCarList, decks, trafficLights)
     people?.dispose()
-    people = createPedestrians(stage.scene, world.roads, provider, Math.random, crowdFor(density, 22), world.water, center.lat, decks, world.waterHoles)
+    people = createPedestrians(stage.scene, world.roads, provider, rnd('pedestrians'), crowdFor(density, 22), world.water, center.lat, decks, world.waterHoles)
     boats?.dispose()
-    boats = createBoats(stage.scene, world.water, provider, Math.random, countFor(density, 4), world.waterHoles)
+    boats = createBoats(stage.scene, world.water, provider, rnd('boats'), countFor(density, 4), world.waterHoles)
     livingParking?.dispose()
     // A few lots come alive: cars drive in/out of their bays, all motion kept
     // inside the lot polygon (never onto a road), atop the static parked cars.
-    livingParking = createLivingParking(stage.scene, world.parking, provider, Math.random)
+    livingParking = createLivingParking(stage.scene, world.parking, provider, rnd('livingParking'))
     buses?.dispose()
-    buses = createBuses(stage.scene, world.roads, world.busStops, provider, Math.random, countFor(density, 4))
+    buses = createBuses(stage.scene, world.roads, world.busStops, provider, rnd('buses'), countFor(density, 4))
     motorcycles?.dispose()
-    motorcycles = createMotorcycles(stage.scene, world.roads, provider, Math.random, countFor(density, 4))
+    motorcycles = createMotorcycles(stage.scene, world.roads, provider, rnd('motorcycles'), countFor(density, 4))
     cyclists?.dispose()
-    cyclists = createCyclists(stage.scene, world.roads, provider, Math.random, countFor(density, 4))
+    cyclists = createCyclists(stage.scene, world.roads, provider, rnd('cyclists'), countFor(density, 4))
     herds?.dispose()
     herds = createLivestock(stage.scene, world.fields, provider)
     theme.refreshMovers() // the fresh crowd/traffic is day-styled — re-flip it if we're in neon
@@ -1412,24 +1428,24 @@ const menu = createMenu(
       // heavier way to do it.
       if (!car) return
       trains?.dispose()
-      trains = createTrains(stage.scene, lastRailways, provider, Math.random, countFor(density, 5), lastRoads)
+      trains = createTrains(stage.scene, lastRailways, provider, rnd('trains'), countFor(density, 5), lastRoads)
       // Lights before traffic: the bots obey them (see the load path above).
       trafficLights?.dispose()
-      trafficLights = createTrafficLights(stage.scene, lastRoads, provider, Math.random, countFor(density, 5))
+      trafficLights = createTrafficLights(stage.scene, lastRoads, provider, rnd('trafficLights'), countFor(density, 5))
       traffic?.dispose()
-      traffic = createTraffic(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 16), lastParkedCars, decks, trafficLights)
+      traffic = createTraffic(stage.scene, lastRoads, provider, rnd('traffic'), crowdFor(density, 16), lastParkedCars, decks, trafficLights)
       people?.dispose()
-      people = createPedestrians(stage.scene, lastRoads, provider, Math.random, crowdFor(density, 22), lastWater, lastLat, decks, lastWaterHoles)
+      people = createPedestrians(stage.scene, lastRoads, provider, rnd('pedestrians'), crowdFor(density, 22), lastWater, lastLat, decks, lastWaterHoles)
       boats?.dispose()
-      boats = createBoats(stage.scene, lastWater, provider, Math.random, countFor(density, 4), lastWaterHoles)
+      boats = createBoats(stage.scene, lastWater, provider, rnd('boats'), countFor(density, 4), lastWaterHoles)
       livingParking?.dispose()
-      livingParking = createLivingParking(stage.scene, lastParking, provider, Math.random)
+      livingParking = createLivingParking(stage.scene, lastParking, provider, rnd('livingParking'))
       buses?.dispose()
-      buses = createBuses(stage.scene, lastRoads, lastBusStops, provider, Math.random, countFor(density, 4))
+      buses = createBuses(stage.scene, lastRoads, lastBusStops, provider, rnd('buses'), countFor(density, 4))
       motorcycles?.dispose()
-      motorcycles = createMotorcycles(stage.scene, lastRoads, provider, Math.random, countFor(density, 4))
+      motorcycles = createMotorcycles(stage.scene, lastRoads, provider, rnd('motorcycles'), countFor(density, 4))
       cyclists?.dispose()
-      cyclists = createCyclists(stage.scene, lastRoads, provider, Math.random, countFor(density, 4))
+      cyclists = createCyclists(stage.scene, lastRoads, provider, rnd('cyclists'), countFor(density, 4))
       theme.refreshMovers() // density rebuild puts fresh, day-styled movers in — re-flip if neon
       birds.dispose()
       birds = makeBirds()
