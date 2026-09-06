@@ -172,6 +172,9 @@ holiday fireworks, pedestrians on bridge decks. (In flight: railway platforms+bo
       area is 4× the OSM + geometry, so it MUST stay performant — lean on the existing per-type caps,
       subsample/LOD distant detail, and cull. Ties into the São Paulo bbox/query work. Measure frame
       time before/after. Design carefully before building — likely a brainstorm item.
+      **Research note: `docs/bigger-map.md`** — measured OSM growth (São Paulo ×4.9, Prague ×3.4,
+      Suzdal ×2.1 at r=2000 vs 1000), why a plain `RADIUS` bump fails (merged building meshes are
+      never frustum-culled), and the order the work pays off in.
 - [x] **BUG — benches gone from streets** — across several cities the user no longer sees any
       street benches (park ones may be ok). Regression suspect: `streetFurniture.ts` roadside
       placement caps/`nearestRoad`/ROADSIDE_DIST — check they're actually being placed and drawn
