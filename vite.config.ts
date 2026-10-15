@@ -16,9 +16,9 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 700,
-    rollupOptions: {
+    rolldownOptions: {
       // Split Three.js into its own long-cached vendor chunk.
-      output: { manualChunks: { three: ['three'] } },
+      output: { codeSplitting: { groups: [{ name: 'three', test: /node_modules[\/]three[\/]/ }] } },
     },
   },
   test: { globals: true, environment: 'node' },
