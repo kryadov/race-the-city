@@ -15,7 +15,7 @@ import { spawn } from 'node:child_process'
 import { extname, join } from 'node:path'
 
 const DIST = 'dist'
-const PORT = 4319
+const PORT = Number(process.env.BOOT_CHECK_PORT) || 4319
 // charset matters: without it the browser decodes the page as latin-1 and the
 // gear character we compare against arrives as mojibake.
 const TYPES = {

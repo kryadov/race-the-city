@@ -6,6 +6,16 @@ you play-test that version.
 > Keep this current: every release adds an entry here in the same change as the version bump
 > (see AGENTS.md). The recent entries carry a "what to look for" so a new feature is easy to find.
 
+## v0.149.1 — security: dev toolchain off vulnerable versions
+- **`npm audit` is clean (was 9: 2 critical, 3 high, 4 moderate)** — all in the dev/build toolchain;
+  the shipped game (`three`) was never affected. Vite 5 → 8 (esbuild dev-server request leak),
+  Vitest 2 → 5 (tinypool prototype-pollution RCE, @vitest/mocker path traversal), plus the
+  transitive nanoid / postcss / source-map-js fixes.
+- Vite 8 bundles with Rolldown: the Three.js vendor chunk moved from `rollupOptions.manualChunks`
+  to `rolldownOptions.output.codeSplitting`, so `three-*.js` is still its own long-cached file.
+- `npm run boot-check` takes `BOOT_CHECK_PORT` so two checkouts can run it side by side.
+- 👀 Nothing should look different — the game loads and plays exactly as v0.149.0.
+
 ## v0.149.0 — the dice reach further: 21 new cities
 - **The 🎲 random-city list grows from 85 to 106**, every region wider. Europe gains Valencia,
   Naples, Hamburg, Stockholm and Berlin; Russia gains Nizhny Novgorod and Samara; Asia gains
