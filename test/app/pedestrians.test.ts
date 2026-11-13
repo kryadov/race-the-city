@@ -136,7 +136,8 @@ describe('walking an island in a river', () => {
     let n = 0
     for (let i = 0; i < bodies.count; i++) {
       bodies.getMatrixAt(i, m)
-      m.decompose(new THREE.Vector3(), new THREE.Quaternion(), s)
+      // decompose() reports scale 1 for a zero-scale (hidden) matrix since three r186; read the column lengths.
+      s.setFromMatrixScale(m)
       if (s.x > 0.5) n++
     }
     return n
