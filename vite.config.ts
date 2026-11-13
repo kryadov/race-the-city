@@ -18,7 +18,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
     rollupOptions: {
       // Split Three.js into its own long-cached vendor chunk.
-      output: { manualChunks: { three: ['three'] } },
+      // Vite 8 (rolldown) accepts only the function form of manualChunks.
+      output: { manualChunks: (id: string) => (id.includes('/node_modules/three/') ? 'three' : undefined) },
     },
   },
   test: { globals: true, environment: 'node' },
