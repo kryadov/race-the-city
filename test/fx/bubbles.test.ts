@@ -27,7 +27,9 @@ function liveYs(scene: THREE.Scene): number[] {
   const ys: number[] = []
   for (let i = 0; i < mesh.count; i++) {
     mesh.getMatrixAt(i, m)
-    m.decompose(pos, new THREE.Quaternion(), scl)
+    pos.setFromMatrixPosition(m)
+    // decompose() reports scale 1 for a zero-scale (hidden) matrix since three r186; read the column lengths.
+    scl.setFromMatrixScale(m)
     if (scl.x > 1e-4) ys.push(pos.y)
   }
   return ys

@@ -231,7 +231,8 @@ describe('girls in skirts', () => {
     const m = new THREE.Matrix4()
     const scale = new THREE.Vector3()
     mesh.getMatrixAt(i, m)
-    m.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale)
+    // decompose() reports scale 1 for a zero-scale (hidden) matrix since three r186; read the column lengths.
+    scale.setFromMatrixScale(m)
     return scale.length() > 0.01
   }
 
